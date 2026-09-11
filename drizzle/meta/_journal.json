@@ -1,0 +1,48 @@
+{
+  "version": "7",
+  "dialect": "postgresql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "7",
+      "when": 1789120083043,
+      "tag": "0000_past_mikhail_rasputin",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1789120114984,
+      "tag": "0001_search_indexes",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1789120843207,
+      "tag": "0002_milestone_occurrence",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1789123175349,
+      "tag": "0003_audit_survives_erasure",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1789123206723,
+      "tag": "0004_audit_allows_reference_clear",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1789155303530,
+      "tag": "0005_lock_out_postgrest",
+      "breakpoints": true
+    }
+  ]
+}
