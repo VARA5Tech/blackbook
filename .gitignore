@@ -16,9 +16,13 @@
 # next.js
 /.next/
 /out/
+next-env.d.ts
 
 # production
 /build
+
+# typescript
+*.tsbuildinfo
 
 # misc
 .DS_Store
@@ -30,16 +34,13 @@ yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
 
-# env files (can opt-in for committing if needed)
-.env*
-
-# vercel
-.vercel
-
-# typescript
-*.tsbuildinfo
-next-env.d.ts
-
-# local env
-.env.local
+# Environment. Real values never get committed, but the template must be, or
+# nobody knows what the application needs.
 .env
+.env.*
+!.env.example
+
+# Derived from drizzle/*.sql by `pnpm db:bundle`. Deliberately not committed: a
+# stale copy of the whole schema is worse than no copy, because it looks
+# authoritative. Regenerate it when you need it.
+drizzle/schema-bundle.sql
