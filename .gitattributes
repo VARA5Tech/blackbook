@@ -1,0 +1,9 @@
+# Shell scripts must be LF in the repository and in the image.
+#
+# They are authored on Windows, and a CRLF line ending on the shebang line
+# makes the kernel look for an interpreter called "/bin/sh", which fails with
+# a bare "no such file or directory" that names the file, not the ending.
+*.sh text eol=lf
+
+# SQL is read by psql and by the migrator; keep it stable across platforms.
+*.sql text eol=lf

@@ -33,7 +33,24 @@ export function getModel(): LanguageModel {
     },
   });
 
-  return openrouter.chat(getModelId());
+  return openrouter.chat(getModelId(), {
+    /**
+     * Reasoning off by default.
+     *
+     * A briefing restates facts already in the record in a readable order. It
+     * is extraction, not deduction, and measured on this exact task the model
+     * spent 960 of 1100 output tokens thinking before writing anything: nine
+     * times the cost and three times the wait, for output no better than
+     * without it. Worse for a button someone is watching, since reasoning
+     * tokens do not stream, so the dialog sits blank throughout.
+     *
+     * Set AI_REASONING=true to turn it back on for a model or a task that
+     * genuinely needs it.
+     */
+    extraBody: {
+      reasoning: { enabled: process.env.AI_REASONING === "true" },
+    },
+  });
 }
 
 export class AiNotConfiguredError extends Error {

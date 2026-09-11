@@ -75,11 +75,22 @@ the source requirements live in `docs/`.
   anything readable in `public` is reachable over HTTP with the anon key. The
   app connects as the table owner, which bypasses RLS, so this is invisible to
   it. **A new table needs the same treatment in its migration.**
+- **The container health check must never touch the database.** Swarm kills and
+  reschedules unhealthy tasks, so a database-dependent probe becomes a restart
+  loop that serves 502s and hides the cause. Liveness is `/api/health/live` and
+  checks nothing; readiness is `/api/health`.
+- Shell scripts are LF via `.gitattributes`. A CRLF shebang makes the kernel
+  look for `/bin/sh
+` and fail with a message that names the file, not the
+  ending.
 - **Do not turn session cookie caching back on.** It caches the role, so a
   demoted or suspended user keeps their access until it expires.
 - **Accounts cannot be created with SQL.** Better Auth owns password hashing, so
   every account is made in-process: `/setup` for the first administrator, Team
   for everyone after. `/setup` is open only while no account exists.
+- **Supabase's API is not a substitute for the connection string.** The service
+  key and URL reach PostgREST; this application needs SQL, for transactions,
+  migrations, `tsvector` ranking and trigram search. Do not add `supabase-js`.
 - **`DEV_DATABASE_URL` is local, `DATABASE_URL` is live.** Nothing falls back
   between them. Local commands use the first; only `db:*:prod` uses the second.
   The test suite and the seed refuse any non-local host.

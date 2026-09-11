@@ -66,15 +66,22 @@ COPY --from=build --chown=node:node /app/scripts/start.sh ./scripts/start.sh
 COPY --from=build --chown=node:node /migrator/node_modules/drizzle-orm ./node_modules/drizzle-orm
 COPY --from=build --chown=node:node /migrator/node_modules/postgres ./node_modules/postgres
 
-RUN sed -i 's/$//' scripts/start.sh && chmod +x scripts/start.sh
+# .gitattributes keeps shell scripts LF, so only the bit needs setting.
+RUN chmod +x scripts/start.sh
 
 USER node
 EXPOSE 3000
 
-# Dokploy polls this. It reports unhealthy when the database is unreachable, so
-# a bad connection string fails the deployment instead of serving broken pages.
-HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
-  CMD node -e "fetch('http://127.0.0.1:3000/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
+# Liveness only, on purpose.
+#
+# The orchestrator kills and reschedules an unhealthy task, so this must ask
+# whether the process is serving and nothing more. Pointing it at the database
+# turned an unreachable database into a restart loop: the container never
+# stayed up long enough to be routed to, the proxy had no backend, and the real
+# error was buried under the churn. Readiness, including the database, is
+# /api/health, which nothing restarts on.
+HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --retries=3 \
+  CMD node -e "fetch('http://127.0.0.1:3000/api/health/live').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
 
 # Set RUN_MIGRATIONS_ON_BOOT=true to apply migrations before the server starts.
 # A failure there aborts the boot rather than serving a half-applied schema.

@@ -106,9 +106,15 @@ in a developer's `.env.local` so migrations can be applied from a laptop.
 ## Deploying
 
 The image is a standard multi-stage Docker build producing Next's standalone
-output. It runs unprivileged and exposes a health check at `/api/health` that
-reports unhealthy when the database is unreachable, so a bad connection string
-fails the deployment rather than serving broken pages.
+output, and runs unprivileged.
+
+Two health endpoints, and the distinction matters. `/api/health/live` checks
+nothing and is what the container health check calls: an orchestrator kills and
+reschedules an unhealthy task, so that probe must only ask whether the process
+is serving. `/api/health` reports the database and is for you and for
+monitoring. Restarting a container does not make a database reachable, and a
+probe that conflates the two turns a bad connection string into a restart loop
+that serves 502s and hides the cause.
 
 Environment the running container needs:
 

@@ -3,7 +3,7 @@ import { requireCapability } from "@/auth/session";
 import { getModel } from "@/ai/model";
 import { displayName } from "@/domain/customers";
 import { getClient360 } from "@/services/client-service";
-import { KIND_LABELS, POLARITY_LABELS } from "@/domain/preferences";
+import { KIND_LABELS, POLARITY_LABELS, scalarLabel } from "@/domain/preferences";
 import { daysSince, formatDate, humanise } from "@/lib/format";
 import { DomainError } from "@/services/client-service";
 
@@ -111,7 +111,9 @@ function renderRecord(record: NonNullable<Awaited<ReturnType<typeof getClient360
     if (scalars.length > 0) {
       lines.push("", "Travel profile:");
       for (const [label, value] of scalars) {
-        lines.push(`- ${label}: ${humanise(String(value))}`);
+        // The reader-facing label, not the stored enum. Passing "25l_50l"
+        // through meant the model repeated it verbatim in the briefing.
+        lines.push(`- ${label}: ${scalarLabel(String(value))}`);
       }
     }
 

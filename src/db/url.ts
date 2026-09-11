@@ -30,21 +30,47 @@ export function resolveRuntimeDatabaseUrl(
 ): string {
   if (env.NODE_ENV === "production") {
     const url = env.DATABASE_URL;
-    if (!url) {
-      throw new DatabaseUrlError(
-        "DATABASE_URL is not set. Production requires it.",
-      );
-    }
+    if (!url) throw missingDatabaseUrl(env);
     return url;
   }
 
   const url = env.DEV_DATABASE_URL ?? env.DATABASE_URL;
-  if (!url) {
-    throw new DatabaseUrlError(
-      "Neither DEV_DATABASE_URL nor DATABASE_URL is set. Copy .env.example to .env.local.",
+  if (!url) throw missingDatabaseUrl(env);
+  return url;
+}
+
+/**
+ * Names the problem precisely, because the obvious guess is wrong.
+ *
+ * Blackbook speaks SQL to Postgres directly. Supabase's URL and service key
+ * reach PostgREST, which is a different thing entirely: no transactions across
+ * statements, no `tsvector` ranking, no trigram search, no migrations, and no
+ * adapter for the auth library. Every one of those is load-bearing here, so
+ * setting the Supabase API variables and omitting the connection string leaves
+ * the application with nothing to talk to. Saying so beats a connection error.
+ */
+function missingDatabaseUrl(env: NodeJS.ProcessEnv): DatabaseUrlError {
+  const hasSupabaseApi = Boolean(env.SUPABASE_URL ?? env.SUPABASE_SERVICE_KEY);
+
+  if (hasSupabaseApi) {
+    return new DatabaseUrlError(
+      [
+        "DATABASE_URL is not set, but SUPABASE_URL is.",
+        "Those are not interchangeable. This application connects to Postgres",
+        "directly and runs its own SQL; the Supabase URL and service key reach",
+        "PostgREST, which cannot run transactions, migrations or the search",
+        "queries this depends on.",
+        "Set DATABASE_URL to a Postgres connection string. Inside the Supabase",
+        "stack's Docker network that is the database container on port 5432.",
+      ].join("\n"),
     );
   }
-  return url;
+
+  return new DatabaseUrlError(
+    env.NODE_ENV === "production"
+      ? "DATABASE_URL is not set. Production requires a Postgres connection string."
+      : "Neither DEV_DATABASE_URL nor DATABASE_URL is set. Copy .env.example to .env.local.",
+  );
 }
 
 /** The URL a command-line tool should use for the given target. */
