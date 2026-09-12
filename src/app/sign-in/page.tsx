@@ -1,14 +1,8 @@
 import type { Metadata } from "next";
 import Image from "next/image";
-import { redirect } from "next/navigation";
-import { logger } from "@/lib/logger";
-import { needsSetup } from "@/services/setup-service";
 import { SignInForm } from "./sign-in-form";
 
 export const metadata: Metadata = { title: "Sign in" };
-
-// Asks the database whether any account exists, on every request.
-export const dynamic = "force-dynamic";
 
 export default async function SignInPage({
   searchParams,
@@ -17,26 +11,6 @@ export default async function SignInPage({
 }) {
   const params = await searchParams;
   const next = typeof params.next === "string" ? params.next : "/";
-
-  /**
-   * A brand new instance has no account to sign in with, and every route sends
-   * an unauthenticated visitor here. Without this, the first thing anyone sees
-   * on a fresh deployment is a login form that cannot possibly work, and
-   * `/setup` is reachable only by knowing to type it.
-   *
-   * Swallowing the error is deliberate. If the database is unreachable this
-   * page is the one thing still proving the application is up, and replacing it
-   * with a stack trace would hide that. The reason goes to the log instead.
-   */
-  let setupNeeded = false;
-  try {
-    setupNeeded = await needsSetup();
-  } catch (error) {
-    logger.error("sign_in.setup_check_failed", error);
-  }
-  // Outside the catch: `redirect` signals by throwing, and swallowing that
-  // would turn the redirect into a silently rendered sign-in form.
-  if (setupNeeded) redirect("/setup");
 
   return (
     <main className="grid min-h-dvh lg:grid-cols-[1.1fr_1fr]">

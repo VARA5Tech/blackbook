@@ -4,7 +4,7 @@ import {
   assertSafeToMutate,
   isProductionUrl,
   resolveRuntimeDatabaseUrl,
-  resolveToolDatabaseUrl,
+  resolveDevDatabaseUrl,
 } from "@/db/url";
 import { logger } from "@/lib/logger";
 
@@ -21,7 +21,7 @@ import { logger } from "@/lib/logger";
 
 const LOCAL = "postgresql://vara5:pw@localhost:5433/vara5_crm";
 const CONTAINER = "postgresql://postgres:pw@crm-supabase-ndzmpz-db-1:5432/postgres";
-const TUNNEL = "postgresql://postgres:pw@127.0.0.1:6543/postgres";
+const LOOKS_LOCAL = "postgresql://postgres:pw@127.0.0.1:6543/postgres";
 
 /**
  * Builds an environment to resolve against. Every resolver takes one as an
@@ -33,32 +33,25 @@ function env(values: Record<string, string>): NodeJS.ProcessEnv {
 }
 
 describe("database target resolution", () => {
-  it("keeps the tunnel out of the application's own resolution", () => {
-    // The running app has no tunnel case at all: a forwarded port on a laptop
-    // must never be able to become the production connection.
+  it("uses DATABASE_URL in production and nothing else", () => {
     const resolved = resolveRuntimeDatabaseUrl(
-      env({
-        NODE_ENV: "production",
-        DATABASE_URL: CONTAINER,
-        PROD_TUNNEL_DATABASE_URL: TUNNEL,
-      }),
+      env({ NODE_ENV: "production", DATABASE_URL: CONTAINER }),
     );
     expect(resolved).toBe(CONTAINER);
   });
 
-  it("prefers the tunnel for a production command-line target", () => {
-    // The container name does not resolve off the server, so a tool asking for
-    // production from a laptop wants the tunnel when one is configured.
-    const resolved = resolveToolDatabaseUrl(
-      "production",
-      env({ DATABASE_URL: CONTAINER, PROD_TUNNEL_DATABASE_URL: TUNNEL }),
+  it("prefers the development database outside production", () => {
+    // The resolver preferring DATABASE_URL here once let the test suite
+    // truncate a developer's own data.
+    const resolved = resolveRuntimeDatabaseUrl(
+      env({ DATABASE_URL: CONTAINER, DEV_DATABASE_URL: LOCAL }),
     );
-    expect(resolved).toBe(TUNNEL);
+    expect(resolved).toBe(LOCAL);
   });
 
   it("never falls back from development to production", () => {
     expect(() =>
-      resolveToolDatabaseUrl("development", env({ DATABASE_URL: CONTAINER })),
+      resolveDevDatabaseUrl(env({ DATABASE_URL: CONTAINER })),
     ).toThrow(DatabaseUrlError);
   });
 
@@ -82,15 +75,15 @@ describe("assertSafeToMutate", () => {
   });
 
   /**
-   * The one that matters. A tunnel URL says 127.0.0.1 and reaches production,
-   * so the hostname check would wave a table drop straight through.
+   * The one that matters. A forwarded port reads as 127.0.0.1 and reaches
+   * production, so the hostname check alone would wave a table drop through.
    */
-  it("refuses a tunnel even though it looks local", () => {
+  it("refuses the production URL even when it looks local", () => {
     expect(() =>
       assertSafeToMutate(
-        TUNNEL,
+        LOOKS_LOCAL,
         "run the test suite",
-        env({ DATABASE_URL: CONTAINER, PROD_TUNNEL_DATABASE_URL: TUNNEL }),
+        env({ DATABASE_URL: LOOKS_LOCAL }),
       ),
     ).toThrow(/production/);
   });
@@ -122,13 +115,11 @@ describe("assertSafeToMutate", () => {
   });
 
   it("identifies production by the URL, not by the host", () => {
-    const both = env({
-      DATABASE_URL: CONTAINER,
-      PROD_TUNNEL_DATABASE_URL: TUNNEL,
-    });
-    expect(isProductionUrl(TUNNEL, both)).toBe(true);
-    expect(isProductionUrl(CONTAINER, both)).toBe(true);
-    expect(isProductionUrl(LOCAL, both)).toBe(false);
+    const live = env({ DATABASE_URL: LOOKS_LOCAL });
+    expect(isProductionUrl(LOOKS_LOCAL, live)).toBe(true);
+    expect(isProductionUrl(LOCAL, live)).toBe(false);
+    // An unset DATABASE_URL must not make every unset value "production".
+    expect(isProductionUrl("", env({}))).toBe(false);
   });
 });
 

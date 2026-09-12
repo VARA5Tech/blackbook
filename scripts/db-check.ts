@@ -1,17 +1,19 @@
 /**
- * Connection preflight.
+ * Connection preflight for the development database.
  *
  *   pnpm db:check
  *
- * Run this against a new database before migrating. It reports whether the
- * connection works, whether the server is a supported Postgres, whether the
- * extensions the schema needs are available, and whether the role can create
- * them. Every check that can fail on a self-hosted Supabase is covered, so a
- * bad connection string is diagnosed here rather than halfway through a
- * migration.
+ * Run it against a fresh local Postgres before the first migration. It reports
+ * whether the connection works, whether the server is a supported version,
+ * whether the extensions the schema needs are present or creatable, and whether
+ * the role may create tables and functions. A bad local setup is then diagnosed
+ * here rather than halfway through a migration.
+ *
+ * Development only. Production has no socket a laptop can open, and `pnpm
+ * db:query:prod` reads it over HTTPS instead.
  */
 import postgres from "postgres";
-import { resolveToolDatabaseUrl, type DatabaseTarget } from "@/db/url";
+import { resolveDevDatabaseUrl } from "@/db/url";
 
 type Check = { label: string; ok: boolean; detail: string };
 
@@ -22,18 +24,13 @@ function record(label: string, ok: boolean, detail: string) {
 }
 
 async function main() {
-  const target: DatabaseTarget =
-    process.env.DB_TARGET === "production" ? "production" : "development";
-
   let url: string;
   try {
-    url = resolveToolDatabaseUrl(target);
+    url = resolveDevDatabaseUrl();
   } catch (error) {
     console.error((error as Error).message);
     process.exit(1);
   }
-
-  console.log(`Target    ${target}`);
 
   let parsed: URL;
   try {
@@ -52,17 +49,6 @@ async function main() {
   console.log(`User      ${user}`);
   console.log(`SSL       ${parsed.searchParams.get("sslmode") ?? "not specified"}`);
   console.log("");
-
-  /**
-   * Self-hosted Supabase puts Supavisor in front of Postgres on both 5432
-   * (session mode) and 6543 (transaction mode). Either way the pooler needs the
-   * tenant in the username, as postgres.<POOLER_TENANT_ID>. Without it the
-   * server answers "Tenant or user not found", which reads like a bad password
-   * and sends people looking in the wrong place.
-   */
-  if (user.includes(".")) {
-    record("pooler username", true, `tenant "${user.split(".").slice(1).join(".")}" present`);
-  }
 
   const sql = postgres(url, {
     max: 1,
@@ -144,32 +130,19 @@ async function main() {
     const message = (error as Error).message;
     record("connection", false, message);
 
-    if (/tenant or user not found/i.test(message)) {
-      record(
-        "diagnosis",
-        false,
-        "Supavisor does not know this tenant. It keeps its tenant registry in its own " +
-          "metadata database, written once when the stack first boots. Editing " +
-          "POOLER_TENANT_ID and redeploying does not rewrite that row, so a new id is " +
-          "never registered. Either use the id the pooler was first provisioned with, or " +
-          "connect to Postgres directly and skip the pooler.",
-      );
-    } else if (/SASL_SIGNATURE_MISMATCH|SCRAM/i.test(message)) {
-      record(
-        "diagnosis",
-        false,
-        "The tenant exists but its stored password does not match. Supavisor holds the " +
-          "database credentials on the tenant record in its metadata database, captured at " +
-          "first boot, so changing POSTGRES_PASSWORD afterwards leaves the pooler using the " +
-          "old one. Same root cause as an unknown tenant: stale pooler metadata.",
-      );
-    } else if (/password authentication failed/i.test(message)) {
+    if (/password authentication failed/i.test(message)) {
       record("diagnosis", false, "Username reached the server but the password was rejected.");
-    } else if (/CONNECT_TIMEOUT|ECONNREFUSED/i.test(message)) {
+    } else if (/ECONNREFUSED|CONNECT_TIMEOUT/i.test(message)) {
       record(
         "diagnosis",
         false,
-        "Nothing accepted a connection. Check the port is published and not behind an HTTP-only proxy.",
+        "Nothing accepted a connection. Is the local Postgres running? `pnpm db:up`.",
+      );
+    } else if (/ENOTFOUND/i.test(message)) {
+      record(
+        "diagnosis",
+        false,
+        "The host does not resolve. DEV_DATABASE_URL should point at localhost.",
       );
     }
   } finally {

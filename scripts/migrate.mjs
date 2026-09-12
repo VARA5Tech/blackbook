@@ -1,8 +1,12 @@
 /**
  * Applies pending migrations.
  *
- *   pnpm db:migrate          against DEV_DATABASE_URL
- *   pnpm db:migrate:prod     against DATABASE_URL
+ *   pnpm db:migrate                        against DEV_DATABASE_URL
+ *   MIGRATE_TARGET=production node ...     against DATABASE_URL
+ *
+ * The second form is used by `scripts/start.sh` inside the container, which is
+ * the only place that can reach the production database. There is no `:prod`
+ * package script, because from a laptop it could never connect.
  *
  * Plain JavaScript with no build step, and it uses drizzle-orm's own migrator
  * rather than the drizzle-kit CLI. drizzle-kit is a development tool: it pulls

@@ -1,6 +1,6 @@
 import {
   assertSafeToMutate,
-  resolveToolDatabaseUrl,
+  resolveDevDatabaseUrl,
 } from "@/db/url";
 
 /**
@@ -21,7 +21,7 @@ let cached: string | undefined;
  */
 function devUrl(): string {
   if (cached) return cached;
-  const url = resolveToolDatabaseUrl("development");
+  const url = resolveDevDatabaseUrl();
   assertSafeToMutate(url, "run the test suite");
   cached = url;
   return url;

@@ -12,18 +12,13 @@
     "test:watch": "vitest",
     "db:up": "docker compose up -d",
     "db:down": "docker compose down",
-    "db:check": "cross-env DB_TARGET=development tsx --conditions=react-server --env-file=.env.local scripts/db-check.ts",
-    "db:check:prod": "cross-env DB_TARGET=production tsx --conditions=react-server --env-file=.env.local scripts/db-check.ts",
-    "db:query": "cross-env DB_TARGET=development tsx --conditions=react-server --env-file=.env.local scripts/db-query.ts",
+    "db:check": "tsx --conditions=react-server --env-file=.env.local scripts/db-check.ts",
+    "db:query": "tsx --conditions=react-server --env-file=.env.local scripts/db-query.ts",
     "db:query:prod": "cross-env DB_TARGET=production tsx --conditions=react-server --env-file=.env.local scripts/db-query.ts",
-    "db:grants:prod": "cross-env DB_TARGET=production tsx --conditions=react-server --env-file=.env.local scripts/db-query.ts --file scripts/sql/grants.sql",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "node --env-file=.env.local scripts/migrate.mjs",
-    "db:migrate:prod": "cross-env MIGRATE_TARGET=production node --env-file=.env.local scripts/migrate.mjs",
-    "db:studio": "cross-env DRIZZLE_TARGET=development drizzle-kit studio",
-    "db:studio:prod": "cross-env DRIZZLE_TARGET=production drizzle-kit studio",
-    "db:seed": "tsx --conditions=react-server --env-file=.env.local scripts/seed.ts",
-    "db:bundle": "node scripts/bundle-schema.mjs"
+    "db:studio": "drizzle-kit studio",
+    "db:seed": "tsx --conditions=react-server --env-file=.env.local scripts/seed.ts"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.9.1",

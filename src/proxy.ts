@@ -36,10 +36,7 @@ export const config = {
      * The manifest and icons must stay reachable without a session: a browser
      * asks for them before anyone signs in, and redirecting the manifest to
      * the sign-in page breaks installation and the tab icon.
-     *
-     * /setup is exempt for the same reason: it exists precisely when there is
-     * no account to sign in with. It closes itself once one exists.
      */
-    "/((?!api/auth|api/health|setup|_next/static|_next/image|favicon.ico|site.webmanifest|brand/|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|webmanifest)$).*)",
+    "/((?!api/auth|api/health|_next/static|_next/image|favicon.ico|site.webmanifest|brand/|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|webmanifest)$).*)",
   ],
 };

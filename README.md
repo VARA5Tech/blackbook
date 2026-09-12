@@ -48,9 +48,8 @@ restart, not a new credential.
 | `pnpm db:migrate` | Apply migrations to development |
 | `pnpm db:studio` | Drizzle Studio against development |
 | `pnpm db:seed` | Seed catalogue, staff and demo data. Local only |
-| `pnpm db:check:prod` | Preflight the production connection |
-| `pnpm db:migrate:prod` | Apply migrations to production |
-| `pnpm db:bundle` | Write every migration to one SQL file |
+| `pnpm db:query` | Run one read-only query against development |
+| `pnpm db:query:prod` | Run one read-only query against production, over HTTPS |
 | `pnpm test` | Run the test suite |
 | `pnpm test:watch` | Run the tests in watch mode |
 
@@ -93,15 +92,19 @@ and hid the champagne logo completely.
 
 ## Two databases, never confused
 
-`DEV_DATABASE_URL` is local Postgres. `DATABASE_URL` is the live database.
-Nothing falls back between them, because the production URL is allowed to sit
-in a developer's `.env.local` so migrations can be applied from a laptop.
+`DEV_DATABASE_URL` is local Postgres. `DATABASE_URL` is the live database, and
+nothing falls back between them.
 
 - `pnpm dev`, `pnpm test` and every `db:*` command use `DEV_DATABASE_URL`.
-- Only the `db:*:prod` commands use `DATABASE_URL`, and they say so in the name.
+- Only a process running with `NODE_ENV=production` uses `DATABASE_URL`, which
+  in practice means the deployed container and nothing else. Its host is a
+  Docker container name, so it resolves on the server and on no laptop.
 - The test suite drops and recreates its database, and the seed writes fixture
-  accounts. Both refuse to run against anything that is not a local host. The
-  override has to be typed out in full, which is the point.
+  accounts. Both compare the URL against `DATABASE_URL` by identity before they
+  look at the hostname, because a forwarded port reads as `localhost` while the
+  bytes land in production.
+
+Reading production from a laptop goes over HTTPS instead. See below.
 
 ## Deploying
 
@@ -129,21 +132,18 @@ Environment the running container needs:
 Dokploy is driven from a web interface with no host shell, so nothing here
 assumes one.
 
-**Schema.** Either let the container apply it, by setting
-`RUN_MIGRATIONS_ON_BOOT=true`, or run it yourself. `pnpm db:bundle` writes
-`drizzle/schema-bundle.sql`, every migration in order plus drizzle's bookkeeping
-rows, so a database built by hand is indistinguishable from one the migrator
-built and the next deployment applies only what is new. Paste it into any SQL
-console against an empty database. Regenerate it whenever a migration is added.
+**Schema.** Set `RUN_MIGRATIONS_ON_BOOT=true` and the container applies every
+pending migration before it starts serving, against the database it reaches over
+the Docker network. A failure there aborts the boot rather than serving a
+half-applied schema. The files under `drizzle/` can also be pasted into a SQL
+console in order, which is what `/pg/query` is for.
 
-**First administrator.** Visit `/setup`. It exists only while the instance has
-no accounts at all and closes permanently once one exists. It cannot be done
-with SQL: Better Auth stores a scrypt hash in a format only it produces, so a
-row written by hand has no usable password. It is deliberately not an
-environment variable either, which would leave a password in a config screen.
-
-Because that page is open to whoever reaches it first, deploy and complete it
-in one go, or keep the domain unpublished until you have.
+**First administrator.** Created once through a `/setup` route that opened only
+while the instance had no accounts and closed permanently as soon as one
+existed. That route has since been removed. A new deployment against an empty
+database would need it restored from git history, because Better Auth stores a
+scrypt hash in a format only it produces: a row written by hand has no usable
+password, and an environment variable would leave one in a config screen.
 
 **Everyone else** is added from Team in the sidebar, which administrators see.
 Nothing sends email yet, so an administrator sets an initial password and passes
@@ -221,9 +221,53 @@ enables row-level security with no policies on every table and revokes the
 `anon` and `authenticated` grants. The application connects as the table owner,
 which bypasses RLS, so none of it is visible to the app.
 
-Verified against a schema with the Supabase roles present: the owner reads its
-row, `anon` reads none and cannot write. A new table must do the same in its
-own migration.
+Verified against the live database: every table is owned by `postgres`, which
+holds `BYPASSRLS`, and the anon key gets `42501 permission denied`. A new table
+must do the same in its own migration.
+
+### Reading production from a laptop
+
+That same stack is the way in, because `DATABASE_URL` names a container and no
+Postgres port is published. Two endpoints on `crmdb.vara5.travel` are enough:
+
+- `POST /pg/query` runs arbitrary SQL as `postgres`. `pnpm db:query:prod` uses
+  it, prefixing `set transaction read only` so Postgres refuses writes with
+  SQLSTATE `25006`. `--write` needs `ALLOW_PROD_WRITE_QUERY` typed out in full,
+  and should stay unused: changes to live data belong in a migration.
+- `GET /rest/v1/...` is PostgREST. It binds parameters properly, which
+  `/pg/query` does not, so it is the safe door for anything taking user input.
+
+Set `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` in `.env.local` for this.
+**They are operator credentials, not application configuration.** Nothing in
+`src/` reads them, they must not be set in Dokploy, and the service role key is
+a root password rather than a read key: it reaches `/pg/query`, so it can drop
+the schema. Never `NEXT_PUBLIC_`, never a browser bundle, never committed.
+
+Publishing port 5432 is not an alternative. Dokploy runs on Docker Swarm, which
+ignores the host IP in a port binding and always lands on `0.0.0.0`, and
+Cloudflare's proxy speaks HTTP, so it drops the Postgres wire protocol either
+way.
+
+### If the container cannot find the database
+
+Dokploy attaches a compose service to `dokploy-network` when it has a domain.
+Blackbook is a separate Dokploy service, and the Supabase stack's `db` has no
+domain, so until that compose file names the network explicitly the application
+fails at boot with `ENOTFOUND crm-supabase-ndzmpz-db-1`:
+
+```yaml
+  db:
+    networks:
+      - default
+      - dokploy-network
+
+networks:
+  dokploy-network:
+    external: true
+```
+
+`default` has to stay. Naming any network stops Compose attaching the service to
+`default`, which would cut Postgres off from Kong, PostgREST and GoTrue.
 
 ## Audit trail and logs
 

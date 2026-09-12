@@ -15,7 +15,7 @@ import { db, sql } from "@/db";
 import {
   assertSafeToMutate,
   describeDatabase,
-  resolveToolDatabaseUrl,
+  resolveDevDatabaseUrl,
 } from "@/db/url";
 import {
   accounts,
@@ -314,7 +314,7 @@ async function main() {
    * the seed refuses to run anywhere but a local database. Production is
    * bootstrapped by scripts/bootstrap-admin.ts instead.
    */
-  const target = resolveToolDatabaseUrl("development");
+  const target = resolveDevDatabaseUrl();
   assertSafeToMutate(target, "seed demo data");
 
   console.log(`Seeding ${describeDatabase(target)}...`);

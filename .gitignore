@@ -40,7 +40,8 @@ yarn-error.log*
 .env.*
 !.env.example
 
-# Derived from drizzle/*.sql by `pnpm db:bundle`. Deliberately not committed: a
-# stale copy of the whole schema is worse than no copy, because it looks
-# authoritative. Regenerate it when you need it.
-drizzle/schema-bundle.sql
+# Coding-agent instructions, not part of the product. AGENTS.md is generated and
+# re-added by `next dev`; CLAUDE.md is hand-written guidance for Claude Code.
+# Kept out of the repository at the owner's request.
+CLAUDE.md
+AGENTS.md

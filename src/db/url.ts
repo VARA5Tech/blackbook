@@ -9,23 +9,16 @@
  *                             is a container name, so it resolves on the
  *                             server and nowhere else.
  *   DEV_DATABASE_URL          the local development database.
- *   PROD_TUNNEL_DATABASE_URL  the same production database as reached from a
- *                             laptop through a tunnel. Optional, developer
- *                             machines only, never set in Dokploy.
  *
  * Because the production URL is allowed to exist locally, nothing may fall
- * back to it silently. Local tooling and `next dev` use DEV_DATABASE_URL when
- * it is set; only a build running with NODE_ENV=production, or a command that
- * explicitly asks for production, uses DATABASE_URL.
+ * back to it silently. Local tooling and `next dev` use DEV_DATABASE_URL; only
+ * a process running with NODE_ENV=production uses DATABASE_URL.
  *
- * The tunnel variable exists because DATABASE_URL is unusable from a laptop by
- * design, and a developer who cannot read the live database at all debugs
- * production by redeploying and squinting at logs. It points at a local
- * forwarded port, so it *looks* local and is not: see `assertSafeToMutate`,
- * which refuses to be fooled by the hostname.
+ * Nothing on a laptop can open that production connection, and nothing should
+ * try. Reading the live database from a developer machine goes over HTTPS
+ * through the Supabase stack instead: `pnpm db:query:prod`, described in the
+ * README.
  */
-
-export type DatabaseTarget = "development" | "production";
 
 export class DatabaseUrlError extends Error {
   constructor(message: string) {
@@ -52,24 +45,27 @@ export function resolveRuntimeDatabaseUrl(
 /**
  * Names the problem precisely, because the obvious guess is wrong.
  *
- * Blackbook speaks SQL to Postgres directly. Supabase's URL and service key
- * reach PostgREST, which is a different thing entirely: no transactions across
- * statements, no `tsvector` ranking, no trigram search, no migrations, and no
- * adapter for the auth library. Every one of those is load-bearing here, so
- * setting the Supabase API variables and omitting the connection string leaves
- * the application with nothing to talk to. Saying so beats a connection error.
+ * The Supabase variables are genuinely useful, but to an operator, not to this
+ * application: they reach PostgREST and postgres-meta over HTTPS, which is how
+ * a developer reads production from a laptop. The application speaks SQL to
+ * Postgres directly, for transactions across statements, `tsvector` ranking,
+ * trigram search, migrations and the auth adapter. So the Supabase keys being
+ * present is not a sign the connection string is optional, and someone who has
+ * set them and omitted it has left the app with nothing to talk to. Saying so
+ * beats a connection error.
  */
 function missingDatabaseUrl(env: NodeJS.ProcessEnv): DatabaseUrlError {
-  const hasSupabaseApi = Boolean(env.SUPABASE_URL ?? env.SUPABASE_SERVICE_KEY);
+  const hasSupabaseApi = Boolean(
+    env.SUPABASE_URL ?? env.SUPABASE_SERVICE_ROLE_KEY,
+  );
 
   if (hasSupabaseApi) {
     return new DatabaseUrlError(
       [
-        "DATABASE_URL is not set, but SUPABASE_URL is.",
-        "Those are not interchangeable. This application connects to Postgres",
-        "directly and runs its own SQL; the Supabase URL and service key reach",
-        "PostgREST, which cannot run transactions, migrations or the search",
-        "queries this depends on.",
+        "DATABASE_URL is not set, but the Supabase API variables are.",
+        "Those are not interchangeable. They are operator credentials for",
+        "reading this database over HTTPS; the application connects to Postgres",
+        "directly and runs its own SQL, which PostgREST cannot serve.",
         "Set DATABASE_URL to a Postgres connection string. Inside the Supabase",
         "stack's Docker network that is the database container on port 5432.",
       ].join("\n"),
@@ -84,27 +80,15 @@ function missingDatabaseUrl(env: NodeJS.ProcessEnv): DatabaseUrlError {
 }
 
 /**
- * The URL a command-line tool should use for the given target.
+ * The URL a command-line tool should use.
  *
- * For production it prefers PROD_TUNNEL_DATABASE_URL, because the container
- * name in DATABASE_URL does not resolve off the server. The application itself
- * never calls this; it uses `resolveRuntimeDatabaseUrl`, which has no tunnel
- * case, so a tunnel can never become the production connection.
+ * There is deliberately no production counterpart. Every local `db:*` command
+ * needs a Postgres socket, and production has none that a laptop can open;
+ * `db:query:prod` reads it over HTTPS instead and never comes through here.
  */
-export function resolveToolDatabaseUrl(
-  target: DatabaseTarget,
+export function resolveDevDatabaseUrl(
   env: NodeJS.ProcessEnv = process.env,
 ): string {
-  if (target === "production") {
-    const url = env.PROD_TUNNEL_DATABASE_URL ?? env.DATABASE_URL;
-    if (!url) {
-      throw new DatabaseUrlError(
-        "Neither PROD_TUNNEL_DATABASE_URL nor DATABASE_URL is set, so there is no production database to target.",
-      );
-    }
-    return url;
-  }
-
   const url = env.DEV_DATABASE_URL;
   if (!url) {
     throw new DatabaseUrlError(
@@ -150,18 +134,16 @@ export function assertSafeToMutate(
   /**
    * Checked before the hostname, and it has to be.
    *
-   * A tunnel forwards a local port to the live database, so its URL says
-   * `localhost` while the bytes land in production. The hostname test would
-   * wave it straight through, and `operation` here means dropping every table
-   * or writing fixture accounts. Identity of the string is the only honest
-   * signal available, so a URL that matches either production variable is
-   * production, wherever it appears to point.
+   * `operation` here means dropping every table or writing fixture accounts,
+   * and a hostname is weak evidence of where those land: a forwarded port reads
+   * as `localhost` while the bytes arrive in production. Identity of the string
+   * is the honest signal, so a URL matching DATABASE_URL is production wherever
+   * it appears to point, and the override below does not reopen that door.
    */
   if (isProductionUrl(url, env)) {
     throw new DatabaseUrlError(
       `Refusing to ${operation} against ${describeDatabase(url)}.\n` +
-        "That URL is the production database. If it looks local, it is a tunnel:\n" +
-        "the port is on this machine and the database is not.\n" +
+        "That URL is the production database.\n" +
         "Point DEV_DATABASE_URL at your own Postgres.",
     );
   }
@@ -178,10 +160,10 @@ export function assertSafeToMutate(
   );
 }
 
-/** True if this exact URL is one of the two that name the live database. */
+/** True if this exact URL is the one that names the live database. */
 export function isProductionUrl(
   url: string,
   env: NodeJS.ProcessEnv = process.env,
 ): boolean {
-  return url === env.DATABASE_URL || url === env.PROD_TUNNEL_DATABASE_URL;
+  return Boolean(env.DATABASE_URL) && url === env.DATABASE_URL;
 }
