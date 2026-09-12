@@ -76,16 +76,71 @@ function scrub(fields: Fields): Fields {
   return safe;
 }
 
+/**
+ * Fields the Postgres driver puts on its error objects that are safe to log.
+ *
+ * `detail` and `hint` are deliberately absent. Postgres puts the offending
+ * values in them, so a unique violation arrives as
+ * `Key (email)=(someone@example.com) already exists`, and this is a CRM. The
+ * code and the constraint name identify the fault without naming a client.
+ */
+const PG_ERROR_FIELDS = [
+  "code",
+  "severity",
+  "constraint_name",
+  "table_name",
+  "column_name",
+  "schema_name",
+  "routine",
+] as const;
+
+/**
+ * Unwraps the error, then the reason underneath it.
+ *
+ * Drizzle catches the driver's error and throws its own carrying the SQL, with
+ * the original on `cause`. Only the wrapper was being logged, so a production
+ * failure read `Failed query: select count(*) from "preference_option"` with
+ * nothing about why: not a connection refusal, not a missing table, not a
+ * permission denial. The cause holds the Postgres SQLSTATE, which names the
+ * fault exactly, and losing it turned a one-line diagnosis into guesswork.
+ */
 function serialiseError(error: unknown): Fields {
-  if (error instanceof Error) {
-    return {
-      errorName: error.name,
-      errorMessage: error.message,
-      // Stacks are noise in production log search but essential locally.
-      ...(process.env.NODE_ENV === "production" ? {} : { stack: error.stack }),
-    };
+  if (!(error instanceof Error)) {
+    return { errorName: "Unknown", errorMessage: String(error) };
   }
-  return { errorName: "Unknown", errorMessage: String(error) };
+
+  const fields: Fields = {
+    errorName: error.name,
+    errorMessage: error.message,
+    // Stacks are noise in production log search but essential locally.
+    ...(process.env.NODE_ENV === "production" ? {} : { stack: error.stack }),
+    ...pgFields(error),
+  };
+
+  // Follow the chain, but not forever: a cycle or a deep wrap should not
+  // produce an unbounded log line.
+  const causes: string[] = [];
+  let cause: unknown = error.cause;
+  for (let depth = 0; depth < 4 && cause instanceof Error; depth += 1) {
+    causes.push(`${cause.name}: ${cause.message}`);
+    Object.assign(fields, pgFields(cause));
+    cause = cause.cause;
+  }
+  if (causes.length > 0) fields.errorCause = causes.join(" <- ");
+
+  return fields;
+}
+
+function pgFields(error: Error): Fields {
+  const source = error as unknown as Record<string, unknown>;
+  const fields: Fields = {};
+  for (const key of PG_ERROR_FIELDS) {
+    const value = source[key];
+    if (typeof value === "string" && value.length > 0) {
+      fields[`pg_${key}`] = value;
+    }
+  }
+  return fields;
 }
 
 function emit(level: Level, event: string, fields: Fields = {}): void {

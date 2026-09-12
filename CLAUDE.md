@@ -94,6 +94,18 @@ the source requirements live in `docs/`.
 - **`DEV_DATABASE_URL` is local, `DATABASE_URL` is live.** Nothing falls back
   between them. Local commands use the first; only `db:*:prod` uses the second.
   The test suite and the seed refuse any non-local host.
+- **A tunnel is production wearing `127.0.0.1`.** `PROD_TUNNEL_DATABASE_URL`
+  reaches the live database through a forwarded local port, so the hostname is
+  no longer evidence of anything. `assertSafeToMutate` compares the URL against
+  both production variables before it looks at the host; keep it that way, and
+  never let `resolveRuntimeDatabaseUrl` learn about the tunnel. Read access is
+  `pnpm db:query:prod`, which sets the transaction read only. See
+  `docs/production-access.md`.
+- **Log the cause, not just the error.** Drizzle wraps the driver's error and
+  keeps the original on `cause`, where the Postgres SQLSTATE lives. Logging only
+  the wrapper reduced a permission denial to `Failed query: select ...` and cost
+  a day. `serialiseError` walks the chain; it omits Postgres `detail` and `hint`
+  on purpose, because those quote the offending values and this is a CRM.
 - **Nothing may read the database at import time.** `next build` loads every
   route module with no environment, so the client in `src/db/index.ts` is built
   lazily on first use. Keep it that way.

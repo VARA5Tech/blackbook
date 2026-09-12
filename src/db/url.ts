@@ -4,15 +4,25 @@
  *
  * Two variables, with one meaning each:
  *
- *   DATABASE_URL      the production database. Set in Dokploy. May also sit in
- *                     a developer's .env.local so migrations can be applied
- *                     from a laptop.
- *   DEV_DATABASE_URL  the local development database.
+ *   DATABASE_URL              the production database, as the production
+ *                             container addresses it. Set in Dokploy. Its host
+ *                             is a container name, so it resolves on the
+ *                             server and nowhere else.
+ *   DEV_DATABASE_URL          the local development database.
+ *   PROD_TUNNEL_DATABASE_URL  the same production database as reached from a
+ *                             laptop through a tunnel. Optional, developer
+ *                             machines only, never set in Dokploy.
  *
  * Because the production URL is allowed to exist locally, nothing may fall
  * back to it silently. Local tooling and `next dev` use DEV_DATABASE_URL when
  * it is set; only a build running with NODE_ENV=production, or a command that
  * explicitly asks for production, uses DATABASE_URL.
+ *
+ * The tunnel variable exists because DATABASE_URL is unusable from a laptop by
+ * design, and a developer who cannot read the live database at all debugs
+ * production by redeploying and squinting at logs. It points at a local
+ * forwarded port, so it *looks* local and is not: see `assertSafeToMutate`,
+ * which refuses to be fooled by the hostname.
  */
 
 export type DatabaseTarget = "development" | "production";
@@ -73,16 +83,23 @@ function missingDatabaseUrl(env: NodeJS.ProcessEnv): DatabaseUrlError {
   );
 }
 
-/** The URL a command-line tool should use for the given target. */
+/**
+ * The URL a command-line tool should use for the given target.
+ *
+ * For production it prefers PROD_TUNNEL_DATABASE_URL, because the container
+ * name in DATABASE_URL does not resolve off the server. The application itself
+ * never calls this; it uses `resolveRuntimeDatabaseUrl`, which has no tunnel
+ * case, so a tunnel can never become the production connection.
+ */
 export function resolveToolDatabaseUrl(
   target: DatabaseTarget,
   env: NodeJS.ProcessEnv = process.env,
 ): string {
   if (target === "production") {
-    const url = env.DATABASE_URL;
+    const url = env.PROD_TUNNEL_DATABASE_URL ?? env.DATABASE_URL;
     if (!url) {
       throw new DatabaseUrlError(
-        "DATABASE_URL is not set, so there is no production database to target.",
+        "Neither PROD_TUNNEL_DATABASE_URL nor DATABASE_URL is set, so there is no production database to target.",
       );
     }
     return url;
@@ -130,6 +147,25 @@ export function assertSafeToMutate(
   operation: string,
   env: NodeJS.ProcessEnv = process.env,
 ): void {
+  /**
+   * Checked before the hostname, and it has to be.
+   *
+   * A tunnel forwards a local port to the live database, so its URL says
+   * `localhost` while the bytes land in production. The hostname test would
+   * wave it straight through, and `operation` here means dropping every table
+   * or writing fixture accounts. Identity of the string is the only honest
+   * signal available, so a URL that matches either production variable is
+   * production, wherever it appears to point.
+   */
+  if (isProductionUrl(url, env)) {
+    throw new DatabaseUrlError(
+      `Refusing to ${operation} against ${describeDatabase(url)}.\n` +
+        "That URL is the production database. If it looks local, it is a tunnel:\n" +
+        "the port is on this machine and the database is not.\n" +
+        "Point DEV_DATABASE_URL at your own Postgres.",
+    );
+  }
+
   if (isLocalDatabase(url)) return;
   if (env.ALLOW_REMOTE_DESTRUCTIVE_DB === "i-understand-this-is-not-local") {
     return;
@@ -140,4 +176,12 @@ export function assertSafeToMutate(
       "Set DEV_DATABASE_URL to your local Postgres, or if this really is intended, set\n" +
       "ALLOW_REMOTE_DESTRUCTIVE_DB=i-understand-this-is-not-local",
   );
+}
+
+/** True if this exact URL is one of the two that name the live database. */
+export function isProductionUrl(
+  url: string,
+  env: NodeJS.ProcessEnv = process.env,
+): boolean {
+  return url === env.DATABASE_URL || url === env.PROD_TUNNEL_DATABASE_URL;
 }
