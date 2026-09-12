@@ -3,6 +3,7 @@ import { sql as raw } from "drizzle-orm";
 import { db } from "@/db";
 import { CATALOGUE } from "@/db/catalogue";
 import { preferenceOptions } from "@/db/schema";
+import { describeDatabase, resolveRuntimeDatabaseUrl } from "@/db/url";
 import { logger } from "@/lib/logger";
 
 /**
@@ -11,6 +12,18 @@ import { logger } from "@/lib/logger";
  */
 export async function bootstrap(): Promise<void> {
   try {
+    /**
+     * Says which database it is about to use, before touching it.
+     *
+     * Without this the first line in the log on a bad deployment is a
+     * connection error naming nothing, and the operator is left guessing
+     * whether the host, the port or the credentials are wrong. Host, port and
+     * database name only; `describeDatabase` never returns the password.
+     */
+    logger.info("bootstrap.database", {
+      target: describeDatabase(resolveRuntimeDatabaseUrl()),
+    });
+
     await loadCatalogue();
   } catch (error) {
     // Never take the server down for this. A failed bootstrap leaves the app
