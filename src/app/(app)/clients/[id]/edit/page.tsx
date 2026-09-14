@@ -28,7 +28,7 @@ export default async function EditClientPage({
   ]);
 
   return (
-    <>
+    <div className="mx-auto w-full max-w-3xl">
       <PageHeader
         title={`Edit ${displayName(record.customer)}`}
         description={record.customer.ref}
@@ -40,6 +40,6 @@ export default async function EditClientPage({
         canArchive={can(actor, "client.archive")}
         canReassign={can(actor, "client.reassign_rm")}
       />
-    </>
+    </div>
   );
 }

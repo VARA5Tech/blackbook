@@ -3,12 +3,16 @@
 import {
   Activity,
   CalendarHeart,
-  CheckSquare,
-  Home,
+  House,
+  LayoutDashboard,
+  ListChecks,
+  MailPlus,
+  Plus,
   Search,
+  UserCog,
+  UserPlus,
   Users,
-  UsersRound,
-  Shield,
+  type LucideIcon,
 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
@@ -16,34 +20,64 @@ import { usePathname } from "next/navigation";
 import type { Actor } from "@/auth/session";
 import { roleCan, type Capability } from "@/auth/permissions";
 import { UserMenu } from "@/components/shell/user-menu";
+import {
+  AnimatedDropdown,
+  type AnimatedDropdownItem,
+} from "@/components/ui/animated-dropdown";
 import { cn } from "@/lib/utils";
 
 type NavItem = {
   href: string;
   label: string;
-  icon: typeof Home;
+  icon: LucideIcon;
   exact?: boolean;
   /** Hidden unless the signed-in user holds this capability. */
   capability?: Capability;
 };
 
 const NAV: NavItem[] = [
-  { href: "/", label: "Home", icon: Home, exact: true },
+  { href: "/", label: "Home", icon: LayoutDashboard, exact: true },
   { href: "/clients", label: "Clients", icon: Users },
-  { href: "/households", label: "Households", icon: UsersRound },
+  { href: "/households", label: "Households", icon: House },
   { href: "/milestones", label: "Milestones", icon: CalendarHeart },
-  { href: "/tasks", label: "Tasks", icon: CheckSquare },
+  { href: "/tasks", label: "Tasks", icon: ListChecks },
   { href: "/activity", label: "Activity", icon: Activity },
   {
     href: "/settings/users",
     label: "Team",
-    icon: Shield,
+    icon: UserCog,
+    capability: "user.manage",
+  },
+];
+
+/** The quick-create menu. Each entry only appears to someone who can use it. */
+const CREATE: (AnimatedDropdownItem & { capability: Capability })[] = [
+  {
+    label: "New client",
+    href: "/clients/new",
+    icon: UserPlus,
+    description: "Add someone to the client list",
+    capability: "client.create",
+  },
+  {
+    label: "New household",
+    href: "/households/new",
+    icon: House,
+    description: "Group a family under one record",
+    capability: "household.manage",
+  },
+  {
+    label: "Invite a colleague",
+    href: "/settings/users",
+    icon: MailPlus,
+    description: "Give someone at Vara5 access",
     capability: "user.manage",
   },
 ];
 
 export function AppSidebar({ actor }: { actor: Actor }) {
   const pathname = usePathname();
+  const createItems = CREATE.filter((item) => roleCan(actor.role, item.capability));
 
   function openSearch() {
     document.dispatchEvent(new CustomEvent("vara5:open-command"));
@@ -51,20 +85,23 @@ export function AppSidebar({ actor }: { actor: Actor }) {
 
   return (
     <aside className="sticky top-0 hidden h-dvh w-60 shrink-0 flex-col border-r border-sidebar-border bg-sidebar md:flex">
-      <div className="px-5 pt-6 pb-4">
+      <div className="px-4 pt-6 pb-5">
         {/*
           The guide names the compact horizontal lockup for a CRM navbar, and
           ships it drawn in ink and in champagne. Both are rendered and CSS
           picks, so the mark is right on the first paint, before hydration.
+
+          The SVG carries its own clear space, about a tenth of its width, so it
+          is drawn larger than the mark and pulled left to line up with the nav.
         */}
-        <Link href="/" aria-label="Blackbook home" className="inline-block">
+        <Link href="/" aria-label="Blackbook home" className="-ml-1.5 inline-block">
           <Image
             src="/brand/blackbook-horizontal-compact-light.svg"
             alt="Blackbook"
             width={1100}
             height={180}
             priority
-            className="h-[22px] w-auto dark:hidden"
+            className="h-9 w-auto dark:hidden"
           />
           <Image
             src="/brand/blackbook-horizontal-compact-dark.svg"
@@ -72,12 +109,21 @@ export function AppSidebar({ actor }: { actor: Actor }) {
             aria-hidden
             width={1100}
             height={180}
-            className="hidden h-[22px] w-auto dark:block"
+            className="hidden h-9 w-auto dark:block"
           />
         </Link>
       </div>
 
-      <div className="px-3 pb-3">
+      <div className="space-y-2 px-3 pb-3">
+        {createItems.length > 0 ? (
+          <AnimatedDropdown
+            label="Create"
+            icon={Plus}
+            items={createItems}
+            className="w-full"
+            triggerClassName="h-9 w-full"
+          />
+        ) : null}
         <button
           type="button"
           onClick={openSearch}

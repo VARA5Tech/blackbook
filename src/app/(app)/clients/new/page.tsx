@@ -18,7 +18,7 @@ export default async function NewClientPage() {
   ]);
 
   return (
-    <>
+    <div className="mx-auto w-full max-w-3xl">
       <PageHeader
         title="New client"
         description="Capture identity and contact details now. Preferences can be added from the profile afterwards."
@@ -29,6 +29,6 @@ export default async function NewClientPage() {
         canArchive={false}
         canReassign={can(actor, "client.reassign_rm")}
       />
-    </>
+    </div>
   );
 }

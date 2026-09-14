@@ -20,12 +20,12 @@ export default async function EditHouseholdPage({
   if (!record) notFound();
 
   return (
-    <>
+    <div className="mx-auto w-full max-w-2xl">
       <PageHeader
         title={`Edit ${record.household.name}`}
         description={record.household.ref}
       />
       <HouseholdForm household={record.household} />
-    </>
+    </div>
   );
 }

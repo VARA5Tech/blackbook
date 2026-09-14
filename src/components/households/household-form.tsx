@@ -76,7 +76,7 @@ export function HouseholdForm({ household }: { household?: Household | null }) {
   }
 
   return (
-    <div className="max-w-2xl space-y-8">
+    <div className="space-y-8">
       {error ? (
         <Alert variant="destructive">
           <AlertDescription>{error}</AlertDescription>

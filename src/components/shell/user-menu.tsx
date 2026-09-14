@@ -92,7 +92,8 @@ export function UserMenu({ actor }: { actor: Actor }) {
           </Button>
         </DropdownMenuTrigger>
 
-        <DropdownMenuContent align="start" className="w-56">
+        {/* The trigger's own width, like every other dropdown. */}
+        <DropdownMenuContent align="start">
           <DropdownMenuLabel className="font-normal">
             <span className="block text-sm font-medium">{actor.name}</span>
             <span className="block truncate text-xs text-muted-foreground">

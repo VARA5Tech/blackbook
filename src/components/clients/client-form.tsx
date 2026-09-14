@@ -146,7 +146,7 @@ export function ClientForm({
   }
 
   return (
-    <div className="max-w-3xl space-y-8">
+    <div className="space-y-8">
       {error ? (
         <Alert variant="destructive">
           <AlertDescription>{error}</AlertDescription>

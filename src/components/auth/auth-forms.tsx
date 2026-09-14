@@ -35,7 +35,9 @@ export function AuthShell({
   children?: ReactNode;
 }) {
   return (
-    <main className="grid min-h-dvh lg:grid-cols-[1.1fr_1fr]">
+    // Exactly one screen tall on wide screens, so the page itself never
+    // scrolls; a tall form scrolls inside its own column instead.
+    <main className="grid min-h-dvh lg:h-dvh lg:grid-cols-[1.1fr_1fr] lg:overflow-hidden">
       {/*
         A fixed brand surface, not `bg-primary`. Primary inverts between themes,
         so in dark mode this panel turned champagne and swallowed the champagne
@@ -43,19 +45,26 @@ export function AuthShell({
         the champagne mark belongs on a dark ground, and champagne is never
         meant to be a large fill.
       */}
-      <section className="hidden flex-col justify-between bg-[var(--brand-surface)] p-12 text-[var(--brand-surface-foreground)] lg:flex">
-        {/* The guide reserves the full lockup for hero and opening screens. */}
-        <Image
-          src="/brand/blackbook-logo-dark.svg"
-          alt="Blackbook"
-          width={900}
-          height={636}
-          priority
-          className="h-auto w-44"
-        />
+      <section className="hidden min-h-0 flex-col bg-[var(--brand-surface)] p-10 text-[var(--brand-surface-foreground)] lg:flex xl:p-12">
+        {/*
+          The guide reserves the full lockup, tagline included, for hero and
+          opening screens, so here it is the hero, centred above the line. It is
+          capped by the screen's height as well as its width, so it never pushes
+          the panel past one screen.
+        */}
+        <div className="flex min-h-0 flex-1 items-center justify-center py-6">
+          <Image
+            src="/brand/blackbook-logo-dark.svg"
+            alt="Blackbook"
+            width={900}
+            height={636}
+            priority
+            className="h-auto max-h-[36dvh] w-auto max-w-[24rem]"
+          />
+        </div>
 
-        <div className="max-w-md space-y-6">
-          <h1 className="font-display text-4xl leading-tight tracking-tight">
+        <div className="max-w-md space-y-3">
+          <h1 className="font-display text-3xl leading-tight tracking-tight xl:text-4xl">
             Know every client before you say hello.
           </h1>
           <p className="text-sm leading-relaxed opacity-70">
@@ -64,7 +73,7 @@ export function AuthShell({
           </p>
         </div>
 
-        <p className="text-xs opacity-50">
+        <p className="mt-8 text-xs opacity-50">
           Internal system. Access is granted by a Vara5 administrator.
         </p>
       </section>
@@ -72,10 +81,11 @@ export function AuthShell({
       {/*
         Its own surface, not the page background. In dark mode the page ground
         is the same black as the brand panel, so without this the two columns
-        merged into one black rectangle with no division.
+        merged into one black rectangle with no division. `m-auto` centres the
+        form and still lets a tall one scroll from its top.
       */}
-      <section className="flex items-center justify-center bg-card px-6 py-16">
-        <div className="w-full max-w-sm">
+      <section className="flex min-h-0 flex-col bg-card px-6 py-12 lg:overflow-y-auto">
+        <div className="m-auto w-full max-w-sm">
           {/* Narrow screens have no brand panel, so the mark follows the theme. */}
           <Image
             src="/brand/blackbook-horizontal-compact-light.svg"
@@ -83,7 +93,7 @@ export function AuthShell({
             width={1100}
             height={180}
             priority
-            className="h-6 w-auto lg:hidden dark:hidden"
+            className="-ml-2 h-10 w-auto lg:hidden dark:hidden"
           />
           <Image
             src="/brand/blackbook-horizontal-compact-dark.svg"
@@ -91,7 +101,7 @@ export function AuthShell({
             aria-hidden
             width={1100}
             height={180}
-            className="hidden h-6 w-auto dark:block dark:lg:hidden"
+            className="-ml-2 hidden h-10 w-auto dark:block dark:lg:hidden"
           />
 
           <h2 className="mt-8 font-display text-2xl tracking-tight lg:mt-0">

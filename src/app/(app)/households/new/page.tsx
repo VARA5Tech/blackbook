@@ -11,12 +11,12 @@ export default async function NewHouseholdPage() {
   if (!actor || !can(actor, "household.manage")) notFound();
 
   return (
-    <>
+    <div className="mx-auto w-full max-w-2xl">
       <PageHeader
         title="New household"
         description="Create the family first, then link its members from the household page."
       />
       <HouseholdForm />
-    </>
+    </div>
   );
 }
