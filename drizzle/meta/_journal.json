@@ -50,6 +50,13 @@
       "when": 1789399682471,
       "tag": "0006_client_search_includes_assistant",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1789414908049,
+      "tag": "0007_private_access_whatsapp_index",
+      "breakpoints": true
     }
   ]
 }

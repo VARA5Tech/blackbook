@@ -292,6 +292,37 @@ describe("customer master", () => {
       },
     );
 
+    /**
+     * A number without its country code is refused rather than guessed at.
+     * "65 8123 4567" is ten digits, an Indian mobile's length, so assuming +91
+     * would file a Singapore client's number as someone else's.
+     */
+    it.each([["98100 11223"], ["919810011223"], ["09810011223"], ["65 8123 4567"]])(
+      "refuses the number %s without its country code",
+      async (mobile) => {
+        await expect(
+          createCustomer({
+            firstName: "NoCountry",
+            mobile,
+            customerSince: "2026-01-01",
+          }),
+        ).rejects.toThrow(/country code/);
+      },
+    );
+
+    it.each([
+      ["+91-98100-11223", "+91 98100 11223"],
+      ["+6581234567", "+65 8123 4567"],
+      ["+1 (415) 555-0123", "+1 415 555 0123"],
+    ])("stores %s in international format as %s", async (mobile, stored) => {
+      const created = await createCustomer({
+        firstName: "Formatted",
+        mobile,
+        customerSince: "2026-01-01",
+      });
+      expect(created.mobile).toBe(stored);
+    });
+
     it.each([["18-04-1982"], ["1982/04/18"], ["April 18 1982"]])(
       "rejects the malformed date of birth %s",
       async (dateOfBirth) => {
@@ -329,7 +360,6 @@ describe("customer master", () => {
     it.each([
       ["+91 98100 11223"],
       ["+919810011223"],
-      ["919810011223"],
       ["+91-98100-11223"],
       ["+91 (98100) 11223"],
       ["+91.98100.11223"],

@@ -36,12 +36,16 @@ export const config = {
   matcher: [
     /*
      * Everything except Next internals, the auth API, the health check that
-     * the container orchestrator polls, and public brand assets.
+     * the container orchestrator polls, the website's private access lookup,
+     * and public brand assets.
+     *
+     * The lookup is called server to server by vara5.travel, which has no
+     * staff session; it authenticates each request by signature itself.
      *
      * The manifest and icons must stay reachable without a session: a browser
      * asks for them before anyone signs in, and redirecting the manifest to
      * the sign-in page breaks installation and the tab icon.
      */
-    "/((?!api/auth|api/health|_next/static|_next/image|favicon.ico|site.webmanifest|brand/|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|webmanifest)$).*)",
+    "/((?!api/auth|api/health|api/private-access|_next/static|_next/image|favicon.ico|site.webmanifest|brand/|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|webmanifest)$).*)",
   ],
 };

@@ -1,3 +1,4 @@
+import { parsePhoneNumberFromString } from "libphonenumber-js";
 import { z } from "zod";
 
 /** Trims, then treats an empty string as "not provided". */
@@ -67,20 +68,58 @@ export const optionalEmail = z
   .transform((value) => (value ? value.toLowerCase() : null));
 
 /**
- * Phone numbers arrive in many shapes (+91 98100 11223, 09810011223).
- * Storage keeps what the user typed; the database derives a digits-only column
- * for duplicate detection, so validation only checks it is plausible.
+ * A phone number with its country code, in the two forms Blackbook uses.
+ *
+ * The country code is required, written with a leading +. Guessing one was the
+ * trap: "65 8123 4567" is ten digits, exactly an Indian mobile's length, so a
+ * Singapore client read as Indian would have their WhatsApp code sent to a
+ * stranger. With the + stated, every stored number is unambiguous and its digits
+ * are the full international number, so an exact match is always the right one.
+ *
+ * Checked for a possible length in that country, not for a live number range:
+ * ranges change faster than any bundled metadata, and a real client must never
+ * be refused.
+ */
+export function parseInternationalPhone(
+  raw: string,
+): { international: string; e164: string } | null {
+  const value = raw.trim();
+  if (!value.startsWith("+")) return null;
+  const phone = parsePhoneNumberFromString(value);
+  if (!phone || !phone.isPossible()) return null;
+  return { international: phone.formatInternational(), e164: phone.number };
+}
+
+/**
+ * Stored in international format, "+91 98100 11223", whatever punctuation was
+ * typed. The database derives a digits-only column from it for duplicate
+ * detection and search, and because the country code is always there, those
+ * digits are the full international number.
  */
 export const optionalPhone = z
-  .union([
-    z
-      .string()
-      .trim()
-      .regex(/^[+\d][\d\s()\-.]{6,24}$/, "Enter a valid phone number"),
-    z.literal(""),
-  ])
+  .string()
+  .trim()
+  .transform((value, ctx) => {
+    if (value === "") return null;
+    if (!value.startsWith("+")) {
+      ctx.addIssue({
+        code: "custom",
+        message: "Start with + and the country code, e.g. +91 98100 11223",
+      });
+      return z.NEVER;
+    }
+    const phone = parseInternationalPhone(value);
+    if (!phone) {
+      ctx.addIssue({
+        code: "custom",
+        message: "Enter a valid phone number, including its country code",
+      });
+      return z.NEVER;
+    }
+    return phone.international;
+  })
   .optional()
-  .transform((value) => (value ? value : null));
+  .transform((value) => value ?? null);
 
 /**
  * An executive assistant: the person the team deals with when a client, or a

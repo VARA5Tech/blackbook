@@ -198,6 +198,8 @@ export const customers = pgTable(
     index("customer_archived_idx").on(t.archivedAt),
     index("customer_last_interaction_idx").on(t.lastInteractionAt),
     index("customer_mobile_normalized_idx").on(t.mobileNormalized),
+    // The website's private access lookup matches either number exactly.
+    index("customer_whatsapp_normalized_idx").on(t.whatsappNormalized),
     /**
      * One active client per phone number. Duplicate clients are the single
      * most expensive data problem to retrofit, so it is enforced from day one.

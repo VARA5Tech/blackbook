@@ -128,6 +128,8 @@ Environment the running container needs:
 | `BETTER_AUTH_URL` | `https://blackbook.vara5.travel` |
 | `OPENROUTER_API_KEY` | Optional. Without it, Brief Me explains it is off |
 | `AI_MODEL` | Optional. Defaults to a cheap current model |
+| `RESEND_API_KEY` | Sends password reset codes and invitations |
+| `PRIVATE_ACCESS_SECRET` | Shared with vara5.travel for its guest lookup. Without it nobody gets past the website's gate |
 
 Dokploy is driven from a web interface with no host shell, so nothing here
 assumes one.
@@ -222,6 +224,32 @@ The decisions that are not obvious from reading the tables:
   the next occurrence, clamping 29 February to the 28th in a common year.
 - **Duplicate clients are blocked at the database**, by a unique index on a
   generated digits-only phone column, scoped to non-archived rows.
+- **Phone numbers always carry their country code.** A number without a leading
+  `+` is refused, and every number is stored in international format
+  (`+65 8123 4567`), so the digits-only columns are full international numbers.
+  Guessing a country instead would read a ten-digit Singapore number as Indian.
+
+## Private access for vara5.travel
+
+The website's Inspirations page is invite only: a guest types their number and
+gets a WhatsApp code only if Blackbook knows them as a client. The website asks
+`POST /api/private-access/lookup`, and Blackbook answers with a name and the
+number to send the code to, or `found: false`. No other client data leaves.
+
+- **Who gets in:** active clients who are not archived, matched exactly on their
+  mobile or WhatsApp number. Archiving a client or marking them inactive locks
+  them out at once, because the website asks again every time the page loads.
+- **Where the code goes:** the client's WhatsApp number if they have one,
+  otherwise their mobile. Always a number on the record, never the one typed. A
+  number on two clients is refused and logged as
+  `private_access.ambiguous_number`.
+- **How the website proves itself:** no staff session applies, so the proxy lets
+  the path through and the route checks a signature instead. Each request
+  carries `X-Blackbook-Timestamp` and `X-Blackbook-Signature: v1=<hex HMAC-SHA256
+  of "<timestamp>.<raw body>">` keyed with `PRIVATE_ACCESS_SECRET`. The secret
+  never travels, a signature more than five minutes old is refused, and signed
+  lookups are capped per minute. Without the secret the route answers 503, so
+  the gate fails closed.
 - **Search is Postgres native**: a weighted `tsvector` for names and references,
   plus trigram indexes for misspellings and partial phone numbers. At Vara5's
   data volume a dedicated search service would be infrastructure without a

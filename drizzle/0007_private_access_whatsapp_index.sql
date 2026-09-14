@@ -1,0 +1,1 @@
+CREATE INDEX "customer_whatsapp_normalized_idx" ON "customer" USING btree ("whatsapp_normalized");

@@ -1,9 +1,10 @@
-import { createHash, randomUUID } from "node:crypto";
+import { createHash, createHmac, randomUUID } from "node:crypto";
 import { eq } from "drizzle-orm";
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
+import { POST as privateAccessLookup } from "@/app/api/private-access/lookup/route";
 import { auth } from "@/auth";
 import { db } from "@/db";
-import { accounts, users, verifications } from "@/db/schema";
+import { accounts, customers, users, verifications } from "@/db/schema";
 import {
   PASSWORD_RESET_CODE_MINUTES,
   STAFF_DOMAIN_MESSAGE,
@@ -20,7 +21,11 @@ import {
   sendEmail,
   staffInvitationEmail,
 } from "@/lib/email";
-import { DomainError } from "@/services/client-service";
+import {
+  archiveCustomer,
+  createCustomer,
+  DomainError,
+} from "@/services/client-service";
 import {
   acceptInvitation,
   createStaffUser,
@@ -382,5 +387,164 @@ describe("joining by invitation", () => {
     expect(message.text).toContain("2 days");
     expect(message.html).not.toContain("<b>Priya</b>");
     expect(message.html).toContain(EMAIL_MONOGRAM_URL);
+  });
+});
+
+/**
+ * Guests getting into vara5.travel's private Inspirations: the website asks
+ * Blackbook whether a number belongs to an active client, signing every request
+ * with a secret only the two of them hold.
+ */
+describe("private access lookup for the website", () => {
+  const SECRET = "test-private-access-secret-of-a-realistic-length";
+  const since = "2026-01-01";
+  let staff: StaffFixtures;
+
+  beforeAll(async () => {
+    staff = await seedStaff();
+  });
+
+  beforeEach(async () => {
+    await resetData();
+    actingAs(staff.admin);
+    vi.stubEnv("PRIVATE_ACCESS_SECRET", SECRET);
+  });
+
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
+  /** A request signed the way the website signs it. */
+  function signed(
+    body: unknown,
+    { secret = SECRET, timestamp = Math.floor(Date.now() / 1000) } = {},
+  ) {
+    const raw = JSON.stringify(body);
+    const signature = createHmac("sha256", secret).update(`${timestamp}.${raw}`).digest("hex");
+    return new Request("http://localhost/api/private-access/lookup", {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        "x-blackbook-timestamp": String(timestamp),
+        "x-blackbook-signature": `v1=${signature}`,
+      },
+      body: raw,
+    });
+  }
+
+  async function lookup(request: Request) {
+    const response = await privateAccessLookup(request);
+    return { status: response.status, body: await response.json() };
+  }
+
+  it("names an active client and the number to send their code to, and nothing else", async () => {
+    await createCustomer({
+      firstName: "Priya",
+      lastName: "Nair",
+      preferredName: "Pri",
+      mobile: "+91 98100 11223",
+      whatsapp: "+91 98100 99887",
+      email: "priya@example.com",
+      city: "Delhi",
+      customerSince: since,
+    });
+
+    const { status, body } = await lookup(signed({ phone: "+919810011223" }));
+
+    expect(status).toBe(200);
+    // The code goes over WhatsApp, so to the WhatsApp number on the record.
+    expect(body).toEqual({ found: true, name: "Pri", phone: "+919810099887" });
+  });
+
+  it("matches the WhatsApp number too, and uses the mobile when there is no WhatsApp", async () => {
+    await createCustomer({ firstName: "Arjun", mobile: "+65 8123 4567", customerSince: since });
+    await createCustomer({ firstName: "Meera", whatsapp: "+971 50 123 4567", customerSince: since });
+
+    expect((await lookup(signed({ phone: "+6581234567" }))).body).toEqual({
+      found: true,
+      name: "Arjun",
+      phone: "+6581234567",
+    });
+    expect((await lookup(signed({ phone: "+971501234567" }))).body).toEqual({
+      found: true,
+      name: "Meera",
+      phone: "+971501234567",
+    });
+  });
+
+  it("never guesses a country: the same digits under another country code find nobody", async () => {
+    await createCustomer({ firstName: "Priya", mobile: "+91 98100 11223", customerSince: since });
+    expect((await lookup(signed({ phone: "+19810011223" }))).body).toEqual({ found: false });
+  });
+
+  it("keeps archived and inactive clients out", async () => {
+    const archived = await createCustomer({
+      firstName: "Archived",
+      mobile: "+91 98100 11111",
+      customerSince: since,
+    });
+    await archiveCustomer(archived.id);
+    await createCustomer({
+      firstName: "Inactive",
+      mobile: "+91 98100 22222",
+      status: "inactive",
+      customerSince: since,
+    });
+
+    expect((await lookup(signed({ phone: "+919810011111" }))).body).toEqual({ found: false });
+    expect((await lookup(signed({ phone: "+919810022222" }))).body).toEqual({ found: false });
+  });
+
+  it("refuses a number two clients share rather than choosing one", async () => {
+    // The app blocks this duplicate, so it can only arrive by hand; written directly.
+    await db.insert(customers).values([
+      { firstName: "One", whatsapp: "+91 98100 33333", customerSince: since },
+      { firstName: "Two", whatsapp: "+91 98100 33333", customerSince: since },
+    ]);
+
+    expect((await lookup(signed({ phone: "+919810033333" }))).body).toEqual({ found: false });
+  });
+
+  it("refuses a request not signed with the shared secret", async () => {
+    await createCustomer({ firstName: "Priya", mobile: "+91 98100 11223", customerSince: since });
+
+    const wrongSecret = await lookup(
+      signed({ phone: "+919810011223" }, { secret: "someone-elses-secret-of-a-similar-length-too" }),
+    );
+    expect(wrongSecret).toEqual({ status: 401, body: { error: "unauthorised" } });
+
+    const unsigned = await lookup(
+      new Request("http://localhost/api/private-access/lookup", {
+        method: "POST",
+        body: JSON.stringify({ phone: "+919810011223" }),
+      }),
+    );
+    expect(unsigned.status).toBe(401);
+  });
+
+  it("refuses a signature more than five minutes old, so a captured request cannot be replayed later", async () => {
+    const stale = await lookup(
+      signed({ phone: "+919810011223" }, { timestamp: Math.floor(Date.now() / 1000) - 6 * 60 }),
+    );
+    expect(stale.status).toBe(401);
+  });
+
+  it("refuses a body changed after it was signed", async () => {
+    const original = signed({ phone: "+919810011223" });
+    const tampered = new Request(original.url, {
+      method: "POST",
+      headers: original.headers,
+      body: JSON.stringify({ phone: "+919810099999" }),
+    });
+    expect((await lookup(tampered)).status).toBe(401);
+  });
+
+  it("stays closed when the secret is not configured", async () => {
+    vi.stubEnv("PRIVATE_ACCESS_SECRET", "");
+    expect((await lookup(signed({ phone: "+919810011223" }))).status).toBe(503);
+  });
+
+  it("wants the number with its country code", async () => {
+    expect((await lookup(signed({ phone: "9810011223" }))).status).toBe(400);
   });
 });

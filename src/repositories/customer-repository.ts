@@ -682,6 +682,38 @@ export async function findActiveByPhone(phone: string, excludeId?: string) {
 }
 
 /* ------------------------------------------------------------------ */
+/* Private access                                                      */
+/* ------------------------------------------------------------------ */
+
+/**
+ * Active, unarchived clients whose mobile or WhatsApp number is exactly this
+ * one, given as international digits. Two at most: one is an answer, and two is
+ * a conflict the caller refuses rather than resolves.
+ */
+export async function findPrivateAccessGuests(digits: string) {
+  return db
+    .select({
+      id: customers.id,
+      firstName: customers.firstName,
+      preferredName: customers.preferredName,
+      mobileNormalized: customers.mobileNormalized,
+      whatsappNormalized: customers.whatsappNormalized,
+    })
+    .from(customers)
+    .where(
+      and(
+        isNull(customers.archivedAt),
+        eq(customers.status, "active"),
+        or(
+          eq(customers.mobileNormalized, digits),
+          eq(customers.whatsappNormalized, digits),
+        ),
+      ),
+    )
+    .limit(2);
+}
+
+/* ------------------------------------------------------------------ */
 /* Dashboard reads                                                     */
 /* ------------------------------------------------------------------ */
 

@@ -19,7 +19,8 @@ import {
   type CreateCustomerInput,
   type UpdateCustomerInput,
 } from "@/domain/customers";
-import { onlyProvided } from "@/domain/shared";
+import { onlyProvided, parseInternationalPhone } from "@/domain/shared";
+import { logger } from "@/lib/logger";
 import * as repo from "@/repositories/customer-repository";
 import { diffFields, logActivity } from "./activity-service";
 
@@ -53,6 +54,56 @@ export async function searchClientGroups(input: ClientSearchInput) {
 export async function getClient360(customerId: string) {
   await requireCapability("client.read");
   return repo.loadClient360(customerId);
+}
+
+/* ------------------------------------------------------------------ */
+/* Private access, for the vara5.travel website                        */
+/* ------------------------------------------------------------------ */
+
+export type PrivateAccessGuest = { name: string; phone: string };
+
+/**
+ * Whether a phone number belongs to a client allowed through the website's
+ * private gate, and where to send their code.
+ *
+ * No capability check, deliberately: the caller is the website, not a member
+ * of staff, and `/api/private-access/lookup` authenticates it by signature
+ * before calling this. Nothing else may call it.
+ *
+ * Only an active, unarchived client matches, on the exact international number,
+ * mobile or WhatsApp. A number two clients share is refused rather than guessed.
+ * The code goes to the client's WhatsApp number when they have one, because it
+ * is sent over WhatsApp, and otherwise to their mobile: always a number on the
+ * record, never the one typed. The answer is a name and that number, nothing
+ * more.
+ */
+export async function lookupPrivateAccessGuest(
+  phone: string,
+): Promise<PrivateAccessGuest | null> {
+  const parsed = parseInternationalPhone(phone);
+  if (!parsed) return null;
+
+  const matches = await repo.findPrivateAccessGuests(parsed.e164.slice(1));
+
+  if (matches.length > 1) {
+    logger.warn("private_access.ambiguous_number", {
+      customerIds: matches.map((match) => match.id),
+    });
+    return null;
+  }
+
+  const [guest] = matches;
+  const sendTo = guest?.whatsappNormalized ?? guest?.mobileNormalized;
+  if (!guest || !sendTo) {
+    logger.info("private_access.lookup", { outcome: "not_found" });
+    return null;
+  }
+
+  logger.info("private_access.lookup", { outcome: "found", customerId: guest.id });
+  return {
+    name: guest.preferredName?.trim() || guest.firstName,
+    phone: `+${sendTo}`,
+  };
 }
 
 /* ------------------------------------------------------------------ */
