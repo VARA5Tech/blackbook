@@ -89,6 +89,33 @@ export default async function HouseholdPage({
               </Field>
             </dl>
           </Section>
+
+          <Section title="Executive assistant">
+            <dl className="grid gap-x-6 gap-y-5 sm:grid-cols-2">
+              <Field label="Name">{household.eaName ?? "—"}</Field>
+              <Field label="Phone">
+                {household.eaPhone ? (
+                  <a href={`tel:${household.eaPhone}`} className="tabular hover:underline">
+                    {household.eaPhone}
+                  </a>
+                ) : (
+                  "—"
+                )}
+              </Field>
+              <Field label="Email" className="sm:col-span-2">
+                {household.eaEmail ? (
+                  <a href={`mailto:${household.eaEmail}`} className="hover:underline">
+                    {household.eaEmail}
+                  </a>
+                ) : (
+                  "—"
+                )}
+              </Field>
+              <Field label="Notes" className="sm:col-span-2">
+                {household.eaNotes ?? "—"}
+              </Field>
+            </dl>
+          </Section>
         </div>
 
         <div className="space-y-10">

@@ -38,13 +38,23 @@ export function HouseholdForm({ household }: { household?: Household | null }) {
     (typeof TRAVEL_PATTERNS)[number] | ""
   >(household?.travelPattern ?? "");
   const [notes, setNotes] = useState(household?.notes ?? "");
+  const [ea, setEa] = useState({
+    eaName: household?.eaName ?? "",
+    eaPhone: household?.eaPhone ?? "",
+    eaEmail: household?.eaEmail ?? "",
+    eaNotes: household?.eaNotes ?? "",
+  });
 
   const isEdit = Boolean(household);
+
+  function setEaField(key: keyof typeof ea, value: string) {
+    setEa((current) => ({ ...current, [key]: value }));
+  }
 
   function submit() {
     setError(null);
     startTransition(async () => {
-      const payload = { name, city, travelPattern, notes };
+      const payload = { name, city, travelPattern, notes, ...ea };
 
       const result = isEdit
         ? await updateHouseholdAction({ ...payload, id: household!.id })
@@ -128,6 +138,55 @@ export function HouseholdForm({ household }: { household?: Household | null }) {
               value={notes}
               onChange={(event) => setNotes(event.target.value)}
               placeholder="How this family travels together, who decides, anything shared across members."
+            />
+          </div>
+        </div>
+      </Section>
+
+      <Section title="Executive assistant">
+        <p className="-mt-1 mb-5 text-sm text-muted-foreground">
+          The assistant who looks after the whole family. Every member is found
+          by their name or number, and shown them on their profile unless they
+          have an assistant of their own.
+        </p>
+        <div className="grid gap-5 sm:grid-cols-2">
+          <div className="space-y-2">
+            <Label htmlFor="eaName">Name</Label>
+            <Input
+              id="eaName"
+              value={ea.eaName}
+              onChange={(event) => setEaField("eaName", event.target.value)}
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="eaPhone">Phone</Label>
+            <Input
+              id="eaPhone"
+              value={ea.eaPhone}
+              onChange={(event) => setEaField("eaPhone", event.target.value)}
+              placeholder="+91 98100 11223"
+            />
+          </div>
+
+          <div className="space-y-2 sm:col-span-2">
+            <Label htmlFor="eaEmail">Email</Label>
+            <Input
+              id="eaEmail"
+              type="email"
+              value={ea.eaEmail}
+              onChange={(event) => setEaField("eaEmail", event.target.value)}
+            />
+          </div>
+
+          <div className="space-y-2 sm:col-span-2">
+            <Label htmlFor="eaNotes">Notes</Label>
+            <Textarea
+              id="eaNotes"
+              rows={2}
+              value={ea.eaNotes}
+              onChange={(event) => setEaField("eaNotes", event.target.value)}
+              placeholder="Working hours, how they like to be contacted, what to copy them on."
             />
           </div>
         </div>

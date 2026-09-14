@@ -18,6 +18,39 @@ export const requiredText = (label: string, max = 200) =>
 
 export const uuidSchema = z.uuid("Expected a valid identifier");
 
+/**
+ * UUIDv7 in application code, the same shape `vara5_uuid_v7()` mints in the
+ * database, for the few keys written from TypeScript: staff accounts, and the
+ * sessions and tokens Better Auth writes itself.
+ *
+ * RFC 9562: 48 bits of milliseconds since the epoch, version nibble 7, then
+ * random bits with the variant set to 10. Later keys sort after earlier ones.
+ */
+export function uuidv7(now: number = Date.now()): string {
+  const bytes = new Uint8Array(16);
+  crypto.getRandomValues(bytes);
+
+  // Big-endian milliseconds in the first six bytes. Arithmetic rather than bit
+  // shifts, because JavaScript shifts truncate to 32 bits and this needs 48.
+  let millis = now;
+  for (let index = 5; index >= 0; index -= 1) {
+    bytes[index] = millis % 256;
+    millis = Math.floor(millis / 256);
+  }
+
+  bytes[6] = (bytes[6] & 0x0f) | 0x70;
+  bytes[8] = (bytes[8] & 0x3f) | 0x80;
+
+  const hex = Array.from(bytes, (byte) => byte.toString(16).padStart(2, "0")).join("");
+  return [
+    hex.slice(0, 8),
+    hex.slice(8, 12),
+    hex.slice(12, 16),
+    hex.slice(16, 20),
+    hex.slice(20),
+  ].join("-");
+}
+
 /** ISO date (YYYY-MM-DD), which is how Drizzle hands us a `date` column. */
 export const isoDate = z
   .string()
@@ -48,6 +81,18 @@ export const optionalPhone = z
   ])
   .optional()
   .transform((value) => (value ? value : null));
+
+/**
+ * An executive assistant: the person the team deals with when a client, or a
+ * whole household, prefers to be reached through them. There is at most one
+ * per client and one per household, so these are fields, not a table.
+ */
+export const executiveAssistantFields = {
+  eaName: optionalText,
+  eaEmail: optionalEmail,
+  eaPhone: optionalPhone,
+  eaNotes: optionalText,
+};
 
 /** Empty-string-to-null wrapper for optional enum selects in HTML forms. */
 export function optionalEnum<T extends readonly [string, ...string[]]>(

@@ -77,6 +77,27 @@ describe("household profile", () => {
     });
   });
 
+  it("stores the household's executive assistant, and keeps it through a partial edit", async () => {
+    const household = await createHousehold({
+      name: "Sharma Family",
+      eaName: "Rohan Desai",
+      eaEmail: "Rohan@Example.com",
+      eaPhone: "+91 99887 76655",
+      eaNotes: "Handles every family booking.",
+    });
+
+    expect(household).toMatchObject({
+      eaName: "Rohan Desai",
+      eaEmail: "rohan@example.com",
+      eaPhone: "+91 99887 76655",
+      eaPhoneNormalized: "919988776655",
+      eaNotes: "Handles every family booking.",
+    });
+
+    const updated = await updateHousehold({ id: household.id, city: "Delhi" });
+    expect(updated).toMatchObject({ city: "Delhi", eaName: "Rohan Desai" });
+  });
+
   it.each([["couple"], ["family"], ["multi_generational"]] as const)(
     "accepts the family travel pattern %s",
     async (travelPattern) => {
@@ -358,6 +379,19 @@ describe("household profile", () => {
     it("returns nothing for a term that matches no household", async () => {
       const results = await listHouseholds("Khanna");
       expect(results).toHaveLength(0);
+    });
+
+    it("finds a household by its executive assistant's name or number", async () => {
+      await createHousehold({
+        name: "Kapoor Family",
+        eaName: "Rohan Desai",
+        eaPhone: "+91 99887 76655",
+      });
+
+      for (const term of ["rohan", "Desai", "76655"]) {
+        const results = await listHouseholds(term);
+        expect(results.map((r) => r.name), term).toEqual(["Kapoor Family"]);
+      }
     });
 
     it("offers every household to the client form picker", async () => {

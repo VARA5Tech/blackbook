@@ -1,4 +1,4 @@
-import { randomUUID } from "node:crypto";
+import { uuidv7 } from "@/domain/shared";
 import { sql as raw } from "drizzle-orm";
 import { db, sql } from "@/db";
 import { CATALOGUE } from "@/db/catalogue";
@@ -73,7 +73,7 @@ export async function seedStaff(): Promise<StaffFixtures> {
       continue;
     }
 
-    const id = randomUUID();
+    const id = uuidv7();
     await db.insert(users).values({
       id,
       name: `${role} user`,

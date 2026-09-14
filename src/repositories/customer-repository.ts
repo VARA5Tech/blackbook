@@ -1,5 +1,6 @@
 import "server-only";
 import { and, asc, desc, eq, inArray, isNull, lt, or, sql } from "drizzle-orm";
+import { alias } from "drizzle-orm/pg-core";
 import { db } from "@/db";
 import {
   activityLog,
@@ -43,6 +44,14 @@ function toPrefixTsQuery(input: string): string | null {
 
 const SIMILARITY_FLOOR = 0.25;
 
+/*
+ * `search_document` is qualified with its table in both helpers below.
+ *
+ * The grouped clients list joins `customer` to itself under an alias to find
+ * each household's primary, and both copies have that column. Left bare, the
+ * reference is ambiguous and Postgres refuses the whole query.
+ */
+
 function searchPredicate(q: string) {
   const tsQuery = toPrefixTsQuery(q);
   const digits = digitsOnly(q);
@@ -59,13 +68,31 @@ function searchPredicate(q: string) {
     ) > ${SIMILARITY_FLOOR}`,
   ];
 
+  // The document also carries the client's executive assistant's name and email.
   if (tsQuery) {
-    clauses.push(sql`search_document @@ to_tsquery('simple', ${tsQuery})`);
+    clauses.push(sql`${customers}.search_document @@ to_tsquery('simple', ${tsQuery})`);
   }
-  if (digits && digits.length >= 3) {
+  const hasDigits = Boolean(digits && digits.length >= 3);
+  if (hasDigits) {
     clauses.push(sql`${customers.mobileNormalized} like ${`%${digits}%`}`);
     clauses.push(sql`${customers.whatsappNormalized} like ${`%${digits}%`}`);
+    clauses.push(sql`${customers.eaPhoneNormalized} like ${`%${digits}%`}`);
   }
+
+  /*
+   * The household's executive assistant, who often calls on the family's
+   * behalf. Every member of that household is found by them. The subquery sits
+   * in WHERE, where Drizzle qualifies the outer column.
+   */
+  clauses.push(sql`exists (
+    select 1 from household ea_household
+    where ea_household.id = ${customers.householdId}
+      and (
+        lower(coalesce(ea_household.ea_name, '')) like ${like}
+        or lower(coalesce(ea_household.ea_email, '')) like ${like}
+        ${hasDigits ? sql`or ea_household.ea_phone_normalized like ${`%${digits}%`}` : sql``}
+      )
+  )`);
 
   return or(...clauses)!;
 }
@@ -74,7 +101,7 @@ function rankExpression(q: string | undefined) {
   if (!q) return sql<number>`0`;
   const tsQuery = toPrefixTsQuery(q);
   const tsRank = tsQuery
-    ? sql<number>`ts_rank(search_document, to_tsquery('simple', ${tsQuery}))`
+    ? sql<number>`ts_rank(${customers}.search_document, to_tsquery('simple', ${tsQuery}))`
     : sql<number>`0`;
 
   return sql<number>`(
@@ -126,10 +153,8 @@ export type ClientSearchRow = {
   rmName: string | null;
 };
 
-export async function searchCustomers(query: ClientSearchQuery): Promise<{
-  rows: ClientSearchRow[];
-  total: number;
-}> {
+/** The filters behind the clients list, shared by the flat and grouped searches. */
+function searchConditions(query: ClientSearchQuery) {
   const conditions = [];
 
   if (!query.includeArchived) conditions.push(isNull(customers.archivedAt));
@@ -155,7 +180,14 @@ export async function searchCustomers(query: ClientSearchQuery): Promise<{
     );
   }
 
-  const where = conditions.length > 0 ? and(...conditions) : undefined;
+  return conditions.length > 0 ? and(...conditions) : undefined;
+}
+
+export async function searchCustomers(query: ClientSearchQuery): Promise<{
+  rows: ClientSearchRow[];
+  total: number;
+}> {
+  const where = searchConditions(query);
 
   const orderBy = (() => {
     switch (query.sort) {
@@ -208,6 +240,249 @@ export async function searchCustomers(query: ClientSearchQuery): Promise<{
   return { rows: rows as ClientSearchRow[], total: count };
 }
 
+export type ClientGroupMember = ClientSearchRow & {
+  householdRole: (typeof customers.$inferSelect)["householdRole"];
+};
+
+export type ClientGroup = {
+  /** The household's id, or the client's own id when they have no household. */
+  key: string;
+  household: { id: string; name: string; ref: string } | null;
+  /** The household's primary client, or the client themselves when solo. */
+  lead: ClientGroupMember;
+  /**
+   * Whether the lead is the household's designated primary, as opposed to the
+   * first member by name standing in because nobody has been designated.
+   */
+  leadIsPrimary: boolean;
+  /**
+   * Whether the lead matched the search and filters.
+   *
+   * A household is always listed under its primary, so when a search finds
+   * only another member the primary still leads the group, for context.
+   */
+  leadMatched: boolean;
+  /** The household's other members who matched, in name order. */
+  members: ClientGroupMember[];
+};
+
+/**
+ * The clients list, one entry per household rather than one per person.
+ *
+ * Pagination counts groups, not people. Paging by person would cut a family in
+ * half at a page boundary, with the primary on one page and their children on
+ * the next.
+ *
+ * Every person here is still a client row, which is what lets each family
+ * member carry their own preferences, milestones and history. Grouping is how
+ * they are listed, not how they are stored.
+ */
+export async function searchClientGroups(query: ClientSearchQuery): Promise<{
+  groups: ClientGroup[];
+  totalGroups: number;
+  totalHouseholds: number;
+  totalClients: number;
+}> {
+  const where = searchConditions(query);
+  const groupKey = sql<string>`coalesce(${customers.householdId}, ${customers.id})`;
+
+  /**
+   * The name a group sorts under: the one shown on its lead row.
+   *
+   * The household's primary pointer wins, then a member whose role is primary,
+   * then the alphabetically first member. The joined primary is the same row for
+   * every member of a group, so max() only reads it inside the aggregate.
+   */
+  const pointedPrimary = alias(customers, "pointed_primary");
+  const leadName = sql`lower(coalesce(
+    max(${pointedPrimary.firstName}),
+    min(case when ${customers.householdRole} = 'primary' then ${customers.firstName} end),
+    min(${customers.firstName})
+  ))`;
+
+  const groupOrder = (() => {
+    switch (query.sort) {
+      case "recent":
+        return [sql`max(${customers.createdAt}) desc`, groupKey];
+      case "last_interaction":
+        return [sql`max(${customers.lastInteractionAt}) desc nulls last`, groupKey];
+      case "name":
+        return [asc(leadName), groupKey];
+      default:
+        return query.q
+          ? [sql`max(${rankExpression(query.q)}) desc`, asc(leadName), groupKey]
+          : [asc(leadName), groupKey];
+    }
+  })();
+
+  const [page, [totals]] = await Promise.all([
+    db
+      .select({ key: groupKey })
+      .from(customers)
+      .leftJoin(households, eq(customers.householdId, households.id))
+      .leftJoin(pointedPrimary, eq(pointedPrimary.id, households.primaryCustomerId))
+      .where(where)
+      .groupBy(groupKey)
+      .orderBy(...groupOrder)
+      .limit(query.limit)
+      .offset(query.offset),
+    db
+      .select({
+        groups: sql<number>`count(distinct ${groupKey})::int`,
+        households: sql<number>`count(distinct ${customers.householdId})::int`,
+        clients: sql<number>`count(*)::int`,
+      })
+      .from(customers)
+      .where(where),
+  ]);
+
+  const counts = {
+    totalGroups: totals.groups,
+    totalHouseholds: totals.households,
+    totalClients: totals.clients,
+  };
+  if (page.length === 0) return { groups: [], ...counts };
+
+  const keys = page.map((group) => group.key);
+
+  const memberColumns = {
+    id: customers.id,
+    ref: customers.ref,
+    firstName: customers.firstName,
+    lastName: customers.lastName,
+    preferredName: customers.preferredName,
+    city: customers.city,
+    mobile: customers.mobile,
+    email: customers.email,
+    status: customers.status,
+    customerSince: customers.customerSince,
+    lastInteractionAt: customers.lastInteractionAt,
+    archivedAt: customers.archivedAt,
+    householdId: customers.householdId,
+    householdName: households.name,
+    householdRef: households.ref,
+    householdPrimaryId: households.primaryCustomerId,
+    householdRole: customers.householdRole,
+    rmId: customers.primaryRmId,
+    rmName: users.name,
+  };
+
+  type Fetched = ClientGroupMember & { householdPrimaryId: string | null };
+
+  const matched = (await db
+    .select(memberColumns)
+    .from(customers)
+    .leftJoin(households, eq(customers.householdId, households.id))
+    .leftJoin(users, eq(customers.primaryRmId, users.id))
+    .where(and(inArray(groupKey, keys), where))
+    .orderBy(asc(customers.firstName), asc(customers.lastName))) as Fetched[];
+
+  /**
+   * Primaries who did not match the search, fetched only to lead their group.
+   *
+   * A household names its primary in two ways: the explicit pointer, set from
+   * the household screen, and a member whose role is primary, set when the
+   * client is created. Either can be the only one present.
+   */
+  const matchedIds = new Set(matched.map((row) => row.id));
+  const missingPointers = new Set<string>();
+  const needRolePrimary = new Set<string>();
+
+  for (const row of matched) {
+    if (!row.householdId) continue;
+    if (row.householdPrimaryId) {
+      if (!matchedIds.has(row.householdPrimaryId)) {
+        missingPointers.add(row.householdPrimaryId);
+      }
+    } else {
+      needRolePrimary.add(row.householdId);
+    }
+  }
+  for (const row of matched) {
+    if (row.householdId && row.householdRole === "primary") {
+      needRolePrimary.delete(row.householdId);
+    }
+  }
+
+  const contextConditions = [];
+  if (missingPointers.size > 0) {
+    contextConditions.push(inArray(customers.id, [...missingPointers]));
+  }
+  if (needRolePrimary.size > 0) {
+    contextConditions.push(
+      and(
+        inArray(customers.householdId, [...needRolePrimary]),
+        eq(customers.householdRole, "primary"),
+        isNull(customers.archivedAt),
+      )!,
+    );
+  }
+
+  const context =
+    contextConditions.length > 0
+      ? ((await db
+          .select(memberColumns)
+          .from(customers)
+          .leftJoin(households, eq(customers.householdId, households.id))
+          .leftJoin(users, eq(customers.primaryRmId, users.id))
+          .where(or(...contextConditions))
+          .orderBy(asc(customers.firstName))) as Fetched[])
+      : [];
+
+  const toMember = (row: Fetched): ClientGroupMember => {
+    const member: Partial<Fetched> = { ...row };
+    delete member.householdPrimaryId;
+    return member as ClientGroupMember;
+  };
+
+  const groups = keys.map((key): ClientGroup => {
+    const rows = matched.filter((row) => (row.householdId ?? row.id) === key);
+    const first = rows[0];
+    if (!first) {
+      throw new Error(`Group ${key} was paged but has no matching members`);
+    }
+
+    if (!first.householdId) {
+      return {
+        key,
+        household: null,
+        lead: toMember(first),
+        leadIsPrimary: false,
+        leadMatched: true,
+        members: [],
+      };
+    }
+
+    const householdId = first.householdId;
+    const pointer = first.householdPrimaryId;
+
+    const lead =
+      (pointer &&
+        (rows.find((row) => row.id === pointer) ??
+          context.find((row) => row.id === pointer))) ||
+      rows.find((row) => row.householdRole === "primary") ||
+      context.find(
+        (row) => row.householdId === householdId && row.householdRole === "primary",
+      ) ||
+      first;
+
+    return {
+      key,
+      household: {
+        id: householdId,
+        name: first.householdName ?? "",
+        ref: first.householdRef ?? "",
+      },
+      lead: toMember(lead),
+      leadIsPrimary: lead.id === pointer || lead.householdRole === "primary",
+      leadMatched: rows.some((row) => row.id === lead.id),
+      members: rows.filter((row) => row.id !== lead.id).map(toMember),
+    };
+  });
+
+  return { groups, ...counts };
+}
+
 /* ------------------------------------------------------------------ */
 /* Client 360                                                          */
 /* ------------------------------------------------------------------ */
@@ -218,12 +493,6 @@ const MILESTONE_DAYS_UNTIL = sql<number>`vara5_days_until(${milestones.monthOfYe
 
 export async function findCustomerById(id: string) {
   return db.query.customers.findFirst({ where: eq(customers.id, id) });
-}
-
-export async function findCustomerByRef(ref: string) {
-  return db.query.customers.findFirst({
-    where: sql`upper(${customers.ref}) = ${ref.toUpperCase()}`,
-  });
 }
 
 /** Every piece of a client's record, in the shape the Client 360 screen needs. */
@@ -410,11 +679,6 @@ export async function findActiveByPhone(phone: string, excludeId?: string) {
     })
     .from(customers)
     .where(and(...conditions));
-}
-
-export async function listByIds(ids: string[]) {
-  if (ids.length === 0) return [];
-  return db.select().from(customers).where(inArray(customers.id, ids));
 }
 
 /* ------------------------------------------------------------------ */

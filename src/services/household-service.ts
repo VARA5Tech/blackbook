@@ -12,6 +12,7 @@ import {
   type HouseholdMemberInput,
   type UpdateHouseholdInput,
 } from "@/domain/households";
+import { digitsOnly, onlyProvided } from "@/domain/shared";
 import { diffFields, logActivity } from "./activity-service";
 import { DomainError } from "./client-service";
 
@@ -25,10 +26,14 @@ export async function listHouseholds(search?: string) {
   const conditions = [isNull(households.archivedAt)];
   if (search?.trim()) {
     const term = `%${search.trim().toLowerCase()}%`;
+    const digits = digitsOnly(search);
     conditions.push(
       sql`(lower(${households.name}) like ${term}
         or lower(${households.ref}) like ${term}
         or lower(coalesce(${households.city}, '')) like ${term}
+        or lower(coalesce(${households.eaName}, '')) like ${term}
+        or lower(coalesce(${households.eaEmail}, '')) like ${term}
+        ${digits && digits.length >= 3 ? sql`or ${households.eaPhoneNormalized} like ${`%${digits}%`}` : sql``}
         or similarity(${households.name}, ${search.trim()}) > 0.25)`,
     );
   }
@@ -175,7 +180,9 @@ export async function createHousehold(input: CreateHouseholdInput) {
 export async function updateHousehold(input: UpdateHouseholdInput) {
   const actor = await requireCapability("household.manage");
   const data = updateHouseholdSchema.parse(input);
-  const { id, ...patch } = data;
+  const { id, ...parsed } = data;
+  // Only what the caller sent: an edit that omits a field must not blank it.
+  const patch = onlyProvided(input as Record<string, unknown>, parsed);
 
   const existing = await db.query.households.findFirst({
     where: eq(households.id, id),

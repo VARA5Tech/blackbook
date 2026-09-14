@@ -25,6 +25,10 @@ export async function bootstrap(): Promise<void> {
     });
 
     await loadCatalogue();
+
+    // Invited accounts nobody set up in time. Also runs whenever Team is opened.
+    const { purgeExpiredInvitations } = await import("@/services/user-service");
+    await purgeExpiredInvitations();
   } catch (error) {
     // Never take the server down for this. A failed bootstrap leaves the app
     // running and the reason in the log; a crash loop would hide it.

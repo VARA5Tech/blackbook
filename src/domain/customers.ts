@@ -1,5 +1,6 @@
 import { z } from "zod";
 import {
+  executiveAssistantFields,
   isoDate,
   optionalEmail,
   optionalEnum,
@@ -39,6 +40,7 @@ export const customerIdentitySchema = z.object({
   city: optionalText,
   address: optionalText,
   locationUrl: optionalText,
+  ...executiveAssistantFields,
   householdId: uuidSchema.nullable().optional().transform((v) => v ?? null),
   householdRole: optionalEnum(HOUSEHOLD_ROLES),
   primaryRmId: z
@@ -155,6 +157,48 @@ export function initials(customer: {
   const first = customer.firstName.charAt(0);
   const last = customer.lastName?.charAt(0) ?? "";
   return (first + last).toUpperCase();
+}
+
+type AssistantFields = {
+  eaName: string | null;
+  eaEmail: string | null;
+  eaPhone: string | null;
+  eaNotes: string | null;
+};
+
+export type ExecutiveAssistant = {
+  name: string | null;
+  email: string | null;
+  phone: string | null;
+  notes: string | null;
+  /** True when the client has none of their own and this is the household's. */
+  fromHousehold: boolean;
+};
+
+/**
+ * Who to go through to reach a client: their own assistant, or else their
+ * household's. Null when neither is recorded.
+ */
+export function executiveAssistantFor(
+  customer: AssistantFields,
+  household: AssistantFields | null,
+): ExecutiveAssistant | null {
+  const recorded = (row: AssistantFields) =>
+    Boolean(row.eaName || row.eaEmail || row.eaPhone);
+  const source = recorded(customer)
+    ? customer
+    : household && recorded(household)
+      ? household
+      : null;
+  if (!source) return null;
+
+  return {
+    name: source.eaName,
+    email: source.eaEmail,
+    phone: source.eaPhone,
+    notes: source.eaNotes,
+    fromHousehold: source !== customer,
+  };
 }
 
 export const GENDER_LABELS: Record<(typeof GENDERS)[number], string> = {

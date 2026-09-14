@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto";
+import { sql } from "@/db";
 import { beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { CAPABILITIES, capabilitiesFor, roleCan } from "@/auth/permissions";
 import { ForbiddenError, UnauthenticatedError } from "@/auth/session";
@@ -9,6 +10,7 @@ import {
   eraseCustomer,
   getClient360,
   restoreCustomer,
+  searchClientGroups,
   searchClients,
   updateClientDna,
   updateCustomer,
@@ -29,6 +31,7 @@ import {
 import { createTask, setTaskStatus } from "@/services/task-service";
 import {
   createStaffUser,
+  inviteStaff,
   listAllUsers,
   setUserRole,
 } from "@/services/user-service";
@@ -136,6 +139,11 @@ describe("role-based access", () => {
         name: "read clients",
         allowedFrom: "viewer",
         run: () => searchClients({}),
+      },
+      {
+        name: "read the clients list grouped by household",
+        allowedFrom: "viewer",
+        run: () => searchClientGroups({}),
       },
       {
         name: "create a client",
@@ -386,9 +394,19 @@ describe("role-based access", () => {
         run: () =>
           createStaffUser({
             name: "New Colleague",
-            email: `colleague-${randomUUID()}@test.vara5.com`,
+            email: `colleague-${randomUUID()}@vara5.com`,
             role: "rm",
             password: "a-sufficiently-long-password",
+          }),
+      },
+      {
+        name: "invite a colleague by email",
+        allowedFrom: "admin",
+        run: () =>
+          inviteStaff({
+            name: "Invited Colleague",
+            email: `invitee-${randomUUID()}`,
+            role: "viewer",
           }),
       },
       {
@@ -455,6 +473,7 @@ describe("role-based access", () => {
   describe("signed out", () => {
     it.each([
       ["read clients", () => searchClients({})],
+      ["read the clients list grouped by household", () => searchClientGroups({})],
       [
         "open a client",
         () => getClient360("00000000-0000-4000-8000-000000000000"),
@@ -553,5 +572,48 @@ describe("role-based access", () => {
       });
       expect(updated.city).toBe("Delhi");
     });
+  });
+});
+
+/**
+ * Blackbook shares its database with a Supabase stack, whose API serves anything
+ * in public that PUBLIC or the anon role can reach. These are the two locks that
+ * keep client data and Blackbook's own functions off it. Neither is visible from
+ * inside the application, which connects as the owner, so only a test sees them.
+ */
+describe("shut out of the Supabase API", () => {
+  it("has row-level security switched on for every table", async () => {
+    const unprotected = await sql<{ name: string }[]>`
+      select c.relname as name
+      from pg_class c
+      join pg_namespace n on n.oid = c.relnamespace
+      where n.nspname = 'public'
+        and c.relkind = 'r'
+        and not c.relrowsecurity
+      order by 1
+    `;
+    expect(unprotected.map((row) => row.name)).toEqual([]);
+  });
+
+  it("does not let PUBLIC call any of Blackbook's database functions", async () => {
+    const functions = await sql<{ name: string; callable: boolean }[]>`
+      select p.proname as name,
+             has_function_privilege('public', p.oid, 'execute') as callable
+      from pg_proc p
+      join pg_namespace n on n.oid = p.pronamespace
+      where n.nspname = 'public'
+        and left(p.proname, 6) = 'vara5_'
+      order by 1
+    `;
+
+    // Asserted by name, so a function that stops existing fails loudly instead
+    // of quietly passing an empty list.
+    expect(functions.map((row) => row.name)).toEqual([
+      "vara5_days_until",
+      "vara5_next_occurrence",
+      "vara5_ref",
+      "vara5_uuid_v7",
+    ]);
+    expect(functions.filter((row) => row.callable).map((row) => row.name)).toEqual([]);
   });
 });

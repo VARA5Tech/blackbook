@@ -1,6 +1,6 @@
 {
-  "id": "7b8fc6a7-4d41-4bb9-b1d5-7e6d3afbcc98",
-  "prevId": "2c42a419-842c-43b7-b216-3bd931cbecfc",
+  "id": "a83c271e-06bf-4404-ac60-01c5a30afd90",
+  "prevId": "9eb09c85-8e67-4e02-aa82-a1e47c129348",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -419,7 +419,7 @@
           "type": "uuid",
           "primaryKey": true,
           "notNull": true,
-          "default": "gen_random_uuid()"
+          "default": "vara5_uuid_v7()"
         },
         "customer_id": {
           "name": "customer_id",
@@ -508,14 +508,14 @@
           "type": "uuid",
           "primaryKey": true,
           "notNull": true,
-          "default": "gen_random_uuid()"
+          "default": "vara5_uuid_v7()"
         },
         "ref": {
           "name": "ref",
           "type": "text",
           "primaryKey": false,
           "notNull": true,
-          "default": "'CUST-' || lpad(nextval('customer_ref_seq')::text, 5, '0')"
+          "default": "vara5_ref('CUST-', nextval('customer_ref_seq'))"
         },
         "household_id": {
           "name": "household_id",
@@ -892,14 +892,14 @@
           "type": "uuid",
           "primaryKey": true,
           "notNull": true,
-          "default": "gen_random_uuid()"
+          "default": "vara5_uuid_v7()"
         },
         "ref": {
           "name": "ref",
           "type": "text",
           "primaryKey": false,
           "notNull": true,
-          "default": "'HH-' || lpad(nextval('household_ref_seq')::text, 5, '0')"
+          "default": "vara5_ref('HH-', nextval('household_ref_seq'))"
         },
         "name": {
           "name": "name",
@@ -1234,7 +1234,7 @@
           "type": "uuid",
           "primaryKey": true,
           "notNull": true,
-          "default": "gen_random_uuid()"
+          "default": "vara5_uuid_v7()"
         },
         "customer_id": {
           "name": "customer_id",
@@ -1404,7 +1404,7 @@
           "type": "uuid",
           "primaryKey": true,
           "notNull": true,
-          "default": "gen_random_uuid()"
+          "default": "vara5_uuid_v7()"
         },
         "kind": {
           "name": "kind",
@@ -1548,7 +1548,7 @@
           "type": "uuid",
           "primaryKey": true,
           "notNull": true,
-          "default": "gen_random_uuid()"
+          "default": "vara5_uuid_v7()"
         },
         "entity_type": {
           "name": "entity_type",
@@ -1700,7 +1700,7 @@
             "id"
           ],
           "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "set null"
         },
         "activity_log_household_id_household_id_fk": {
           "name": "activity_log_household_id_household_id_fk",
@@ -1713,7 +1713,7 @@
             "id"
           ],
           "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "set null"
         },
         "activity_log_actor_id_app_user_id_fk": {
           "name": "activity_log_actor_id_app_user_id_fk",
@@ -1744,7 +1744,7 @@
           "type": "uuid",
           "primaryKey": true,
           "notNull": true,
-          "default": "gen_random_uuid()"
+          "default": "vara5_uuid_v7()"
         },
         "customer_id": {
           "name": "customer_id",
@@ -1903,7 +1903,7 @@
           "type": "uuid",
           "primaryKey": true,
           "notNull": true,
-          "default": "gen_random_uuid()"
+          "default": "vara5_uuid_v7()"
         },
         "customer_id": {
           "name": "customer_id",
@@ -2146,7 +2146,7 @@
           "type": "uuid",
           "primaryKey": true,
           "notNull": true,
-          "default": "gen_random_uuid()"
+          "default": "vara5_uuid_v7()"
         },
         "title": {
           "name": "title",

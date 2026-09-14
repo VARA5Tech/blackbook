@@ -1,6 +1,6 @@
 {
-  "id": "40345f16-b869-47e1-b26d-3e1152620368",
-  "prevId": "5e48a976-d920-4538-abff-e6723c13855f",
+  "id": "f93856a1-5758-424e-bed3-c22a9c956330",
+  "prevId": "c9726ed9-04de-4bc7-9ef6-921f42acc575",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -101,24 +101,24 @@
             }
           ],
           "isUnique": false,
-          "with": {},
+          "concurrently": false,
           "method": "btree",
-          "concurrently": false
+          "with": {}
         }
       },
       "foreignKeys": {
         "app_account_user_id_app_user_id_fk": {
           "name": "app_account_user_id_app_user_id_fk",
           "tableFrom": "app_account",
+          "tableTo": "app_user",
           "columnsFrom": [
             "user_id"
           ],
-          "tableTo": "app_user",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
@@ -200,34 +200,34 @@
             }
           ],
           "isUnique": false,
-          "with": {},
+          "concurrently": false,
           "method": "btree",
-          "concurrently": false
+          "with": {}
         }
       },
       "foreignKeys": {
         "app_session_user_id_app_user_id_fk": {
           "name": "app_session_user_id_app_user_id_fk",
           "tableFrom": "app_session",
+          "tableTo": "app_user",
           "columnsFrom": [
             "user_id"
           ],
-          "tableTo": "app_user",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
         "app_session_token_unique": {
           "name": "app_session_token_unique",
+          "nullsNotDistinct": false,
           "columns": [
             "token"
-          ],
-          "nullsNotDistinct": false
+          ]
         }
       },
       "policies": {},
@@ -323,9 +323,9 @@
             }
           ],
           "isUnique": false,
-          "with": {},
+          "concurrently": false,
           "method": "btree",
-          "concurrently": false
+          "with": {}
         }
       },
       "foreignKeys": {},
@@ -333,10 +333,10 @@
       "uniqueConstraints": {
         "app_user_email_unique": {
           "name": "app_user_email_unique",
+          "nullsNotDistinct": false,
           "columns": [
             "email"
-          ],
-          "nullsNotDistinct": false
+          ]
         }
       },
       "policies": {},
@@ -398,9 +398,9 @@
             }
           ],
           "isUnique": false,
-          "with": {},
+          "concurrently": false,
           "method": "btree",
-          "concurrently": false
+          "with": {}
         }
       },
       "foreignKeys": {},
@@ -419,7 +419,7 @@
           "type": "uuid",
           "primaryKey": true,
           "notNull": true,
-          "default": "gen_random_uuid()"
+          "default": "vara5_uuid_v7()"
         },
         "customer_id": {
           "name": "customer_id",
@@ -473,24 +473,24 @@
             }
           ],
           "isUnique": false,
-          "with": {},
+          "concurrently": false,
           "method": "btree",
-          "concurrently": false
+          "with": {}
         }
       },
       "foreignKeys": {
         "client_directive_customer_id_customer_id_fk": {
           "name": "client_directive_customer_id_customer_id_fk",
           "tableFrom": "client_directive",
+          "tableTo": "customer",
           "columnsFrom": [
             "customer_id"
           ],
-          "tableTo": "customer",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
@@ -508,14 +508,14 @@
           "type": "uuid",
           "primaryKey": true,
           "notNull": true,
-          "default": "gen_random_uuid()"
+          "default": "vara5_uuid_v7()"
         },
         "ref": {
           "name": "ref",
           "type": "text",
           "primaryKey": false,
           "notNull": true,
-          "default": "'CUST-' || lpad(nextval('customer_ref_seq')::text, 5, '0')"
+          "default": "vara5_ref('CUST-', nextval('customer_ref_seq'))"
         },
         "household_id": {
           "name": "household_id",
@@ -560,8 +560,8 @@
           "primaryKey": false,
           "notNull": false,
           "generated": {
-            "type": "stored",
-            "as": "nullif(regexp_replace(coalesce(mobile, ''), '[^0-9]', '', 'g'), '')"
+            "as": "nullif(regexp_replace(coalesce(mobile, ''), '[^0-9]', '', 'g'), '')",
+            "type": "stored"
           }
         },
         "whatsapp": {
@@ -576,8 +576,8 @@
           "primaryKey": false,
           "notNull": false,
           "generated": {
-            "type": "stored",
-            "as": "nullif(regexp_replace(coalesce(whatsapp, ''), '[^0-9]', '', 'g'), '')"
+            "as": "nullif(regexp_replace(coalesce(whatsapp, ''), '[^0-9]', '', 'g'), '')",
+            "type": "stored"
           }
         },
         "email": {
@@ -631,6 +631,40 @@
         },
         "location_lng": {
           "name": "location_lng",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "ea_name": {
+          "name": "ea_name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "ea_email": {
+          "name": "ea_email",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "ea_phone": {
+          "name": "ea_phone",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "ea_phone_normalized": {
+          "name": "ea_phone_normalized",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "generated": {
+            "as": "nullif(regexp_replace(coalesce(ea_phone, ''), '[^0-9]', '', 'g'), '')",
+            "type": "stored"
+          }
+        },
+        "ea_notes": {
+          "name": "ea_notes",
           "type": "text",
           "primaryKey": false,
           "notNull": false
@@ -719,9 +753,9 @@
             }
           ],
           "isUnique": false,
-          "with": {},
+          "concurrently": false,
           "method": "btree",
-          "concurrently": false
+          "with": {}
         },
         "customer_rm_idx": {
           "name": "customer_rm_idx",
@@ -734,9 +768,9 @@
             }
           ],
           "isUnique": false,
-          "with": {},
+          "concurrently": false,
           "method": "btree",
-          "concurrently": false
+          "with": {}
         },
         "customer_status_idx": {
           "name": "customer_status_idx",
@@ -749,9 +783,9 @@
             }
           ],
           "isUnique": false,
-          "with": {},
+          "concurrently": false,
           "method": "btree",
-          "concurrently": false
+          "with": {}
         },
         "customer_archived_idx": {
           "name": "customer_archived_idx",
@@ -764,9 +798,9 @@
             }
           ],
           "isUnique": false,
-          "with": {},
+          "concurrently": false,
           "method": "btree",
-          "concurrently": false
+          "with": {}
         },
         "customer_last_interaction_idx": {
           "name": "customer_last_interaction_idx",
@@ -779,9 +813,9 @@
             }
           ],
           "isUnique": false,
-          "with": {},
+          "concurrently": false,
           "method": "btree",
-          "concurrently": false
+          "with": {}
         },
         "customer_mobile_normalized_idx": {
           "name": "customer_mobile_normalized_idx",
@@ -794,9 +828,9 @@
             }
           ],
           "isUnique": false,
-          "with": {},
+          "concurrently": false,
           "method": "btree",
-          "concurrently": false
+          "with": {}
         },
         "customer_mobile_unique_active": {
           "name": "customer_mobile_unique_active",
@@ -809,74 +843,74 @@
             }
           ],
           "isUnique": true,
-          "with": {},
-          "method": "btree",
           "where": "archived_at is null and mobile_normalized is not null",
-          "concurrently": false
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
         }
       },
       "foreignKeys": {
         "customer_household_id_household_id_fk": {
           "name": "customer_household_id_household_id_fk",
           "tableFrom": "customer",
+          "tableTo": "household",
           "columnsFrom": [
             "household_id"
           ],
-          "tableTo": "household",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "set null"
+          "onDelete": "set null",
+          "onUpdate": "no action"
         },
         "customer_primary_rm_id_app_user_id_fk": {
           "name": "customer_primary_rm_id_app_user_id_fk",
           "tableFrom": "customer",
+          "tableTo": "app_user",
           "columnsFrom": [
             "primary_rm_id"
           ],
-          "tableTo": "app_user",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "set null"
+          "onDelete": "set null",
+          "onUpdate": "no action"
         },
         "customer_created_by_app_user_id_fk": {
           "name": "customer_created_by_app_user_id_fk",
           "tableFrom": "customer",
+          "tableTo": "app_user",
           "columnsFrom": [
             "created_by"
           ],
-          "tableTo": "app_user",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "set null"
+          "onDelete": "set null",
+          "onUpdate": "no action"
         },
         "customer_updated_by_app_user_id_fk": {
           "name": "customer_updated_by_app_user_id_fk",
           "tableFrom": "customer",
+          "tableTo": "app_user",
           "columnsFrom": [
             "updated_by"
           ],
-          "tableTo": "app_user",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "set null"
+          "onDelete": "set null",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
         "customer_ref_unique": {
           "name": "customer_ref_unique",
+          "nullsNotDistinct": false,
           "columns": [
             "ref"
-          ],
-          "nullsNotDistinct": false
+          ]
         }
       },
       "policies": {},
@@ -892,14 +926,14 @@
           "type": "uuid",
           "primaryKey": true,
           "notNull": true,
-          "default": "gen_random_uuid()"
+          "default": "vara5_uuid_v7()"
         },
         "ref": {
           "name": "ref",
           "type": "text",
           "primaryKey": false,
           "notNull": true,
-          "default": "'HH-' || lpad(nextval('household_ref_seq')::text, 5, '0')"
+          "default": "vara5_ref('HH-', nextval('household_ref_seq'))"
         },
         "name": {
           "name": "name",
@@ -928,6 +962,40 @@
         },
         "notes": {
           "name": "notes",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "ea_name": {
+          "name": "ea_name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "ea_email": {
+          "name": "ea_email",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "ea_phone": {
+          "name": "ea_phone",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "ea_phone_normalized": {
+          "name": "ea_phone_normalized",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "generated": {
+            "as": "nullif(regexp_replace(coalesce(ea_phone, ''), '[^0-9]', '', 'g'), '')",
+            "type": "stored"
+          }
+        },
+        "ea_notes": {
+          "name": "ea_notes",
           "type": "text",
           "primaryKey": false,
           "notNull": false
@@ -977,9 +1045,9 @@
             }
           ],
           "isUnique": false,
-          "with": {},
+          "concurrently": false,
           "method": "btree",
-          "concurrently": false
+          "with": {}
         },
         "household_city_idx": {
           "name": "household_city_idx",
@@ -992,9 +1060,9 @@
             }
           ],
           "isUnique": false,
-          "with": {},
+          "concurrently": false,
           "method": "btree",
-          "concurrently": false
+          "with": {}
         },
         "household_archived_idx": {
           "name": "household_archived_idx",
@@ -1007,60 +1075,60 @@
             }
           ],
           "isUnique": false,
-          "with": {},
+          "concurrently": false,
           "method": "btree",
-          "concurrently": false
+          "with": {}
         }
       },
       "foreignKeys": {
         "household_primary_customer_id_customer_id_fk": {
           "name": "household_primary_customer_id_customer_id_fk",
           "tableFrom": "household",
+          "tableTo": "customer",
           "columnsFrom": [
             "primary_customer_id"
           ],
-          "tableTo": "customer",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "set null"
+          "onDelete": "set null",
+          "onUpdate": "no action"
         },
         "household_created_by_app_user_id_fk": {
           "name": "household_created_by_app_user_id_fk",
           "tableFrom": "household",
+          "tableTo": "app_user",
           "columnsFrom": [
             "created_by"
           ],
-          "tableTo": "app_user",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "set null"
+          "onDelete": "set null",
+          "onUpdate": "no action"
         },
         "household_updated_by_app_user_id_fk": {
           "name": "household_updated_by_app_user_id_fk",
           "tableFrom": "household",
+          "tableTo": "app_user",
           "columnsFrom": [
             "updated_by"
           ],
-          "tableTo": "app_user",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "set null"
+          "onDelete": "set null",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
         "household_ref_unique": {
           "name": "household_ref_unique",
+          "nullsNotDistinct": false,
           "columns": [
             "ref"
-          ],
-          "nullsNotDistinct": false
+          ]
         }
       },
       "policies": {},
@@ -1195,28 +1263,28 @@
         "customer_preference_profile_customer_id_customer_id_fk": {
           "name": "customer_preference_profile_customer_id_customer_id_fk",
           "tableFrom": "customer_preference_profile",
+          "tableTo": "customer",
           "columnsFrom": [
             "customer_id"
           ],
-          "tableTo": "customer",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         },
         "customer_preference_profile_updated_by_app_user_id_fk": {
           "name": "customer_preference_profile_updated_by_app_user_id_fk",
           "tableFrom": "customer_preference_profile",
+          "tableTo": "app_user",
           "columnsFrom": [
             "updated_by"
           ],
-          "tableTo": "app_user",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "set null"
+          "onDelete": "set null",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
@@ -1234,7 +1302,7 @@
           "type": "uuid",
           "primaryKey": true,
           "notNull": true,
-          "default": "gen_random_uuid()"
+          "default": "vara5_uuid_v7()"
         },
         "customer_id": {
           "name": "customer_id",
@@ -1307,9 +1375,9 @@
             }
           ],
           "isUnique": true,
-          "with": {},
+          "concurrently": false,
           "method": "btree",
-          "concurrently": false
+          "with": {}
         },
         "customer_preference_customer_idx": {
           "name": "customer_preference_customer_idx",
@@ -1322,9 +1390,9 @@
             }
           ],
           "isUnique": false,
-          "with": {},
+          "concurrently": false,
           "method": "btree",
-          "concurrently": false
+          "with": {}
         },
         "customer_preference_option_idx": {
           "name": "customer_preference_option_idx",
@@ -1343,50 +1411,50 @@
             }
           ],
           "isUnique": false,
-          "with": {},
+          "concurrently": false,
           "method": "btree",
-          "concurrently": false
+          "with": {}
         }
       },
       "foreignKeys": {
         "customer_preference_customer_id_customer_id_fk": {
           "name": "customer_preference_customer_id_customer_id_fk",
           "tableFrom": "customer_preference",
+          "tableTo": "customer",
           "columnsFrom": [
             "customer_id"
           ],
-          "tableTo": "customer",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         },
         "customer_preference_option_id_preference_option_id_fk": {
           "name": "customer_preference_option_id_preference_option_id_fk",
           "tableFrom": "customer_preference",
+          "tableTo": "preference_option",
           "columnsFrom": [
             "option_id"
           ],
-          "tableTo": "preference_option",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         },
         "customer_preference_created_by_app_user_id_fk": {
           "name": "customer_preference_created_by_app_user_id_fk",
           "tableFrom": "customer_preference",
+          "tableTo": "app_user",
           "columnsFrom": [
             "created_by"
           ],
-          "tableTo": "app_user",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "set null"
+          "onDelete": "set null",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
@@ -1404,7 +1472,7 @@
           "type": "uuid",
           "primaryKey": true,
           "notNull": true,
-          "default": "gen_random_uuid()"
+          "default": "vara5_uuid_v7()"
         },
         "kind": {
           "name": "kind",
@@ -1477,9 +1545,9 @@
             }
           ],
           "isUnique": true,
-          "with": {},
+          "concurrently": false,
           "method": "btree",
-          "concurrently": false
+          "with": {}
         },
         "preference_option_kind_idx": {
           "name": "preference_option_kind_idx",
@@ -1498,9 +1566,9 @@
             }
           ],
           "isUnique": false,
-          "with": {},
+          "concurrently": false,
           "method": "btree",
-          "concurrently": false
+          "with": {}
         },
         "preference_option_label_idx": {
           "name": "preference_option_label_idx",
@@ -1513,24 +1581,24 @@
             }
           ],
           "isUnique": false,
-          "with": {},
+          "concurrently": false,
           "method": "btree",
-          "concurrently": false
+          "with": {}
         }
       },
       "foreignKeys": {
         "preference_option_created_by_app_user_id_fk": {
           "name": "preference_option_created_by_app_user_id_fk",
           "tableFrom": "preference_option",
+          "tableTo": "app_user",
           "columnsFrom": [
             "created_by"
           ],
-          "tableTo": "app_user",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "set null"
+          "onDelete": "set null",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
@@ -1548,7 +1616,7 @@
           "type": "uuid",
           "primaryKey": true,
           "notNull": true,
-          "default": "gen_random_uuid()"
+          "default": "vara5_uuid_v7()"
         },
         "entity_type": {
           "name": "entity_type",
@@ -1626,9 +1694,9 @@
             }
           ],
           "isUnique": false,
-          "with": {},
+          "concurrently": false,
           "method": "btree",
-          "concurrently": false
+          "with": {}
         },
         "activity_log_household_idx": {
           "name": "activity_log_household_idx",
@@ -1647,9 +1715,9 @@
             }
           ],
           "isUnique": false,
-          "with": {},
+          "concurrently": false,
           "method": "btree",
-          "concurrently": false
+          "with": {}
         },
         "activity_log_entity_idx": {
           "name": "activity_log_entity_idx",
@@ -1668,9 +1736,9 @@
             }
           ],
           "isUnique": false,
-          "with": {},
+          "concurrently": false,
           "method": "btree",
-          "concurrently": false
+          "with": {}
         },
         "activity_log_created_idx": {
           "name": "activity_log_created_idx",
@@ -1683,50 +1751,50 @@
             }
           ],
           "isUnique": false,
-          "with": {},
+          "concurrently": false,
           "method": "btree",
-          "concurrently": false
+          "with": {}
         }
       },
       "foreignKeys": {
         "activity_log_customer_id_customer_id_fk": {
           "name": "activity_log_customer_id_customer_id_fk",
           "tableFrom": "activity_log",
+          "tableTo": "customer",
           "columnsFrom": [
             "customer_id"
           ],
-          "tableTo": "customer",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "set null",
+          "onUpdate": "no action"
         },
         "activity_log_household_id_household_id_fk": {
           "name": "activity_log_household_id_household_id_fk",
           "tableFrom": "activity_log",
+          "tableTo": "household",
           "columnsFrom": [
             "household_id"
           ],
-          "tableTo": "household",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "set null",
+          "onUpdate": "no action"
         },
         "activity_log_actor_id_app_user_id_fk": {
           "name": "activity_log_actor_id_app_user_id_fk",
           "tableFrom": "activity_log",
+          "tableTo": "app_user",
           "columnsFrom": [
             "actor_id"
           ],
-          "tableTo": "app_user",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "set null"
+          "onDelete": "set null",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
@@ -1744,7 +1812,7 @@
           "type": "uuid",
           "primaryKey": true,
           "notNull": true,
-          "default": "gen_random_uuid()"
+          "default": "vara5_uuid_v7()"
         },
         "customer_id": {
           "name": "customer_id",
@@ -1816,9 +1884,9 @@
             }
           ],
           "isUnique": false,
-          "with": {},
+          "concurrently": false,
           "method": "btree",
-          "concurrently": false
+          "with": {}
         },
         "interaction_household_idx": {
           "name": "interaction_household_idx",
@@ -1837,50 +1905,50 @@
             }
           ],
           "isUnique": false,
-          "with": {},
+          "concurrently": false,
           "method": "btree",
-          "concurrently": false
+          "with": {}
         }
       },
       "foreignKeys": {
         "interaction_customer_id_customer_id_fk": {
           "name": "interaction_customer_id_customer_id_fk",
           "tableFrom": "interaction",
+          "tableTo": "customer",
           "columnsFrom": [
             "customer_id"
           ],
-          "tableTo": "customer",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         },
         "interaction_household_id_household_id_fk": {
           "name": "interaction_household_id_household_id_fk",
           "tableFrom": "interaction",
+          "tableTo": "household",
           "columnsFrom": [
             "household_id"
           ],
-          "tableTo": "household",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         },
         "interaction_logged_by_app_user_id_fk": {
           "name": "interaction_logged_by_app_user_id_fk",
           "tableFrom": "interaction",
+          "tableTo": "app_user",
           "columnsFrom": [
             "logged_by"
           ],
-          "tableTo": "app_user",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "set null"
+          "onDelete": "set null",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
@@ -1903,7 +1971,7 @@
           "type": "uuid",
           "primaryKey": true,
           "notNull": true,
-          "default": "gen_random_uuid()"
+          "default": "vara5_uuid_v7()"
         },
         "customer_id": {
           "name": "customer_id",
@@ -1949,8 +2017,8 @@
           "primaryKey": false,
           "notNull": false,
           "generated": {
-            "type": "stored",
-            "as": "extract(month from date)::smallint"
+            "as": "extract(month from date)::smallint",
+            "type": "stored"
           }
         },
         "day_of_month": {
@@ -1959,8 +2027,8 @@
           "primaryKey": false,
           "notNull": false,
           "generated": {
-            "type": "stored",
-            "as": "extract(day from date)::smallint"
+            "as": "extract(day from date)::smallint",
+            "type": "stored"
           }
         },
         "celebration_style": {
@@ -2023,9 +2091,9 @@
             }
           ],
           "isUnique": false,
-          "with": {},
+          "concurrently": false,
           "method": "btree",
-          "concurrently": false
+          "with": {}
         },
         "milestone_household_idx": {
           "name": "milestone_household_idx",
@@ -2038,9 +2106,9 @@
             }
           ],
           "isUnique": false,
-          "with": {},
+          "concurrently": false,
           "method": "btree",
-          "concurrently": false
+          "with": {}
         },
         "milestone_upcoming_idx": {
           "name": "milestone_upcoming_idx",
@@ -2065,9 +2133,9 @@
             }
           ],
           "isUnique": false,
-          "with": {},
+          "concurrently": false,
           "method": "btree",
-          "concurrently": false
+          "with": {}
         },
         "milestone_type_idx": {
           "name": "milestone_type_idx",
@@ -2080,50 +2148,50 @@
             }
           ],
           "isUnique": false,
-          "with": {},
+          "concurrently": false,
           "method": "btree",
-          "concurrently": false
+          "with": {}
         }
       },
       "foreignKeys": {
         "milestone_customer_id_customer_id_fk": {
           "name": "milestone_customer_id_customer_id_fk",
           "tableFrom": "milestone",
+          "tableTo": "customer",
           "columnsFrom": [
             "customer_id"
           ],
-          "tableTo": "customer",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         },
         "milestone_household_id_household_id_fk": {
           "name": "milestone_household_id_household_id_fk",
           "tableFrom": "milestone",
+          "tableTo": "household",
           "columnsFrom": [
             "household_id"
           ],
-          "tableTo": "household",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         },
         "milestone_created_by_app_user_id_fk": {
           "name": "milestone_created_by_app_user_id_fk",
           "tableFrom": "milestone",
+          "tableTo": "app_user",
           "columnsFrom": [
             "created_by"
           ],
-          "tableTo": "app_user",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "set null"
+          "onDelete": "set null",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
@@ -2146,7 +2214,7 @@
           "type": "uuid",
           "primaryKey": true,
           "notNull": true,
-          "default": "gen_random_uuid()"
+          "default": "vara5_uuid_v7()"
         },
         "title": {
           "name": "title",
@@ -2245,9 +2313,9 @@
             }
           ],
           "isUnique": false,
-          "with": {},
+          "concurrently": false,
           "method": "btree",
-          "concurrently": false
+          "with": {}
         },
         "task_customer_idx": {
           "name": "task_customer_idx",
@@ -2260,9 +2328,9 @@
             }
           ],
           "isUnique": false,
-          "with": {},
+          "concurrently": false,
           "method": "btree",
-          "concurrently": false
+          "with": {}
         },
         "task_due_idx": {
           "name": "task_due_idx",
@@ -2281,63 +2349,63 @@
             }
           ],
           "isUnique": false,
-          "with": {},
+          "concurrently": false,
           "method": "btree",
-          "concurrently": false
+          "with": {}
         }
       },
       "foreignKeys": {
         "task_customer_id_customer_id_fk": {
           "name": "task_customer_id_customer_id_fk",
           "tableFrom": "task",
+          "tableTo": "customer",
           "columnsFrom": [
             "customer_id"
           ],
-          "tableTo": "customer",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         },
         "task_household_id_household_id_fk": {
           "name": "task_household_id_household_id_fk",
           "tableFrom": "task",
+          "tableTo": "household",
           "columnsFrom": [
             "household_id"
           ],
-          "tableTo": "household",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         },
         "task_assignee_id_app_user_id_fk": {
           "name": "task_assignee_id_app_user_id_fk",
           "tableFrom": "task",
+          "tableTo": "app_user",
           "columnsFrom": [
             "assignee_id"
           ],
-          "tableTo": "app_user",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "set null"
+          "onDelete": "set null",
+          "onUpdate": "no action"
         },
         "task_created_by_app_user_id_fk": {
           "name": "task_created_by_app_user_id_fk",
           "tableFrom": "task",
+          "tableTo": "app_user",
           "columnsFrom": [
             "created_by"
           ],
-          "tableTo": "app_user",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "set null"
+          "onDelete": "set null",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
@@ -2623,31 +2691,31 @@
     }
   },
   "schemas": {},
-  "views": {},
   "sequences": {
     "public.customer_ref_seq": {
       "name": "customer_ref_seq",
+      "schema": "public",
       "increment": "1",
+      "startWith": "100",
       "minValue": "1",
       "maxValue": "9223372036854775807",
-      "startWith": "100",
       "cache": "1",
-      "cycle": false,
-      "schema": "public"
+      "cycle": false
     },
     "public.household_ref_seq": {
       "name": "household_ref_seq",
+      "schema": "public",
       "increment": "1",
+      "startWith": "100",
       "minValue": "1",
       "maxValue": "9223372036854775807",
-      "startWith": "100",
       "cache": "1",
-      "cycle": false,
-      "schema": "public"
+      "cycle": false
     }
   },
   "roles": {},
   "policies": {},
+  "views": {},
   "_meta": {
     "columns": {},
     "schemas": {},

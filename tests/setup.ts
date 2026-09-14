@@ -19,6 +19,13 @@ process.env.DEV_DATABASE_URL = testUrl;
 process.env.BETTER_AUTH_SECRET ??= "test-secret-not-used-for-signing-anything";
 
 /**
+ * Never email anyone from a test run. The config loads `.env.local`, which holds
+ * a real Resend key, so without this an invitation test would send real mail.
+ * With no key, `sendEmail` prints to the console, which tests read instead.
+ */
+process.env.RESEND_API_KEY = "";
+
+/**
  * The runtime resolver is the thing that actually decides, so assert against it
  * rather than against what we just set. If a future change alters that
  * precedence, the suite stops here instead of silently truncating real data.

@@ -1,6 +1,6 @@
 {
-  "id": "b3a1287d-8fd7-43e1-b2b1-c3d990b278ad",
-  "prevId": "ed3099c3-f4bd-4535-a036-e59833bc1bee",
+  "id": "1cd21e16-c4c6-4820-8db8-0544b1f40937",
+  "prevId": "fe193424-6200-4fbf-9d58-d74a99d0510c",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -1700,7 +1700,7 @@
             "id"
           ],
           "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "set null"
         },
         "activity_log_household_id_household_id_fk": {
           "name": "activity_log_household_id_household_id_fk",
@@ -1713,7 +1713,7 @@
             "id"
           ],
           "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "set null"
         },
         "activity_log_actor_id_app_user_id_fk": {
           "name": "activity_log_actor_id_app_user_id_fk",

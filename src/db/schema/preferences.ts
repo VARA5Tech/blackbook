@@ -1,4 +1,4 @@
-import { relations } from "drizzle-orm";
+import { relations, sql } from "drizzle-orm";
 import {
   boolean,
   index,
@@ -40,7 +40,7 @@ import {
 export const preferenceOptions = pgTable(
   "preference_option",
   {
-    id: uuid("id").primaryKey().defaultRandom(),
+    id: uuid("id").primaryKey().default(sql`vara5_uuid_v7()`),
     kind: preferenceKindEnum("kind").notNull(),
     /** Stable machine key, unique within a kind. */
     slug: text("slug").notNull(),
@@ -75,7 +75,7 @@ export const preferenceOptions = pgTable(
 export const customerPreferences = pgTable(
   "customer_preference",
   {
-    id: uuid("id").primaryKey().defaultRandom(),
+    id: uuid("id").primaryKey().default(sql`vara5_uuid_v7()`),
     customerId: uuid("customer_id")
       .notNull()
       .references(() => customers.id, { onDelete: "cascade" }),

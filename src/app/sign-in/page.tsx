@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
-import Image from "next/image";
-import { SignInForm } from "./sign-in-form";
+import { AuthShell, SignInForm } from "@/components/auth/auth-forms";
 
 export const metadata: Metadata = { title: "Sign in" };
 
@@ -13,75 +12,13 @@ export default async function SignInPage({
   const next = typeof params.next === "string" ? params.next : "/";
 
   return (
-    <main className="grid min-h-dvh lg:grid-cols-[1.1fr_1fr]">
-      {/*
-        A fixed brand surface, not `bg-primary`. Primary inverts between themes,
-        so in dark mode this panel turned champagne and swallowed the champagne
-        logo completely. Black in both themes is also what the guide asks for:
-        the champagne mark belongs on a dark ground, and champagne is never
-        meant to be a large fill.
-      */}
-      <section className="hidden flex-col justify-between bg-[var(--brand-surface)] p-12 text-[var(--brand-surface-foreground)] lg:flex">
-        {/* The guide reserves the full lockup for hero and opening screens. */}
-        <Image
-          src="/brand/blackbook-logo-dark.svg"
-          alt="Blackbook"
-          width={900}
-          height={636}
-          priority
-          className="h-auto w-44"
-        />
-
-        <div className="max-w-md space-y-6">
-          <h1 className="font-display text-4xl leading-tight tracking-tight">
-            Know every client before you say hello.
-          </h1>
-          <p className="text-sm leading-relaxed opacity-70">
-            Client 360, households, milestones and preferences in one place, so
-            every conversation starts already personal.
-          </p>
-        </div>
-
-        <p className="text-xs opacity-50">
-          Internal system. Access is granted by a Vara5 administrator.
-        </p>
-      </section>
-
-      {/*
-        Its own surface, not the page background. In dark mode the page ground
-        is the same black as the brand panel, so without this the two columns
-        merged into one black rectangle with no division.
-      */}
-      <section className="flex items-center justify-center bg-card px-6 py-16">
-        <div className="w-full max-w-sm">
-          {/* Narrow screens have no brand panel, so the mark follows the theme. */}
-          <Image
-            src="/brand/blackbook-horizontal-compact-light.svg"
-            alt="Blackbook"
-            width={1100}
-            height={180}
-            priority
-            className="h-6 w-auto lg:hidden dark:hidden"
-          />
-          <Image
-            src="/brand/blackbook-horizontal-compact-dark.svg"
-            alt=""
-            aria-hidden
-            width={1100}
-            height={180}
-            className="hidden h-6 w-auto dark:block dark:lg:hidden"
-          />
-
-          <h2 className="mt-8 font-display text-2xl tracking-tight lg:mt-0">
-            Sign in
-          </h2>
-          <p className="mt-2 text-sm text-muted-foreground">
-            Use your Vara5 email address.
-          </p>
-
-          <SignInForm next={next} />
-        </div>
-      </section>
-    </main>
+    <AuthShell title="Sign in" description="Use your Vara5 email address.">
+      <SignInForm
+        next={next}
+        notice={
+          params.reset === "1" ? "reset" : params.welcome === "1" ? "welcome" : null
+        }
+      />
+    </AuthShell>
   );
 }

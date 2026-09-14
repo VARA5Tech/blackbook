@@ -2,7 +2,9 @@ import { eq, sql as sqlOp } from "drizzle-orm";
 import { ZodError } from "zod";
 import { beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { db } from "@/db";
+import { uuidv7 } from "@/domain/shared";
 import { activityLog, customerPreferenceProfile, customers } from "@/db/schema";
+import { executiveAssistantFor } from "@/domain/customers";
 import {
   archiveCustomer,
   createCustomer,
@@ -10,6 +12,7 @@ import {
   eraseCustomer,
   getClient360,
   restoreCustomer,
+  searchClients,
   updateCustomer,
 } from "@/services/client-service";
 import { createHousehold } from "@/services/household-service";
@@ -77,6 +80,66 @@ describe("customer master", () => {
       );
       const refs = created.map((row) => row.ref);
       expect(new Set(refs).size).toBe(8);
+    });
+
+    /**
+     * The sequence is nowhere near this in a test, so the formatter is asked
+     * directly. The old default padded with lpad(n, 5), which truncates, and
+     * would have turned client 100,000 into a duplicate of client 10,000.
+     */
+    it("widens past 99,999 instead of colliding with an earlier client", async () => {
+      const [row] = await db.execute<{
+        small: string;
+        last: string;
+        next: string;
+      }>(sqlOp`select
+        vara5_ref('CUST-', 7) as small,
+        vara5_ref('CUST-', 99999) as last,
+        vara5_ref('CUST-', 100000) as next`);
+
+      expect(row).toEqual({
+        small: "CUST-00007",
+        last: "CUST-99999",
+        next: "CUST-100000",
+      });
+    });
+
+    it("keys new clients and households with time-ordered UUIDv7s", async () => {
+      const earlier = await createCustomer({
+        firstName: "Earlier",
+        customerSince: "2026-01-01",
+      });
+      const household = await createHousehold({ name: "Later Family", city: "Delhi" });
+      const later = await createCustomer({
+        firstName: "Later",
+        customerSince: "2026-01-01",
+      });
+
+      // The version is the first digit of the third group.
+      for (const id of [earlier.id, household.id, later.id]) {
+        expect(id[14]).toBe("7");
+      }
+
+      // The first 48 bits are milliseconds since the epoch, so a key minted
+      // later never sorts before one minted earlier.
+      const millis = (id: string) => id.replace(/-/g, "").slice(0, 12);
+      expect(millis(later.id) >= millis(earlier.id)).toBe(true);
+    });
+
+    /**
+     * Staff accounts and Better Auth's sessions get their keys in TypeScript,
+     * so the generator there has to agree with vara5_uuid_v7() in the database.
+     */
+    it("mints the same kind of key in application code", () => {
+      const at = Date.UTC(2026, 8, 14, 12, 0, 0);
+      const id = uuidv7(at);
+
+      expect(id).toMatch(
+        /^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/,
+      );
+      // The first 48 bits read back as the moment it was minted.
+      expect(Number.parseInt(id.replace(/-/g, "").slice(0, 12), 16)).toBe(at);
+      expect(uuidv7(at + 1) > uuidv7(at)).toBe(true);
     });
   });
 
@@ -542,6 +605,93 @@ describe("customer master", () => {
 
       expect(restored.archivedAt).toBeNull();
       expect(restored.status).toBe("active");
+    });
+  });
+
+  /**
+   * Some clients are only ever reached through an executive assistant, so the
+   * team needs the assistant on the record and must find the client by them.
+   */
+  describe("executive assistant", () => {
+    const since = "2026-01-01";
+    const assistant = {
+      eaName: "Priya Kapoor",
+      eaEmail: "Priya.Kapoor@Example.com",
+      eaPhone: "+91 98111 22334",
+      eaNotes: "Call between 10 and 6. Copy her on every itinerary.",
+    };
+
+    it("stores the assistant a client is reached through", async () => {
+      const created = await createCustomer({ firstName: "Ananya", customerSince: since, ...assistant });
+
+      expect(created).toMatchObject({
+        eaName: "Priya Kapoor",
+        eaEmail: "priya.kapoor@example.com",
+        eaPhone: "+91 98111 22334",
+        eaPhoneNormalized: "919811122334",
+        eaNotes: "Call between 10 and 6. Copy her on every itinerary.",
+      });
+    });
+
+    it("keeps the assistant when an edit does not send those fields", async () => {
+      const created = await createCustomer({ firstName: "Ananya", customerSince: since, ...assistant });
+      const updated = await updateCustomer({ id: created.id, city: "Mumbai" });
+      expect(updated.eaName).toBe("Priya Kapoor");
+      expect(updated.eaPhone).toBe("+91 98111 22334");
+    });
+
+    it("lets one assistant look after several clients without a duplicate warning", async () => {
+      await createCustomer({ firstName: "One", customerSince: since, eaPhone: "+91 98111 22334" });
+      await expect(
+        createCustomer({ firstName: "Two", customerSince: since, eaPhone: "+91 98111 22334" }),
+      ).resolves.toMatchObject({ firstName: "Two" });
+    });
+
+    it.each([["Priya Kapoor"], ["kapoor"], ["98111 22334"], ["22334"]])(
+      "finds the client by their assistant: %s",
+      async (term) => {
+        const created = await createCustomer({ firstName: "Ananya", customerSince: since, ...assistant });
+        await createCustomer({ firstName: "Unrelated", customerSince: since });
+
+        const { rows } = await searchClients({ q: term });
+        expect(rows.map((row) => row.id)).toEqual([created.id]);
+      },
+    );
+
+    it("finds every member of a household by the household's assistant", async () => {
+      const household = await createHousehold({
+        name: "Mehra Family",
+        eaName: "Rohan Desai",
+        eaPhone: "+91 99887 76655",
+      });
+      const member = await createCustomer({
+        firstName: "Vikram",
+        customerSince: since,
+        householdId: household.id,
+        householdRole: "primary",
+      });
+      await createCustomer({ firstName: "Unrelated", customerSince: since });
+
+      for (const term of ["Rohan Desai", "76655"]) {
+        const { rows } = await searchClients({ q: term });
+        expect(rows.map((row) => row.id), term).toEqual([member.id]);
+      }
+    });
+
+    it("shows the household's assistant unless the client has their own", async () => {
+      const none = { eaName: null, eaEmail: null, eaPhone: null, eaNotes: null };
+      const householdAssistant = { ...none, eaName: "Rohan Desai" };
+      const ownAssistant = { ...none, eaName: "Priya Kapoor" };
+
+      expect(executiveAssistantFor(none, householdAssistant)).toMatchObject({
+        name: "Rohan Desai",
+        fromHousehold: true,
+      });
+      expect(executiveAssistantFor(ownAssistant, householdAssistant)).toMatchObject({
+        name: "Priya Kapoor",
+        fromHousehold: false,
+      });
+      expect(executiveAssistantFor(none, null)).toBeNull();
     });
   });
 });

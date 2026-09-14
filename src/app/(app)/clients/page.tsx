@@ -7,7 +7,7 @@ import { ClientFilters } from "@/components/clients/client-filters";
 import { ClientTable } from "@/components/clients/client-table";
 import { EmptyState, PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
-import { searchClients } from "@/services/client-service";
+import { searchClientGroups } from "@/services/client-service";
 import { getCatalogue } from "@/services/preference-service";
 import { listStaff } from "@/services/user-service";
 
@@ -18,6 +18,13 @@ type SearchParams = Record<string, string | string[] | undefined>;
 function first(params: SearchParams, key: string): string | undefined {
   const value = params[key];
   return Array.isArray(value) ? value[0] : value;
+}
+
+/** "10 clients · 1 household", counting every client the filters matched. */
+function listSummary(clients: number, households: number): string {
+  const people = clients === 1 ? "1 client" : `${clients} clients`;
+  if (households === 0) return people;
+  return `${people} · ${households === 1 ? "1 household" : `${households} households`}`;
 }
 
 function all(params: SearchParams, key: string): string[] {
@@ -46,8 +53,12 @@ export default async function ClientsPage({
     }
   }
 
+  // Sorting is not narrowing. Any other parameter means the reader is looking
+  // for particular people, so their households open to show who matched.
+  const filtering = [...baseQuery.keys()].some((key) => key !== "sort");
+
   const [results, catalogue, staff] = await Promise.all([
-    searchClients({
+    searchClientGroups({
       q: first(params, "q"),
       status: first(params, "status") as "active" | "inactive" | undefined,
       rmId: first(params, "rm"),
@@ -72,9 +83,7 @@ export default async function ClientsPage({
     <>
       <PageHeader
         title="Clients"
-        description={
-          results.total === 1 ? "1 client" : `${results.total} clients`
-        }
+        description={listSummary(results.totalClients, results.totalHouseholds)}
         actions={
           canCreate ? (
             <Button asChild>
@@ -93,18 +102,22 @@ export default async function ClientsPage({
       />
 
       <div className="mt-6">
-        {results.rows.length === 0 ? (
+        {results.groups.length === 0 ? (
           <EmptyState
             title="No clients matched"
             description="Try a different name, client ID or mobile number, or clear the preference filters."
           />
         ) : (
           <ClientTable
-            rows={results.rows}
-            total={results.total}
+            // Remounts on a new search or page, so households opened on one
+            // page do not stay open against another page's results.
+            key={`${baseQuery.toString()}|${page}`}
+            groups={results.groups}
+            totalGroups={results.totalGroups}
             page={Math.max(page, 1)}
             pageSize={limit}
             baseQuery={baseQuery.toString()}
+            expandByDefault={filtering}
           />
         )}
       </div>

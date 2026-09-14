@@ -8,6 +8,7 @@ import {
   Pencil,
   Phone,
   Plane,
+  UserRound,
   UtensilsCrossed,
 } from "lucide-react";
 import Link from "next/link";
@@ -29,6 +30,7 @@ import type { CatalogueOption } from "@/domain/preferences";
 import {
   GENDER_LABELS,
   displayName,
+  executiveAssistantFor,
   fullName,
   initials,
 } from "@/domain/customers";
@@ -55,6 +57,7 @@ export function Client360View({
   const { customer, household, rm } = record;
 
   const nextMilestone = record.milestones[0];
+  const assistant = executiveAssistantFor(customer, household);
 
   return (
     <div className="space-y-8">
@@ -178,6 +181,36 @@ export function Client360View({
           </span>
         </div>
 
+        {assistant ? (
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 text-sm">
+            <span className="flex items-center gap-1.5">
+              <UserRound className="size-3.5 text-muted-foreground" />
+              <span className="text-muted-foreground">
+                {assistant.fromHousehold ? "Household assistant" : "Assistant"}
+              </span>
+              <span>{assistant.name ?? "Name not recorded"}</span>
+            </span>
+            {assistant.phone ? (
+              <a
+                href={`tel:${assistant.phone}`}
+                className="tabular flex items-center gap-1.5 hover:underline"
+              >
+                <Phone className="size-3.5 text-muted-foreground" />
+                {assistant.phone}
+              </a>
+            ) : null}
+            {assistant.email ? (
+              <a
+                href={`mailto:${assistant.email}`}
+                className="flex items-center gap-1.5 hover:underline"
+              >
+                <Mail className="size-3.5 text-muted-foreground" />
+                {assistant.email}
+              </a>
+            ) : null}
+          </div>
+        ) : null}
+
         {nextMilestone ? (
           <div className="flex items-center gap-2 rounded-md border border-accent bg-accent/40 px-3 py-2 text-sm text-accent-foreground">
             <CalendarHeart className="size-4 shrink-0" />
@@ -226,6 +259,11 @@ export function Client360View({
                   <Field label="Address" className="sm:col-span-2">
                     {customer.address ?? "—"}
                   </Field>
+                  {assistant?.notes ? (
+                    <Field label="Assistant notes" className="sm:col-span-2">
+                      {assistant.notes}
+                    </Field>
+                  ) : null}
                   <Field label="Profile last updated">
                     {formatDate(customer.profileUpdatedAt)}
                   </Field>

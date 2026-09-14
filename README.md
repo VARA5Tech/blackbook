@@ -138,16 +138,34 @@ the Docker network. A failure there aborts the boot rather than serving a
 half-applied schema. The files under `drizzle/` can also be pasted into a SQL
 console in order, which is what `/pg/query` is for.
 
-**First administrator.** Created once through a `/setup` route that opened only
-while the instance had no accounts and closed permanently as soon as one
-existed. That route has since been removed. A new deployment against an empty
-database would need it restored from git history, because Better Auth stores a
-scrypt hash in a format only it produces: a row written by hand has no usable
-password, and an environment variable would leave one in a config screen.
+**First administrator.** A new instance has no account to create others from.
+Better Auth stores a scrypt hash with a random salt, `salt:key`, and a hand-typed
+value is never valid, so the first account is inserted with a hash produced by
+Better Auth's own `hashPassword`. The password it was made from should be
+changed from the user menu on first sign-in.
 
 **Everyone else** is added from Team in the sidebar, which administrators see.
-Nothing sends email yet, so an administrator sets an initial password and passes
-it on.
+The default is an emailed invitation: a link to `/invite/<token>` where the
+colleague chooses their own password. It uses no table of its own. The invited
+person is a normal account, unverified and without a password, shown on Team as
+Invited with Send again and Withdraw. The link's SHA-256 is kept in Better
+Auth's `app_verification` table. Using it sets the password and verifies the
+address. If nobody does within two days, the account is deleted, whenever Team
+is opened, an invitation is sent, a link is followed or the app boots. For
+someone who cannot get email yet, Team can instead set an initial password to
+pass on privately.
+
+**Only `@vara5.com` addresses.** Type a name and Team completes the domain, or
+paste the full address. The rule is enforced on the server: the services refuse
+other domains, and Better Auth refuses any sign-in, reset code or user it would
+write for one. Subdomains and lookalikes are refused too.
+
+**Passwords.** Anyone can reset their own at `/forgot-password`, which emails a
+six-digit code from `blackbook@vara5.travel` through Resend. The code
+works once and expires in ten minutes, and a reset signs out every other
+session. Signed in, the user menu has Change password, which also signs out
+other devices. Set `RESEND_API_KEY` for this; without it, development prints
+the email to the terminal and production reports an error.
 
 Applying migrations uses drizzle-orm's migrator rather than the drizzle-kit
 CLI, so the production image carries no build tooling. drizzle-kit still
@@ -182,8 +200,16 @@ The decisions that are not obvious from reading the tables:
 
 - **Household is a first-class entity**, not a column. A client belongs to zero
   or one household and keeps their own preferences either way.
-- **Reference IDs come from database sequences** (`CUST-00100`, `HH-00100`), so
-  two concurrent writers can never mint the same one.
+- **Every record has two identifiers, for two audiences.** The key is a UUIDv7
+  from `vara5_uuid_v7()`: time-ordered, so new rows append to the end of the
+  primary key index, and never shown to a person. The reference (`CUST-00100`,
+  `HH-00100`) is what staff read aloud and type into search. It comes from a
+  database sequence, so two concurrent writers can never mint the same one, and
+  `vara5_ref()` widens it past 99,999 instead of truncating it into a duplicate.
+- **A new table's key defaults to `vara5_uuid_v7()`, not `defaultRandom()`.**
+  The function is pure SQL because production runs Postgres 17, which has no
+  built-in `uuidv7()`. Once production reaches 18, its body can become a call to
+  the native one without touching any table.
 - **Multi-select preferences are rows, not arrays.** One catalogue of options,
   one join table, and a `polarity` column of `prefer` / `wishlist` / `avoid`.
   That collapses the document's "Favourite / Wishlist / Avoid" columns into one
@@ -224,6 +250,12 @@ which bypasses RLS, so none of it is visible to the app.
 Verified against the live database: every table is owned by `postgres`, which
 holds `BYPASSRLS`, and the anon key gets `42501 permission denied`. A new table
 must do the same in its own migration.
+
+Functions need the same care. A function in `public` is executable by `PUBLIC`,
+which makes it callable at `/rest/v1/rpc` with the anon key, and revoking from
+`anon` alone does nothing because `anon` inherits from `PUBLIC`. Every
+Blackbook function revokes from `PUBLIC` in its migration and grants back only
+to `postgres`, and a test in `tests/permissions.test.ts` fails if one does not.
 
 ### Reading production from a laptop
 
@@ -274,9 +306,15 @@ networks:
 There are two separate records, and they answer different questions.
 
 `activity_log` is the audit trail: who edited which client, which fields moved,
-from what to what. It is append-only, enforced by a database trigger rather than
-by convention, so no future service, script or AI tool can quietly rewrite it.
-It is kept forever and shown to staff on the Client 360 timeline.
+from what to what. It is shown to staff on the Client 360 timeline.
+
+It is append-only for the application: a database trigger refuses updates and
+deletes from the app's own connection, which names itself `blackbook`, so no
+service or bug can quietly rewrite history. Developers are deliberately not
+held to it. Studio, psql and `pnpm db:query:prod --write` connect under other
+names and can correct or clear the trail, which is how production is cleaned
+before handover. Renaming the app's connection would lift the lock from the app
+itself, so don't.
 
 `src/lib/logger.ts` is operational telemetry: a request failed, the database was
 unreachable, a model call timed out. One JSON object per line to stdout in
@@ -297,8 +335,9 @@ Capability-based. Services ask "can this actor do X?", never "is this actor an
 admin?", so adding a role later means editing one table in
 `src/auth/permissions.ts`.
 
-Administrators manage the team from Team in the sidebar: adding colleagues and
-changing roles. An administrator cannot demote themselves, so the last one
+Administrators manage the team from Team in the sidebar: inviting colleagues by
+email or adding them with an initial password, resending or withdrawing
+invitations, and changing roles. An administrator cannot demote themselves, so the last one
 cannot lock everybody out.
 
 | Role | Can |
@@ -362,6 +401,75 @@ functions. None of that would be exercised against a mock.
 The only thing stubbed is reading the signed-in user out of an HTTP request.
 Every authorization check runs for real, so the permission tests attempt each
 operation as each of the four roles and assert both the allow and the deny.
+
+## Traps
+
+Every item here is a bug that has already happened in this codebase. The first
+four are the expensive ones, because they fail quietly: no error, no failing
+test, just a plausible wrong answer.
+
+**Partial updates must write only the fields the caller sent.** Several schemas
+use `.optional().transform(v => v ?? null)`, which turns an omitted field into
+`null`. Writing the whole parsed object therefore blanks everything the form did
+not include. Use `onlyProvided` from `src/domain/shared.ts`.
+
+**Never put a correlated subquery in a Drizzle select list on a single-table
+query.** With no joins Drizzle omits the table prefix in the select list, so an
+outer column reference renders bare and binds to the subquery's own table
+instead. Use a join with `alias()` and `groupBy`, or move the subquery into the
+`WHERE` clause, where Drizzle does qualify the column.
+
+**Escape tsquery operators, never strip them.** Stripping breaks apostrophes and
+hyphens, which are common in a client list, and it fails with a wrong result
+rather than an error. Control characters are removed once, at the search input
+boundary in `clientSearchSchema`, not in a query builder.
+
+**Log the cause, not just the error.** Drizzle wraps the driver's error and
+keeps the original on `cause`, where the Postgres SQLSTATE lives. Logging only
+the wrapper once reduced a network failure to `Failed query: select ...` and
+cost a day. `serialiseError` walks the chain. It omits Postgres `detail` and
+`hint` on purpose, because those quote the offending values and this is a CRM.
+
+The rest fail loudly, but not obviously:
+
+- **Nothing may read the database at import time.** `next build` loads every
+  route module with no environment, so the client in `src/db/index.ts` is built
+  lazily on first use. Keep it that way.
+- **Do not interpolate a JavaScript `Date` into a raw `sql` expression inside
+  `.set()`.** Drizzle applies the column's type hint and the driver cannot bind
+  it. Pass an ISO string with an explicit `::timestamptz` cast.
+- **The generated `search_document` column on `customer` is deliberately absent
+  from the Drizzle schema.** Reference it through raw `sql` in the repository.
+- **Hand-written SQL goes in a `--custom` migration**, so drizzle-kit's journal
+  stays correct.
+- **Shell scripts are LF, enforced by `.gitattributes`.** A CRLF shebang makes
+  the kernel look for `/bin/sh\r` and fail with a message that names the file
+  rather than the line ending.
+- **A new table needs its own row-level-security statement in its migration**,
+  for the reason in "Sharing a database with Supabase" above.
+- **Do not turn session cookie caching back on.** It caches the role, so a
+  demoted or suspended user keeps their access until it expires.
+
+## Working on this
+
+Run all three before calling anything done:
+
+```bash
+pnpm typecheck && pnpm lint && pnpm test
+```
+
+Tests belong in the file matching the requirements section they cover, per the
+table under "Tests".
+
+User-facing copy is British English. Dates render as `12 Oct 2026`.
+
+Authorization lives in the service layer. Hiding a button is presentation;
+`requireCapability` is the boundary. Neither the proxy nor a component is
+allowed to be the only thing standing between an actor and an operation.
+
+Preference vocabulary is data, not code. New destinations, hotels and airlines
+are rows in `preference_option`, added at runtime by staff. Only add an enum
+when a field genuinely has one fixed answer.
 
 ## What was taken from Twenty CRM
 

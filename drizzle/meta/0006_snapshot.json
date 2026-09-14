@@ -1,6 +1,6 @@
 {
-  "id": "c9726ed9-04de-4bc7-9ef6-921f42acc575",
-  "prevId": "a83c271e-06bf-4404-ac60-01c5a30afd90",
+  "id": "59b24e1d-321b-4d83-8dc4-39a25b8cd7d5",
+  "prevId": "f93856a1-5758-424e-bed3-c22a9c956330",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -635,6 +635,40 @@
           "primaryKey": false,
           "notNull": false
         },
+        "ea_name": {
+          "name": "ea_name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "ea_email": {
+          "name": "ea_email",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "ea_phone": {
+          "name": "ea_phone",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "ea_phone_normalized": {
+          "name": "ea_phone_normalized",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "generated": {
+            "type": "stored",
+            "as": "nullif(regexp_replace(coalesce(ea_phone, ''), '[^0-9]', '', 'g'), '')"
+          }
+        },
+        "ea_notes": {
+          "name": "ea_notes",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
         "primary_rm_id": {
           "name": "primary_rm_id",
           "type": "text",
@@ -928,6 +962,40 @@
         },
         "notes": {
           "name": "notes",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "ea_name": {
+          "name": "ea_name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "ea_email": {
+          "name": "ea_email",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "ea_phone": {
+          "name": "ea_phone",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "ea_phone_normalized": {
+          "name": "ea_phone_normalized",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "generated": {
+            "type": "stored",
+            "as": "nullif(regexp_replace(coalesce(ea_phone, ''), '[^0-9]', '', 'g'), '')"
+          }
+        },
+        "ea_notes": {
+          "name": "ea_notes",
           "type": "text",
           "primaryKey": false,
           "notNull": false

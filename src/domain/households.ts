@@ -1,5 +1,11 @@
 import { z } from "zod";
-import { optionalEnum, optionalText, requiredText, uuidSchema } from "./shared";
+import {
+  executiveAssistantFields,
+  optionalEnum,
+  optionalText,
+  requiredText,
+  uuidSchema,
+} from "./shared";
 
 export const TRAVEL_PATTERNS = [
   "couple",
@@ -21,6 +27,7 @@ export const createHouseholdSchema = z.object({
   city: optionalText,
   travelPattern: optionalEnum(TRAVEL_PATTERNS),
   notes: optionalText,
+  ...executiveAssistantFields,
   primaryCustomerId: uuidSchema
     .nullable()
     .optional()

@@ -37,7 +37,7 @@ import {
 export const milestones = pgTable(
   "milestone",
   {
-    id: uuid("id").primaryKey().defaultRandom(),
+    id: uuid("id").primaryKey().default(sql`vara5_uuid_v7()`),
     customerId: uuid("customer_id").references(() => customers.id, {
       onDelete: "cascade",
     }),
@@ -102,7 +102,7 @@ export const milestones = pgTable(
 export const interactions = pgTable(
   "interaction",
   {
-    id: uuid("id").primaryKey().defaultRandom(),
+    id: uuid("id").primaryKey().default(sql`vara5_uuid_v7()`),
     customerId: uuid("customer_id").references(() => customers.id, {
       onDelete: "cascade",
     }),
@@ -145,7 +145,7 @@ export const interactions = pgTable(
 export const tasks = pgTable(
   "task",
   {
-    id: uuid("id").primaryKey().defaultRandom(),
+    id: uuid("id").primaryKey().default(sql`vara5_uuid_v7()`),
     title: text("title").notNull(),
     details: text("details"),
     customerId: uuid("customer_id").references(() => customers.id, {
@@ -191,7 +191,7 @@ export const tasks = pgTable(
 export const activityLog = pgTable(
   "activity_log",
   {
-    id: uuid("id").primaryKey().defaultRandom(),
+    id: uuid("id").primaryKey().default(sql`vara5_uuid_v7()`),
 
     entityType: activityEntityEnum("entity_type").notNull(),
     entityId: uuid("entity_id").notNull(),

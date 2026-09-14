@@ -1,5 +1,5 @@
 {
-  "id": "ed3099c3-f4bd-4535-a036-e59833bc1bee",
+  "id": "fe193424-6200-4fbf-9d58-d74a99d0510c",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -1699,7 +1699,7 @@
           "columnsTo": [
             "id"
           ],
-          "onDelete": "cascade",
+          "onDelete": "set null",
           "onUpdate": "no action"
         },
         "activity_log_household_id_household_id_fk": {
@@ -1712,7 +1712,7 @@
           "columnsTo": [
             "id"
           ],
-          "onDelete": "cascade",
+          "onDelete": "set null",
           "onUpdate": "no action"
         },
         "activity_log_actor_id_app_user_id_fk": {

@@ -43,6 +43,13 @@ export async function searchClients(input: ClientSearchInput) {
   return repo.searchCustomers(query);
 }
 
+/** The clients list, grouped so each household appears once under its primary. */
+export async function searchClientGroups(input: ClientSearchInput) {
+  await requireCapability("client.read");
+  const query = clientSearchSchema.parse(input);
+  return repo.searchClientGroups(query);
+}
+
 export async function getClient360(customerId: string) {
   await requireCapability("client.read");
   return repo.loadClient360(customerId);

@@ -13,8 +13,13 @@ export default function proxy(request: NextRequest) {
   const hasSession = Boolean(getSessionCookie(request));
   const { pathname, search } = request.nextUrl;
   const isSignIn = pathname.startsWith("/sign-in");
+  // Reachable signed out, because they exist for people who cannot sign in yet.
+  const isPublic =
+    isSignIn ||
+    pathname.startsWith("/forgot-password") ||
+    pathname.startsWith("/invite/");
 
-  if (!hasSession && !isSignIn) {
+  if (!hasSession && !isPublic) {
     const url = new URL("/sign-in", request.url);
     if (pathname !== "/") url.searchParams.set("next", `${pathname}${search}`);
     return NextResponse.redirect(url);

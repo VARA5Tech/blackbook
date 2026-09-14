@@ -1,7 +1,7 @@
 import "server-only";
 import { requireCapability } from "@/auth/session";
 import { getModel } from "@/ai/model";
-import { displayName } from "@/domain/customers";
+import { displayName, executiveAssistantFor } from "@/domain/customers";
 import { getClient360 } from "@/services/client-service";
 import { KIND_LABELS, POLARITY_LABELS, scalarLabel } from "@/domain/preferences";
 import { daysSince, formatDate, humanise } from "@/lib/format";
@@ -36,6 +36,16 @@ function renderRecord(record: NonNullable<Awaited<ReturnType<typeof getClient360
   lines.push(`Client since: ${formatDate(customer.customerSince)}`);
   lines.push(`Status: ${customer.status}`);
   if (rm?.name) lines.push(`Relationship manager: ${rm.name}`);
+
+  // The fact of going through an assistant, and their name and notes. Never
+  // their phone or email: the model has no use for contact details, and the
+  // client's own are not sent either.
+  const assistant = executiveAssistantFor(customer, household);
+  if (assistant) {
+    lines.push(
+      `Reached through ${assistant.fromHousehold ? "the household's" : "their"} executive assistant: ${assistant.name ?? "name not recorded"}${assistant.notes ? ` (${assistant.notes})` : ""}`,
+    );
+  }
 
   const since = daysSince(customer.lastInteractionAt);
   lines.push(

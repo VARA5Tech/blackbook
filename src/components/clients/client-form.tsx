@@ -55,6 +55,10 @@ function toDraft(customer?: Customer | null): Draft {
     city: customer?.city ?? "",
     address: customer?.address ?? "",
     locationUrl: customer?.locationUrl ?? "",
+    eaName: customer?.eaName ?? "",
+    eaPhone: customer?.eaPhone ?? "",
+    eaEmail: customer?.eaEmail ?? "",
+    eaNotes: customer?.eaNotes ?? "",
     householdId: customer?.householdId ?? "",
     householdRole: customer?.householdRole ?? "",
     primaryRmId: customer?.primaryRmId ?? "",
@@ -265,6 +269,49 @@ export function ClientForm({
             className="sm:col-span-2"
             hint="Paste a Google Maps share link."
           />
+        </div>
+      </Section>
+
+      <Section title="Executive assistant">
+        <p className="-mt-1 mb-5 text-sm text-muted-foreground">
+          For a client reached through an assistant rather than directly. An
+          assistant who looks after the whole family belongs on the household.
+        </p>
+        <div className="grid gap-5 sm:grid-cols-2">
+          <FormField
+            label="Name"
+            name="eaName"
+            value={draft.eaName}
+            onChange={set}
+            errors={fieldErrors.eaName}
+          />
+          <FormField
+            label="Phone"
+            name="eaPhone"
+            value={draft.eaPhone}
+            onChange={set}
+            errors={fieldErrors.eaPhone}
+            placeholder="+91 98100 11223"
+          />
+          <FormField
+            label="Email"
+            name="eaEmail"
+            type="email"
+            value={draft.eaEmail}
+            onChange={set}
+            errors={fieldErrors.eaEmail}
+            className="sm:col-span-2"
+          />
+          <div className="space-y-2 sm:col-span-2">
+            <Label htmlFor="eaNotes">Notes</Label>
+            <Textarea
+              id="eaNotes"
+              rows={2}
+              value={draft.eaNotes}
+              onChange={(event) => set("eaNotes", event.target.value)}
+              placeholder="Working hours, how they like to be contacted, what to copy them on."
+            />
+          </div>
         </div>
       </Section>
 

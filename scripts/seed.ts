@@ -7,7 +7,7 @@
  *
  *   pnpm db:seed
  */
-import { randomUUID } from "node:crypto";
+import { uuidv7 } from "@/domain/shared";
 import { eq, sql as raw } from "drizzle-orm";
 import { auth } from "@/auth";
 import { CATALOGUE } from "@/db/catalogue";
@@ -71,7 +71,7 @@ async function seedUser(input: {
 
   const ctx = await auth.$context;
   const hash = await ctx.password.hash(DEMO_PASSWORD);
-  const id = randomUUID();
+  const id = uuidv7();
 
   await db.insert(users).values({
     id,
@@ -82,7 +82,7 @@ async function seedUser(input: {
   });
 
   await db.insert(accounts).values({
-    id: randomUUID(),
+    id: uuidv7(),
     userId: id,
     accountId: id,
     providerId: "credential",

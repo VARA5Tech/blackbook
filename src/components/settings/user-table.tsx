@@ -6,6 +6,9 @@ import { useState, useTransition } from "react";
 import { toast } from "sonner";
 import {
   createStaffUserAction,
+  inviteStaffAction,
+  resendInvitationAction,
+  revokeInvitationAction,
   setUserRoleAction,
 } from "@/actions/user-actions";
 import { ROLE_LABELS } from "@/auth/permissions";
@@ -21,6 +24,11 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import {
+  InputGroup,
+  InputGroupAddon,
+  InputGroupInput,
+} from "@/components/ui/input-group";
 import { Label } from "@/components/ui/label";
 import {
   Select,
@@ -37,7 +45,14 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import type { UserRole } from "@/db/schema";
+import {
+  INVITATION_DAYS,
+  MIN_STAFF_PASSWORD_LENGTH,
+  STAFF_EMAIL_SUFFIX,
+  staffEmailLocalPart,
+} from "@/domain/staff";
 import { formatDate } from "@/lib/format";
 
 const ROLES: UserRole[] = ["viewer", "rm", "manager", "admin"];
@@ -49,7 +64,11 @@ type StaffRow = {
   role: UserRole;
   banned: boolean | null;
   createdAt: Date;
+  /** Set while the person has not used their invitation: when it lapses. */
+  inviteExpiresAt: Date | null;
 };
+
+type ActionResult = { ok: true } | { ok: false; error: string };
 
 export function UserTable({
   users,
@@ -61,11 +80,11 @@ export function UserTable({
   const router = useRouter();
   const [pending, startTransition] = useTransition();
 
-  function changeRole(userId: string, role: UserRole) {
+  function act(action: () => Promise<ActionResult>, success: string) {
     startTransition(async () => {
-      const result = await setUserRoleAction(userId, role);
+      const result = await action();
       if (result.ok) {
-        toast.success("Role updated");
+        toast.success(success);
         router.refresh();
       } else {
         toast.error(result.error);
@@ -93,6 +112,7 @@ export function UserTable({
           <TableBody>
             {users.map((user) => {
               const isSelf = user.id === currentUserId;
+              const invited = user.inviteExpiresAt !== null;
 
               return (
                 <TableRow key={user.id}>
@@ -108,6 +128,41 @@ export function UserTable({
                         Suspended
                       </Badge>
                     ) : null}
+                    {invited ? (
+                      <>
+                        <Badge variant="outline" className="ml-2">
+                          Invited
+                        </Badge>
+                        <div className="mt-1 flex gap-3 text-xs">
+                          <button
+                            type="button"
+                            className="text-muted-foreground hover:underline disabled:opacity-50"
+                            disabled={pending}
+                            onClick={() =>
+                              act(
+                                () => resendInvitationAction(user.id),
+                                `A new link is on its way to ${user.email}`,
+                              )
+                            }
+                          >
+                            Send again
+                          </button>
+                          <button
+                            type="button"
+                            className="text-muted-foreground hover:underline disabled:opacity-50"
+                            disabled={pending}
+                            onClick={() =>
+                              act(
+                                () => revokeInvitationAction(user.id),
+                                "Invitation withdrawn",
+                              )
+                            }
+                          >
+                            Withdraw
+                          </button>
+                        </div>
+                      </>
+                    ) : null}
                   </TableCell>
 
                   <TableCell className="hidden text-sm sm:table-cell">
@@ -115,7 +170,9 @@ export function UserTable({
                   </TableCell>
 
                   <TableCell className="tabular hidden text-sm md:table-cell">
-                    {formatDate(user.createdAt)}
+                    {user.inviteExpiresAt
+                      ? `Lapses ${formatDate(user.inviteExpiresAt)}`
+                      : formatDate(user.createdAt)}
                   </TableCell>
 
                   <TableCell>
@@ -123,7 +180,10 @@ export function UserTable({
                       value={user.role}
                       disabled={pending}
                       onValueChange={(value) =>
-                        changeRole(user.id, value as UserRole)
+                        act(
+                          () => setUserRoleAction(user.id, value as UserRole),
+                          "Role updated",
+                        )
                       }
                     >
                       <SelectTrigger aria-label={`Role for ${user.name}`}>
@@ -154,25 +214,35 @@ export function UserTable({
   );
 }
 
+type Method = "invite" | "password";
+
 function NewUserDialog() {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [pending, startTransition] = useTransition();
+  const [method, setMethod] = useState<Method>("invite");
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [role, setRole] = useState<UserRole>("rm");
   const [password, setPassword] = useState("");
   const [fieldErrors, setFieldErrors] = useState<Record<string, string[]>>({});
 
+  function reset() {
+    setName("");
+    setEmail("");
+    setPassword("");
+    setFieldErrors({});
+  }
+
   function submit() {
     setFieldErrors({});
     startTransition(async () => {
-      const result = await createStaffUserAction({
-        name,
-        email,
-        role,
-        password,
-      });
+      // The raw field goes to the server, which completes a bare name with
+      // @vara5.com and refuses any other domain. Nothing here is trusted.
+      const result =
+        method === "invite"
+          ? await inviteStaffAction({ name, email, role })
+          : await createStaffUserAction({ name, email, role, password });
 
       if (!result.ok) {
         setFieldErrors(result.fieldErrors ?? {});
@@ -180,17 +250,21 @@ function NewUserDialog() {
         return;
       }
 
-      toast.success("Account created");
+      toast.success(method === "invite" ? "Invitation sent" : "Account created");
       setOpen(false);
-      setName("");
-      setEmail("");
-      setPassword("");
+      reset();
       router.refresh();
     });
   }
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog
+      open={open}
+      onOpenChange={(next) => {
+        setOpen(next);
+        if (!next) reset();
+      }}
+    >
       <DialogTrigger asChild>
         <Button>
           <Plus />
@@ -202,10 +276,18 @@ function NewUserDialog() {
         <DialogHeader>
           <DialogTitle>Add a colleague</DialogTitle>
           <DialogDescription>
-            Nothing sends email yet, so set an initial password and pass it on.
-            They can change it once they are in.
+            {method === "invite"
+              ? `They get an email with a link to choose their own password. If they have not set it up within ${INVITATION_DAYS} days, the invitation and the account are removed.`
+              : "Set a password and pass it on privately. They can change it from the user menu once they are in."}
           </DialogDescription>
         </DialogHeader>
+
+        <Tabs value={method} onValueChange={(value) => setMethod(value as Method)}>
+          <TabsList className="w-full">
+            <TabsTrigger value="invite">Email an invitation</TabsTrigger>
+            <TabsTrigger value="password">Set a password</TabsTrigger>
+          </TabsList>
+        </Tabs>
 
         <div className="space-y-4">
           <div className="space-y-2">
@@ -222,16 +304,30 @@ function NewUserDialog() {
 
           <div className="space-y-2">
             <Label htmlFor="user-email">Email</Label>
-            <Input
-              id="user-email"
-              type="email"
-              value={email}
-              onChange={(event) => setEmail(event.target.value)}
-              placeholder="colleague@vara5.com"
-            />
+            <InputGroup>
+              <InputGroupInput
+                id="user-email"
+                value={email}
+                // Pasting a full Vara5 address keeps only the name before @.
+                onChange={(event) => setEmail(staffEmailLocalPart(event.target.value))}
+                placeholder="firstname.lastname"
+                autoComplete="off"
+                autoCapitalize="none"
+                spellCheck={false}
+                aria-invalid={Boolean(fieldErrors.email)}
+              />
+              {email.includes("@") ? null : (
+                <InputGroupAddon align="inline-end">{STAFF_EMAIL_SUFFIX}</InputGroupAddon>
+              )}
+            </InputGroup>
             {fieldErrors.email ? (
               <p className="text-xs text-destructive">{fieldErrors.email[0]}</p>
-            ) : null}
+            ) : (
+              <p className="text-xs text-muted-foreground">
+                Type the name, or paste the full address. Only {STAFF_EMAIL_SUFFIX}{" "}
+                addresses can be added.
+              </p>
+            )}
           </div>
 
           <div className="space-y-2">
@@ -253,24 +349,26 @@ function NewUserDialog() {
             </Select>
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="user-password">Initial password</Label>
-            <Input
-              id="user-password"
-              type="password"
-              value={password}
-              onChange={(event) => setPassword(event.target.value)}
-              autoComplete="new-password"
-            />
-            <p className="text-xs text-muted-foreground">
-              At least 12 characters.
-            </p>
-            {fieldErrors.password ? (
-              <p className="text-xs text-destructive">
-                {fieldErrors.password[0]}
+          {method === "password" ? (
+            <div className="space-y-2">
+              <Label htmlFor="user-password">Initial password</Label>
+              <Input
+                id="user-password"
+                type="password"
+                value={password}
+                onChange={(event) => setPassword(event.target.value)}
+                autoComplete="new-password"
+              />
+              <p className="text-xs text-muted-foreground">
+                At least {MIN_STAFF_PASSWORD_LENGTH} characters.
               </p>
-            ) : null}
-          </div>
+              {fieldErrors.password ? (
+                <p className="text-xs text-destructive">
+                  {fieldErrors.password[0]}
+                </p>
+              ) : null}
+            </div>
+          ) : null}
         </div>
 
         <DialogFooter>
@@ -278,7 +376,7 @@ function NewUserDialog() {
             onClick={submit}
             disabled={pending || name.trim() === "" || email.trim() === ""}
           >
-            Create account
+            {method === "invite" ? "Send invitation" : "Create account"}
           </Button>
         </DialogFooter>
       </DialogContent>
