@@ -118,6 +118,9 @@ export const setPreferencesSchema = z.object({
         optionId: uuidSchema,
         polarity: z.enum(POLARITIES),
         note: optionalText,
+        /** Only meaningful on a membership facet; ignored elsewhere. */
+        membershipNumber: optionalText,
+        membershipTier: optionalText,
       }),
     )
     .max(200),
@@ -173,6 +176,8 @@ export async function setPreferences(input: SetPreferencesInput) {
           optionId: selection.optionId,
           polarity: selection.polarity,
           note: selection.note,
+          membershipNumber: selection.membershipNumber,
+          membershipTier: selection.membershipTier,
           rank: index,
           createdBy: actor.id,
         })),

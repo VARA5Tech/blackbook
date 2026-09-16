@@ -26,7 +26,8 @@ import {
 } from "@/components/ui/popover";
 import {
   KIND_LABELS,
-  POLARITY_LABELS,
+  isMembershipKind,
+  polarityLabel,
   type CatalogueOption,
 } from "@/domain/preferences";
 import { cn } from "@/lib/utils";
@@ -38,6 +39,8 @@ type Selection = {
   label: string;
   polarity: Polarity;
   note: string;
+  membershipNumber: string;
+  membershipTier: string;
 };
 
 const POLARITIES: Polarity[] = ["prefer", "wishlist", "avoid"];
@@ -73,6 +76,8 @@ export function PreferenceEditor({
           label: row.label,
           polarity: row.polarity,
           note: row.note ?? "",
+          membershipNumber: row.membershipNumber ?? "",
+          membershipTier: row.membershipTier ?? "",
         }));
     }
     return initial;
@@ -103,17 +108,29 @@ export function PreferenceEditor({
         ...current,
         [kind]: [
           ...existing,
-          { optionId: option.id, label: option.label, polarity, note: "" },
+          {
+            optionId: option.id,
+            label: option.label,
+            polarity,
+            note: "",
+            membershipNumber: "",
+            membershipTier: "",
+          },
         ],
       };
     });
   }
 
-  function setNote(kind: string, optionId: string, note: string) {
+  function setField(
+    kind: string,
+    optionId: string,
+    field: "note" | "membershipNumber" | "membershipTier",
+    value: string,
+  ) {
     setState((current) => ({
       ...current,
       [kind]: (current[kind] ?? []).map((item) =>
-        item.optionId === optionId ? { ...item, note } : item,
+        item.optionId === optionId ? { ...item, [field]: value } : item,
       ),
     }));
   }
@@ -128,6 +145,8 @@ export function PreferenceEditor({
             optionId: item.optionId,
             polarity: item.polarity,
             note: item.note,
+            membershipNumber: item.membershipNumber,
+            membershipTier: item.membershipTier,
           })),
         });
 
@@ -217,15 +236,50 @@ export function PreferenceEditor({
                                 : "text-muted-foreground hover:text-foreground",
                             )}
                           >
-                            {POLARITY_LABELS[polarity]}
+                            {polarityLabel(kind, polarity)}
                           </button>
                         ))}
                       </div>
 
+                      {/* A membership is a number and a tier; everything else
+                          takes one free-text qualifier. */}
+                      {isMembershipKind(kind) ? (
+                        <>
+                          <Input
+                            value={selection.membershipNumber}
+                            onChange={(event) =>
+                              setField(
+                                kind,
+                                selection.optionId,
+                                "membershipNumber",
+                                event.target.value,
+                              )
+                            }
+                            placeholder="Membership number"
+                            aria-label={`Membership number for ${selection.label}`}
+                            className="tabular h-8 w-44"
+                          />
+                          <Input
+                            value={selection.membershipTier}
+                            onChange={(event) =>
+                              setField(
+                                kind,
+                                selection.optionId,
+                                "membershipTier",
+                                event.target.value,
+                              )
+                            }
+                            placeholder="Tier"
+                            aria-label={`Tier for ${selection.label}`}
+                            className="h-8 w-28"
+                          />
+                        </>
+                      ) : null}
+
                       <Input
                         value={selection.note}
                         onChange={(event) =>
-                          setNote(kind, selection.optionId, event.target.value)
+                          setField(kind, selection.optionId, "note", event.target.value)
                         }
                         placeholder="Note"
                         className="h-8 w-44"

@@ -71,6 +71,13 @@
       "when": 1789579884024,
       "tag": "0009_customer_ref_uses_member_ref",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1789584064890,
+      "tag": "0010_memberships_and_remarks",
+      "breakpoints": true
     }
   ]
 }

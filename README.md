@@ -227,6 +227,15 @@ The decisions that are not obvious from reading the tables:
   That collapses the document's "Favourite / Wishlist / Avoid" columns into one
   relation and makes "likes Japan but avoids large resorts" a single indexed
   join. Staff can add catalogue options at runtime without a migration.
+- **Airline and hotel memberships are those same rows, with two extra fields.**
+  A loyalty programme carries the client's membership number and tier, so a
+  client holds as many as they like, one row per programme, and the desk can
+  find a client by a membership number however it is punctuated. The screen
+  reads "Member of Marriott Bonvoy · 600123456 · Titanium".
+- **Remarks** is one free-text box on the client for anything that fits nowhere
+  else, edited with the identity fields and shown in Details on Client 360.
+  Client DNA stays the narrative of who the client is, and each preference
+  section keeps its own notes.
 - **Genuinely single-valued preferences** live in one row per client, so the
   Client 360 screen needs one join rather than five.
 - **Milestones are rows**, so a client can have any number of important dates.

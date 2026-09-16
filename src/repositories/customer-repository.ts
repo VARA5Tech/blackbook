@@ -80,6 +80,19 @@ function searchPredicate(q: string) {
   }
 
   /*
+   * A loyalty membership number, which the desk is often given instead of a
+   * name: "the Bonvoy 1234 booking". Matched whole or as a fragment, ignoring
+   * spaces and dashes, because nobody writes one the same way twice.
+   */
+  clauses.push(sql`exists (
+    select 1 from customer_preference membership
+    where membership.customer_id = ${customers.id}
+      and membership.membership_number is not null
+      and replace(replace(lower(membership.membership_number), ' ', ''), '-', '')
+          like ${`%${q.toLowerCase().replace(/[\s-]/g, "")}%`}
+  )`);
+
+  /*
    * The household's executive assistant, who often calls on the family's
    * behalf. Every member of that household is found by them. The subquery sits
    * in WHERE, where Drizzle qualifies the outer column.
@@ -532,6 +545,8 @@ export async function loadClient360(customerId: string) {
         id: customerPreferences.id,
         polarity: customerPreferences.polarity,
         note: customerPreferences.note,
+        membershipNumber: customerPreferences.membershipNumber,
+        membershipTier: customerPreferences.membershipTier,
         rank: customerPreferences.rank,
         optionId: preferenceOptions.id,
         kind: preferenceOptions.kind,

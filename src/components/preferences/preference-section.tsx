@@ -7,7 +7,7 @@ import { Section } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
 import {
   KIND_LABELS,
-  POLARITY_LABELS,
+  polarityLabel,
   type CatalogueOption,
 } from "@/domain/preferences";
 import { cn } from "@/lib/utils";
@@ -16,6 +16,8 @@ export type PreferenceRow = {
   id: string;
   polarity: "prefer" | "wishlist" | "avoid";
   note: string | null;
+  membershipNumber: string | null;
+  membershipTier: string | null;
   rank: number;
   optionId: string;
   kind: string;
@@ -114,24 +116,36 @@ export function PreferenceSection({
                         key={polarity}
                         className="flex flex-wrap items-baseline gap-x-2 gap-y-1.5"
                       >
-                        <span className="w-16 shrink-0 text-xs text-muted-foreground">
-                          {POLARITY_LABELS[polarity]}
+                        <span className="w-20 shrink-0 text-xs text-muted-foreground">
+                          {polarityLabel(kind, polarity)}
                         </span>
-                        {chips.map((chip) => (
-                          <span
-                            key={chip.id}
-                            className={cn(
-                              "rounded-full px-2.5 py-1 text-xs",
-                              POLARITY_STYLES[polarity],
-                            )}
-                            title={chip.note ?? undefined}
-                          >
-                            {chip.label}
-                            {chip.note ? (
-                              <span className="opacity-70"> · {chip.note}</span>
-                            ) : null}
-                          </span>
-                        ))}
+                        {chips.map((chip) => {
+                          // A membership reads as its number and tier; a taste
+                          // reads as its note.
+                          const detail = [
+                            chip.membershipNumber,
+                            chip.membershipTier,
+                            chip.note,
+                          ]
+                            .filter(Boolean)
+                            .join(" · ");
+
+                          return (
+                            <span
+                              key={chip.id}
+                              className={cn(
+                                "rounded-full px-2.5 py-1 text-xs",
+                                POLARITY_STYLES[polarity],
+                              )}
+                              title={detail || undefined}
+                            >
+                              {chip.label}
+                              {detail ? (
+                                <span className="tabular opacity-70"> · {detail}</span>
+                              ) : null}
+                            </span>
+                          );
+                        })}
                       </div>
                     );
                   })}

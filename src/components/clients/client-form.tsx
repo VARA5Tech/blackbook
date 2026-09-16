@@ -59,6 +59,7 @@ function toDraft(customer?: Customer | null): Draft {
     eaPhone: customer?.eaPhone ?? "",
     eaEmail: customer?.eaEmail ?? "",
     eaNotes: customer?.eaNotes ?? "",
+    remarks: customer?.remarks ?? "",
     householdId: customer?.householdId ?? "",
     householdRole: customer?.householdRole ?? "",
     primaryRmId: customer?.primaryRmId ?? "",
@@ -269,6 +270,21 @@ export function ClientForm({
             className="sm:col-span-2"
             hint="Paste a Google Maps share link."
           />
+
+          <div className="space-y-2 sm:col-span-2">
+            <Label htmlFor="remarks">Remarks</Label>
+            <Textarea
+              id="remarks"
+              rows={3}
+              value={draft.remarks}
+              onChange={(event) => set("remarks", event.target.value)}
+              placeholder="Anything that belongs on this client but fits nowhere else."
+            />
+            <p className="text-xs text-muted-foreground">
+              Shown on the client&rsquo;s profile. Travel preferences have their own
+              notes on the Travel and Hotels tabs.
+            </p>
+          </div>
         </div>
       </Section>
 

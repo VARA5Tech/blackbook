@@ -264,6 +264,11 @@ export function Client360View({
                       {assistant.notes}
                     </Field>
                   ) : null}
+                  {customer.remarks ? (
+                    <Field label="Remarks" className="sm:col-span-2 lg:col-span-3">
+                      <span className="whitespace-pre-line">{customer.remarks}</span>
+                    </Field>
+                  ) : null}
                   <Field label="Profile last updated">
                     {formatDate(customer.profileUpdatedAt)}
                   </Field>

@@ -180,6 +180,14 @@ export const customers = pgTable(
     /** Free-text "Know Me" narrative. Hero content on the Client 360 screen. */
     clientDna: text("client_dna"),
 
+    /**
+     * Anything that fits nowhere else: a note from a call, a caution, a standing
+     * arrangement. Client DNA is the narrative of who they are and the section
+     * notes are about travel; this is the catch-all the desk asked for, edited
+     * with the rest of the identity fields.
+     */
+    remarks: text("remarks"),
+
     /** Denormalised for dashboard follow-up queries. Maintained by the service layer. */
     lastInteractionAt: timestamp("last_interaction_at", { withTimezone: true }),
     /** Distinct from updatedAt: only bumped by meaningful profile edits. */

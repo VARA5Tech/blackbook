@@ -662,6 +662,28 @@ describe("customer master", () => {
    * Some clients are only ever reached through an executive assistant, so the
    * team needs the assistant on the record and must find the client by them.
    */
+  /** The catch-all box, for anything that belongs nowhere else on the record. */
+  describe("remarks", () => {
+    it("stores remarks and keeps them through an edit that does not send them", async () => {
+      const created = await createCustomer({
+        firstName: "Remarked",
+        customerSince: "2026-01-01",
+        remarks: "Prefers to be called after 6pm.\nNever books in monsoon.",
+      });
+      expect(created.remarks).toBe(
+        "Prefers to be called after 6pm.\nNever books in monsoon.",
+      );
+
+      const updated = await updateCustomer({ id: created.id, city: "Mumbai" });
+      expect(updated.remarks).toBe(
+        "Prefers to be called after 6pm.\nNever books in monsoon.",
+      );
+
+      const cleared = await updateCustomer({ id: created.id, remarks: "" });
+      expect(cleared.remarks).toBeNull();
+    });
+  });
+
   describe("executive assistant", () => {
     const since = "2026-01-01";
     const assistant = {

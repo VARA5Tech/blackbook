@@ -1,7 +1,12 @@
 import { beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { CATALOGUE } from "@/db/catalogue";
 import { KIND_LABELS, PREFERENCE_KINDS } from "@/domain/preferences";
-import { createCustomer, getClient360, DomainError } from "@/services/client-service";
+import {
+  createCustomer,
+  getClient360,
+  searchClients,
+  DomainError,
+} from "@/services/client-service";
 import {
   createPreferenceOption,
   getCatalogue,
@@ -442,6 +447,82 @@ describe("preferences", () => {
       expect((await readFacet(client.id, "flight_timing")).avoid).toEqual([
         "Early Morning",
       ]);
+    });
+
+    /**
+     * A loyalty programme is a membership the client holds, not a taste, so the
+     * number and the tier are their own fields rather than a sentence in the
+     * note. A client holds several at once, one row each.
+     */
+    it("records the membership number and tier for every programme a client holds", async () => {
+      const client = await makeClient();
+
+      await setPreferences({
+        customerId: client.id,
+        kind: "loyalty_programme",
+        selections: [
+          {
+            optionId: await optionId("loyalty_programme", "singapore_krisflyer"),
+            polarity: "prefer",
+            membershipNumber: "KF 1234 5678",
+            membershipTier: "PPS Club",
+          },
+          {
+            optionId: await optionId("loyalty_programme", "marriott_bonvoy"),
+            polarity: "prefer",
+            membershipNumber: "600123456",
+            membershipTier: "Titanium",
+            note: "Suite upgrades usually honoured.",
+          },
+          {
+            optionId: await optionId("loyalty_programme", "hilton_honors"),
+            polarity: "wishlist",
+          },
+        ],
+      });
+
+      const record = await getClient360(client.id);
+      const held = record?.preferences.filter(
+        (row) => row.kind === "loyalty_programme",
+      );
+
+      expect(held).toHaveLength(3);
+      expect(held?.find((row) => row.label === "Singapore KrisFlyer")).toMatchObject({
+        membershipNumber: "KF 1234 5678",
+        membershipTier: "PPS Club",
+      });
+      expect(held?.find((row) => row.label === "Marriott Bonvoy")).toMatchObject({
+        membershipNumber: "600123456",
+        membershipTier: "Titanium",
+        note: "Suite upgrades usually honoured.",
+      });
+      // A programme they want but have not joined carries neither.
+      expect(held?.find((row) => row.label === "Hilton Honors")).toMatchObject({
+        membershipNumber: null,
+        membershipTier: null,
+      });
+    });
+
+    it("finds the client from a membership number, however it is written", async () => {
+      const client = await makeClient("Memberful");
+      await makeClient("Unrelated");
+
+      await setPreferences({
+        customerId: client.id,
+        kind: "loyalty_programme",
+        selections: [
+          {
+            optionId: await optionId("loyalty_programme", "marriott_bonvoy"),
+            polarity: "prefer",
+            membershipNumber: "600 123-456",
+          },
+        ],
+      });
+
+      for (const term of ["600 123-456", "600123456", "123456"]) {
+        const { rows } = await searchClients({ q: term });
+        expect(rows.map((row) => row.firstName), term).toEqual(["Memberful"]);
+      }
     });
 
     it.each([

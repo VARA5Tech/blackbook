@@ -40,6 +40,8 @@ export const customerIdentitySchema = z.object({
   city: optionalText,
   address: optionalText,
   locationUrl: optionalText,
+  /** The catch-all box: anything that belongs on the client but nowhere else. */
+  remarks: optionalText,
   ...executiveAssistantFields,
   householdId: uuidSchema.nullable().optional().transform((v) => v ?? null),
   householdRole: optionalEnum(HOUSEHOLD_ROLES),

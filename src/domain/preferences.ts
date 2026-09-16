@@ -40,6 +40,29 @@ export const POLARITY_LABELS: Record<Polarity, string> = {
   avoid: "Avoids",
 };
 
+/**
+ * Facets where a selection is a membership the client holds, not a taste. They
+ * carry a membership number and a tier, and read as "Member of Bonvoy" rather
+ * than "Prefers Bonvoy".
+ */
+export const MEMBERSHIP_KINDS: PreferenceKind[] = ["loyalty_programme"];
+
+export function isMembershipKind(kind: string): boolean {
+  return MEMBERSHIP_KINDS.includes(kind as PreferenceKind);
+}
+
+const MEMBERSHIP_POLARITY_LABELS: Record<Polarity, string> = {
+  prefer: "Member of",
+  wishlist: "Wants to join",
+  avoid: "Avoids",
+};
+
+export function polarityLabel(kind: string, polarity: Polarity): string {
+  return isMembershipKind(kind)
+    ? MEMBERSHIP_POLARITY_LABELS[polarity]
+    : POLARITY_LABELS[polarity];
+}
+
 /** Section headings for each facet, taken from the requirements document. */
 export const KIND_LABELS: Record<PreferenceKind, string> = {
   destination: "Destinations",

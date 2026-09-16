@@ -85,6 +85,16 @@ export const customerPreferences = pgTable(
     polarity: preferencePolarityEnum("polarity").notNull().default("prefer"),
     /** Free-text qualifier, e.g. "Aman - always a suite" or "mild allergy". */
     note: text("note"),
+    /**
+     * A membership held rather than a taste: the client's own number and tier
+     * in a loyalty programme, so "Bonvoy 1234, Titanium" is two fields staff can
+     * read back and search rather than a sentence in the note.
+     *
+     * They sit on this row because a client holds many memberships, one per
+     * programme, which is exactly the shape this table already has.
+     */
+    membershipNumber: text("membership_number"),
+    membershipTier: text("membership_tier"),
     /** Lower sorts first. Lets ops rank top destinations. */
     rank: integer("rank").notNull().default(0),
     createdAt: timestamp("created_at", { withTimezone: true })
@@ -101,6 +111,8 @@ export const customerPreferences = pgTable(
       t.polarity,
     ),
     index("customer_preference_customer_idx").on(t.customerId),
+    /** "Which client is Bonvoy 1234?" is a question the desk actually asks. */
+    index("customer_preference_membership_idx").on(t.membershipNumber),
     /** Drives "which clients like Aman?" without scanning the client table. */
     index("customer_preference_option_idx").on(t.optionId, t.polarity),
   ],
