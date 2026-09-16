@@ -239,9 +239,10 @@ number to send the code to, or `found: false`. No other client data leaves.
 - **Who gets in:** active clients who are not archived, matched exactly on their
   mobile or WhatsApp number. Archiving a client or marking them inactive locks
   them out at once, because the website asks again every time the page loads.
-- **Where the code goes:** the client's WhatsApp number if they have one,
-  otherwise their mobile. Always a number on the record, never the one typed. A
-  number on two clients is refused and logged as
+- **Where the code goes:** whichever of the client's own numbers they typed,
+  mobile or WhatsApp, read back off the record rather than echoed. It is always
+  a number already on the client, so nobody can have someone else's code sent to
+  a handset of their own. A number on two clients is refused and logged as
   `private_access.ambiguous_number`.
 - **How the website proves itself:** no staff session applies, so the proxy lets
   the path through and the route checks a signature instead. Each request

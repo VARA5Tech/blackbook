@@ -72,10 +72,12 @@ export type PrivateAccessGuest = { name: string; phone: string };
  *
  * Only an active, unarchived client matches, on the exact international number,
  * mobile or WhatsApp. A number two clients share is refused rather than guessed.
- * The code goes to the client's WhatsApp number when they have one, because it
- * is sent over WhatsApp, and otherwise to their mobile: always a number on the
- * record, never the one typed. The answer is a name and that number, nothing
- * more.
+ *
+ * The code goes back to whichever of the client's own numbers was typed: clients
+ * keep WhatsApp on both, and a code that arrives on the handset they just used
+ * is the one they are waiting for. It is still only ever a number already on the
+ * record, so nobody can have a client's code delivered to a phone of their own.
+ * The answer is a name and that number, nothing more.
  */
 export async function lookupPrivateAccessGuest(
   phone: string,
@@ -93,7 +95,11 @@ export async function lookupPrivateAccessGuest(
   }
 
   const [guest] = matches;
-  const sendTo = guest?.whatsappNormalized ?? guest?.mobileNormalized;
+  // The match was exact, so this is the typed number; read back off the record
+  // rather than echoed, so only a stored number is ever returned.
+  const sendTo = [guest?.mobileNormalized, guest?.whatsappNormalized].find(
+    (number) => number === parsed.e164.slice(1),
+  );
   if (!guest || !sendTo) {
     logger.info("private_access.lookup", { outcome: "not_found" });
     return null;

@@ -82,18 +82,17 @@ export async function sendEmail(email: OutboundEmail): Promise<{ sent: boolean }
 /* ------------------------------------------------------------------ frame */
 
 /**
- * Email clients are not browsers. Gmail and Outlook render no SVG, both refuse
- * base64 data: images, Gmail's web client does not resolve cid: inline
- * attachments, and Resend's own preview cannot show them either. A hosted PNG
- * is the one image form that works everywhere.
+ * The book monogram is a hosted PNG, the one image form every client renders:
+ * Gmail and Outlook show no SVG, and data: and cid: images each fail in one of
+ * them. Emails are read far from localhost, so it always comes from production.
  *
- * Readers can still switch images off, so the logo is split: the book monogram
- * is that hosted PNG, and the BLACKBOOK wordmark beneath it is live text. With
- * images blocked the email still opens on the brand name rather than a broken
- * box, which is why the monogram has empty alternative text.
- *
- * Emails are read far from localhost, so assets always come from production,
- * and a new asset only works once it is deployed.
+ * Outlook holds remote images from a new sender behind "Trust sender", and some
+ * readers switch images off. So the image carries styled alternative text: a
+ * champagne serif B, the closest a letter comes to the mark, which Gmail,
+ * Apple Mail and Outlook on the web draw in the image's place until the picture
+ * is allowed. Outlook on Windows desktop shows it unstyled. Either way the
+ * BLACKBOOK wordmark beneath is live text, so the brand reads before and after
+ * anyone trusts the sender.
  */
 export const EMAIL_MONOGRAM_URL =
   "https://blackbook.vara5.travel/brand/email/blackbook-monogram-dark@3x.png";
@@ -156,7 +155,7 @@ function renderEmail({
       <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:520px;background-color:${C.white};border:1px solid ${C.rule};">
         <tr>
           <td align="center" bgcolor="${C.black}" style="background-color:${C.black};padding:36px 24px 30px;">
-            <img src="${EMAIL_MONOGRAM_URL}" width="44" height="58" alt="" style="display:block;margin:0 auto;width:44px;height:58px;border:0;outline:none;text-decoration:none;">
+            <img src="${EMAIL_MONOGRAM_URL}" width="44" height="58" alt="B" style="display:block;margin:0 auto;width:44px;height:58px;border:0;outline:none;text-decoration:none;background-color:${C.black};font-family:${SERIF};font-size:42px;line-height:58px;text-align:center;color:${C.champagne};">
             <div style="margin:18px 0 0;padding-left:7px;font-family:${SERIF};font-size:15px;line-height:18px;letter-spacing:7px;color:${C.champagne};">BLACKBOOK</div>
           </td>
         </tr>

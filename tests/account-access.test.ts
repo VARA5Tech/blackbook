@@ -61,23 +61,24 @@ describe("password reset email", () => {
   });
 
   /**
-   * An email is opened on a phone, far from the laptop that sent it, so every
-   * asset must come from the public site. A localhost logo is a broken image.
+   * An email is opened far from the laptop that sent it, so the monogram comes
+   * from production as a PNG, the one image form every client renders.
    */
-  it("loads its monogram as a hosted PNG from production, never from localhost", () => {
+  it("loads its monogram as a hosted PNG from production", () => {
     expect(EMAIL_MONOGRAM_URL).toMatch(/^https:\/\/blackbook\.vara5\.travel\/.+\.png$/);
-    expect(email.html).toContain(EMAIL_MONOGRAM_URL);
-    expect(email.html).not.toContain("localhost");
-    // Gmail and Outlook render no SVG; both refuse data: images; Gmail web
-    // ignores cid: attachments.
-    expect(email.html).not.toMatch(/\.svg|data:image|cid:/);
+    expect(email.html).toContain(`src="${EMAIL_MONOGRAM_URL}"`);
+    expect(email.html).not.toMatch(/<svg|data:image|cid:|localhost/i);
   });
 
-  /** With images switched off, the email still opens on the brand name. */
-  it("sets the wordmark as live text, so it survives blocked images", () => {
+  /**
+   * Outlook hides a new sender's images until they are trusted. Until then the
+   * alternative text stands in, styled as a champagne serif B, and the wordmark
+   * below is live text either way.
+   */
+  it("stands a styled B in for the monogram while images are blocked", () => {
+    expect(email.html).toMatch(/<img[^>]*alt="B"[^>]*style="[^"]*font-family:[^"]*color:#E8CFAB/);
     expect(email.subject).toContain("Blackbook");
     expect(email.html).toMatch(/>BLACKBOOK<\/div>/);
-    expect(email.html).toContain('alt=""');
   });
 
   it("escapes anything it interpolates", () => {
@@ -452,11 +453,32 @@ describe("private access lookup for the website", () => {
     const { status, body } = await lookup(signed({ phone: "+919810011223" }));
 
     expect(status).toBe(200);
-    // The code goes over WhatsApp, so to the WhatsApp number on the record.
-    expect(body).toEqual({ found: true, name: "Pri", phone: "+919810099887" });
+    // The number they typed, which is the handset they are holding.
+    expect(body).toEqual({ found: true, name: "Pri", phone: "+919810011223" });
   });
 
-  it("matches the WhatsApp number too, and uses the mobile when there is no WhatsApp", async () => {
+  it("sends to whichever of the client's own numbers was typed", async () => {
+    await createCustomer({
+      firstName: "Rishabh",
+      mobile: "+91 95600 76361",
+      whatsapp: "+91 92055 90866",
+      customerSince: since,
+    });
+
+    // Both numbers belong to the same client, and either is a valid destination.
+    expect((await lookup(signed({ phone: "+919560076361" }))).body).toEqual({
+      found: true,
+      name: "Rishabh",
+      phone: "+919560076361",
+    });
+    expect((await lookup(signed({ phone: "+919205590866" }))).body).toEqual({
+      found: true,
+      name: "Rishabh",
+      phone: "+919205590866",
+    });
+  });
+
+  it("matches a client who has only one of the two numbers on file", async () => {
     await createCustomer({ firstName: "Arjun", mobile: "+65 8123 4567", customerSince: since });
     await createCustomer({ firstName: "Meera", whatsapp: "+971 50 123 4567", customerSince: since });
 
