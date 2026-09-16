@@ -41,16 +41,20 @@ describe("customer master", () => {
   });
 
   describe("unique customer ID", () => {
-    it("is auto-generated in the documented CUST-000NN form", async () => {
+    it("is auto-generated as VARA and six digits", async () => {
       const created = await createCustomer({
         firstName: "Rishabh",
         customerSince: "2021-03-01",
       });
-      expect(created.ref).toMatch(/^CUST-\d{5}$/);
-      expect(created.ref).toBe("CUST-00100");
+      expect(created.ref).toMatch(/^VARA-[1-9]\d{5}$/);
     });
 
-    it("increments per client and never repeats", async () => {
+    /**
+     * Drawn at random, never counted. A counted reference would publish how many
+     * clients Vara5 has and let anyone walk the list by adding one, and this is
+     * the number a client reads out and will one day type to sign in.
+     */
+    it("does not count up, so one reference never reveals the next", async () => {
       const refs: string[] = [];
       for (let i = 0; i < 5; i += 1) {
         const created = await createCustomer({
@@ -59,14 +63,29 @@ describe("customer master", () => {
         });
         refs.push(created.ref);
       }
-      expect(refs).toEqual([
-        "CUST-00100",
-        "CUST-00101",
-        "CUST-00102",
-        "CUST-00103",
-        "CUST-00104",
-      ]);
+
       expect(new Set(refs).size).toBe(5);
+      const numbers = refs.map((ref) => Number(ref.slice("VARA-".length)));
+      expect(numbers.some((number, index) => index > 0 && number !== numbers[index - 1] + 1)).toBe(true);
+    });
+
+    /** Numbers a stranger would try first are never issued. */
+    it("never issues an obvious number", async () => {
+      const refs: string[] = [];
+      for (let i = 0; i < 20; i += 1) {
+        const created = await createCustomer({
+          firstName: `Pattern${i}`,
+          customerSince: "2026-01-01",
+        });
+        refs.push(created.ref.slice("VARA-".length));
+      }
+
+      for (const digits of refs) {
+        expect(digits, digits).not.toMatch(/^(.)\1{5}$/);
+        expect(digits, digits).not.toMatch(/^(..)\1{2}$/);
+        expect(digits, digits).not.toMatch(/^(...)\1$/);
+        expect(["123456", "234567", "654321", "543210"], digits).not.toContain(digits);
+      }
     });
 
     it("stays unique when clients are created concurrently", async () => {
@@ -83,24 +102,25 @@ describe("customer master", () => {
     });
 
     /**
-     * The sequence is nowhere near this in a test, so the formatter is asked
-     * directly. The old default padded with lpad(n, 5), which truncates, and
-     * would have turned client 100,000 into a duplicate of client 10,000.
+     * Households are still counted, and the sequence is nowhere near this in a
+     * test, so the formatter is asked directly. The old default padded with
+     * lpad(n, 5), which truncates, and would have turned household 100,000 into
+     * a duplicate of household 10,000.
      */
-    it("widens past 99,999 instead of colliding with an earlier client", async () => {
+    it("widens a household reference past 99,999 instead of colliding", async () => {
       const [row] = await db.execute<{
         small: string;
         last: string;
         next: string;
       }>(sqlOp`select
-        vara5_ref('CUST-', 7) as small,
-        vara5_ref('CUST-', 99999) as last,
-        vara5_ref('CUST-', 100000) as next`);
+        vara5_ref('HH-', 7) as small,
+        vara5_ref('HH-', 99999) as last,
+        vara5_ref('HH-', 100000) as next`);
 
       expect(row).toEqual({
-        small: "CUST-00007",
-        last: "CUST-99999",
-        next: "CUST-100000",
+        small: "HH-00007",
+        last: "HH-99999",
+        next: "HH-100000",
       });
     });
 
@@ -380,7 +400,7 @@ describe("customer master", () => {
           mobile: "+919810011223",
           customerSince: "2026-01-01",
         }),
-      ).rejects.toThrow(/Rishabh Sharma \(CUST-00100\)/);
+      ).rejects.toThrow(/Rishabh Sharma \(VARA-\d{6}\)/);
     });
 
     it("catches a number reused as a WhatsApp number", async () => {
@@ -399,14 +419,14 @@ describe("customer master", () => {
         mobile: "+91 99200 55667",
         customerSince: "2026-01-01",
       });
-      expect(created.ref).toBe("CUST-00101");
+      expect(created.ref).toMatch(/^VARA-[1-9]\d{5}$/);
     });
 
     it("frees the number once the original client is archived", async () => {
       const [original] = await db
         .select()
         .from(customers)
-        .where(eq(customers.ref, "CUST-00100"));
+        .where(eq(customers.firstName, "Rishabh"));
       await archiveCustomer(original.id);
 
       const reused = await createCustomer({
@@ -421,7 +441,7 @@ describe("customer master", () => {
       const [original] = await db
         .select()
         .from(customers)
-        .where(eq(customers.ref, "CUST-00100"));
+        .where(eq(customers.firstName, "Rishabh"));
       await archiveCustomer(original.id);
       await createCustomer({
         firstName: "Successor",
@@ -436,7 +456,7 @@ describe("customer master", () => {
       const [original] = await db
         .select()
         .from(customers)
-        .where(eq(customers.ref, "CUST-00100"));
+        .where(eq(customers.firstName, "Rishabh"));
 
       await updateCustomer({
         id: original.id,
@@ -462,7 +482,7 @@ describe("customer master", () => {
       const [original] = await db
         .select()
         .from(customers)
-        .where(eq(customers.ref, "CUST-00100"));
+        .where(eq(customers.firstName, "Rishabh"));
 
       await updateCustomer({ id: original.id, city: "Delhi" });
       const cleared = await updateCustomer({ id: original.id, city: "" });
@@ -474,7 +494,7 @@ describe("customer master", () => {
       const [original] = await db
         .select()
         .from(customers)
-        .where(eq(customers.ref, "CUST-00100"));
+        .where(eq(customers.firstName, "Rishabh"));
 
       const updated = await updateCustomer({
         id: original.id,

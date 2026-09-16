@@ -177,7 +177,7 @@ describe("household profile", () => {
       const refs = [rishabh.ref, spouse.ref, child1.ref, child2.ref];
 
       expect(new Set(refs).size).toBe(4);
-      for (const ref of refs) expect(ref).toMatch(/^CUST-\d{5}$/);
+      for (const ref of refs) expect(ref).toMatch(/^VARA-[1-9]\d{5}$/);
     });
 
     it("counts members correctly on the household list", async () => {

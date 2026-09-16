@@ -58,7 +58,7 @@ function searchPredicate(q: string) {
   const like = `%${q.toLowerCase()}%`;
 
   const clauses = [
-    // Reference lookup: "CUST-00125", or just "125".
+    // Reference lookup: "VARA-482193", or just "482193".
     sql`lower(${customers.ref}) like ${like}`,
     // Fuzzy name match, tolerant of spelling.
     sql`greatest(
@@ -696,6 +696,7 @@ export async function findPrivateAccessGuests(digits: string) {
       id: customers.id,
       firstName: customers.firstName,
       preferredName: customers.preferredName,
+      email: customers.email,
       mobileNormalized: customers.mobileNormalized,
       whatsappNormalized: customers.whatsappNormalized,
     })

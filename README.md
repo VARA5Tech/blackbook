@@ -204,10 +204,20 @@ The decisions that are not obvious from reading the tables:
   or one household and keeps their own preferences either way.
 - **Every record has two identifiers, for two audiences.** The key is a UUIDv7
   from `vara5_uuid_v7()`: time-ordered, so new rows append to the end of the
-  primary key index, and never shown to a person. The reference (`CUST-00100`,
-  `HH-00100`) is what staff read aloud and type into search. It comes from a
-  database sequence, so two concurrent writers can never mint the same one, and
-  `vara5_ref()` widens it past 99,999 instead of truncating it into a duplicate.
+  primary key index, and never shown to a person. The reference is what staff
+  read aloud and type into search.
+- **A client's reference is `VARA-482193`: six random digits, never a count.**
+  `vara5_member_ref()` draws them with the database's cryptographic generator,
+  rejects numbers a stranger would try first (`111111`, `123456`, `121212`) and
+  redraws until the number is free, so the unique index is what guarantees
+  uniqueness. Counting would publish the client count and let anyone walk the
+  list by adding one, and this is the number a client reads out, keeps on a card
+  and may one day type to sign in to vara5.travel. 900,000 numbers, so a random
+  guess finds a real client about once in 200 at 5,000 clients; the number is an
+  identifier, never a credential.
+- **A household's reference stays counted** (`HH-00100`), from a sequence, with
+  `vara5_ref()` widening it past 99,999 instead of truncating it into a
+  duplicate. It is internal and nobody outside the team sees it.
 - **A new table's key defaults to `vara5_uuid_v7()`, not `defaultRandom()`.**
   The function is pure SQL because production runs Postgres 17, which has no
   built-in `uuidv7()`. Once production reaches 18, its body can become a call to

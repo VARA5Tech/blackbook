@@ -610,6 +610,7 @@ describe("shut out of the Supabase API", () => {
     // of quietly passing an empty list.
     expect(functions.map((row) => row.name)).toEqual([
       "vara5_days_until",
+      "vara5_member_ref",
       "vara5_next_occurrence",
       "vara5_ref",
       "vara5_uuid_v7",

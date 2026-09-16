@@ -1,6 +1,9 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
 import { logger } from "@/lib/logger";
-import { lookupPrivateAccessGuest } from "@/services/client-service";
+import {
+  lookupPrivateAccessGuest,
+  savePrivateAccessEmail,
+} from "@/services/client-service";
 
 /**
  * POST /api/private-access/lookup
@@ -111,8 +114,11 @@ export async function POST(request: Request) {
   }
 
   let phone: unknown;
+  let email: unknown;
   try {
-    phone = (JSON.parse(body) as { phone?: unknown }).phone;
+    const parsed = JSON.parse(body) as { phone?: unknown; email?: unknown };
+    phone = parsed.phone;
+    email = parsed.email;
   } catch {
     return answer(400, { error: "bad_request" });
   }
@@ -121,6 +127,13 @@ export async function POST(request: Request) {
   }
 
   try {
+    // An email means the website reached a client whose record has none, and a
+    // guest typed one so the code could be emailed instead. It fills the blank
+    // and is refused if the record already holds an address.
+    if (typeof email === "string" && email.trim()) {
+      const saved = await savePrivateAccessEmail(phone, email);
+      return answer(200, { saved });
+    }
     const guest = await lookupPrivateAccessGuest(phone);
     return answer(200, guest ? { found: true, ...guest } : { found: false });
   } catch (error) {

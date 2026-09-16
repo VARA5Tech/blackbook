@@ -1,0 +1,1 @@
+ALTER TABLE "customer" ALTER COLUMN "ref" SET DEFAULT vara5_member_ref();

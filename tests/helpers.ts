@@ -26,8 +26,8 @@ export async function resetData(): Promise<void> {
       household
     restart identity cascade
   `);
-  // Reference IDs restart too, so assertions on CUST-00100 stay stable.
-  await sql.unsafe(`alter sequence customer_ref_seq restart with 100`);
+  // A household reference is still counted, so it restarts and assertions on
+  // HH-00100 stay stable. A client's is drawn at random and has nothing to reset.
   await sql.unsafe(`alter sequence household_ref_seq restart with 100`);
 }
 

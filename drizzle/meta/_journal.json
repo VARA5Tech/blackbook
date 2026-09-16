@@ -57,6 +57,20 @@
       "when": 1789414908049,
       "tag": "0007_private_access_whatsapp_index",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1789579833691,
+      "tag": "0008_member_reference",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1789579884024,
+      "tag": "0009_customer_ref_uses_member_ref",
+      "breakpoints": true
     }
   ]
 }

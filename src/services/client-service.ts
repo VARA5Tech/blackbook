@@ -2,6 +2,7 @@ import "server-only";
 import { and, eq } from "drizzle-orm";
 import { db } from "@/db";
 import {
+  activityLog,
   clientDirectives,
   customerPreferenceProfile,
   customers,
@@ -19,7 +20,7 @@ import {
   type CreateCustomerInput,
   type UpdateCustomerInput,
 } from "@/domain/customers";
-import { onlyProvided, parseInternationalPhone } from "@/domain/shared";
+import { onlyProvided, optionalEmail, parseInternationalPhone } from "@/domain/shared";
 import { logger } from "@/lib/logger";
 import * as repo from "@/repositories/customer-repository";
 import { diffFields, logActivity } from "./activity-service";
@@ -60,7 +61,7 @@ export async function getClient360(customerId: string) {
 /* Private access, for the vara5.travel website                        */
 /* ------------------------------------------------------------------ */
 
-export type PrivateAccessGuest = { name: string; phone: string };
+export type PrivateAccessGuest = { name: string; phone: string; email: string | null };
 
 /**
  * Whether a phone number belongs to a client allowed through the website's
@@ -77,7 +78,8 @@ export type PrivateAccessGuest = { name: string; phone: string };
  * keep WhatsApp on both, and a code that arrives on the handset they just used
  * is the one they are waiting for. It is still only ever a number already on the
  * record, so nobody can have a client's code delivered to a phone of their own.
- * The answer is a name and that number, nothing more.
+ * The answer is a name, that number, and the client's email if the record holds
+ * one, which the website falls back to when WhatsApp refuses the message.
  */
 export async function lookupPrivateAccessGuest(
   phone: string,
@@ -109,7 +111,52 @@ export async function lookupPrivateAccessGuest(
   return {
     name: guest.preferredName?.trim() || guest.firstName,
     phone: `+${sendTo}`,
+    email: guest.email,
   };
+}
+
+/**
+ * Keep the email a guest gave the website when WhatsApp could not reach them.
+ *
+ * Only fills a blank: an address already on the record is never overwritten
+ * from the gate, so nobody can point a client's code at an address of their own
+ * by typing one here. Same rules as the lookup, and the same reason for having
+ * no capability check. The entry is written as the system, with no actor.
+ */
+export async function savePrivateAccessEmail(
+  phone: string,
+  email: string,
+): Promise<boolean> {
+  const address = optionalEmail.safeParse(email);
+  if (!address.success || !address.data) return false;
+
+  const parsed = parseInternationalPhone(phone);
+  if (!parsed) return false;
+
+  const matches = await repo.findPrivateAccessGuests(parsed.e164.slice(1));
+  if (matches.length !== 1) return false;
+
+  const [guest] = matches;
+  if (guest.email) return false;
+
+  await db.transaction(async (tx) => {
+    await tx
+      .update(customers)
+      .set({ email: address.data, updatedAt: new Date() })
+      .where(eq(customers.id, guest.id));
+    await tx.insert(activityLog).values({
+      entityType: "customer",
+      entityId: guest.id,
+      customerId: guest.id,
+      action: "updated",
+      summary: "Email added from the private access gate",
+      changes: { email: { from: null, to: address.data } },
+      actorId: null,
+    });
+  });
+
+  logger.info("private_access.email_saved", { customerId: guest.id });
+  return true;
 }
 
 /* ------------------------------------------------------------------ */

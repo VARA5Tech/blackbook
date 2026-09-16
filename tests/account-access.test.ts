@@ -453,8 +453,14 @@ describe("private access lookup for the website", () => {
     const { status, body } = await lookup(signed({ phone: "+919810011223" }));
 
     expect(status).toBe(200);
-    // The number they typed, which is the handset they are holding.
-    expect(body).toEqual({ found: true, name: "Pri", phone: "+919810011223" });
+    // The number they typed, which is the handset they are holding, and the
+    // address the website falls back to when WhatsApp refuses the message.
+    expect(body).toEqual({
+      found: true,
+      name: "Pri",
+      phone: "+919810011223",
+      email: "priya@example.com",
+    });
   });
 
   it("sends to whichever of the client's own numbers was typed", async () => {
@@ -470,11 +476,13 @@ describe("private access lookup for the website", () => {
       found: true,
       name: "Rishabh",
       phone: "+919560076361",
+      email: null,
     });
     expect((await lookup(signed({ phone: "+919205590866" }))).body).toEqual({
       found: true,
       name: "Rishabh",
       phone: "+919205590866",
+      email: null,
     });
   });
 
@@ -486,11 +494,13 @@ describe("private access lookup for the website", () => {
       found: true,
       name: "Arjun",
       phone: "+6581234567",
+      email: null,
     });
     expect((await lookup(signed({ phone: "+971501234567" }))).body).toEqual({
       found: true,
       name: "Meera",
       phone: "+971501234567",
+      email: null,
     });
   });
 
