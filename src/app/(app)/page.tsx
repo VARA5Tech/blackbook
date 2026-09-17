@@ -101,6 +101,31 @@ export default async function HomePage() {
         </Section>
 
         <div className="space-y-10">
+          {dashboard.wanted.length > 0 ? (
+            <Section title={`Most wanted · last ${dashboard.wantedDays} days`}>
+              <ul className="space-y-3">
+                {dashboard.wanted.map((journey) => (
+                  <li
+                    key={journey.destination}
+                    className="flex items-baseline justify-between gap-3 text-sm"
+                  >
+                    <span className="truncate">{journey.title}</span>
+                    <span className="shrink-0 text-xs text-muted-foreground">
+                      <span className="tabular">{journey.clients}</span>
+                      {journey.clients === 1 ? " client" : " clients"}
+                      {journey.asked > 0 ? (
+                        <>
+                          {" · "}
+                          <span className="tabular">{journey.asked}</span> asked
+                        </>
+                      ) : null}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </Section>
+          ) : null}
+
           <Section
             title="Recently updated"
             action={

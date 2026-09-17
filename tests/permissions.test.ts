@@ -609,6 +609,7 @@ describe("shut out of the Supabase API", () => {
     // Asserted by name, so a function that stops existing fails loudly instead
     // of quietly passing an empty list.
     expect(functions.map((row) => row.name)).toEqual([
+      "vara5_assert_phone_is_unique",
       "vara5_days_until",
       "vara5_member_ref",
       "vara5_next_occurrence",

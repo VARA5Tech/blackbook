@@ -221,3 +221,15 @@ export const experienceStyleEnum = pgEnum("experience_style", [
   "classic_highlights",
   "relaxed_unstructured",
 ]);
+
+/**
+ * What a client did with a journey on vara5.travel. Reported by the website
+ * through the signed private-access channel, never entered by staff.
+ */
+export const interestKindEnum = pgEnum("interest_kind", [
+  "opened",
+  "read",
+  "photos",
+  "video",
+  "cta_clicked",
+]);

@@ -18,6 +18,7 @@ import {
   activityActionEnum,
   activityEntityEnum,
   interactionTypeEnum,
+  interestKindEnum,
   milestoneStatusEnum,
   milestoneTypeEnum,
   taskPriorityEnum,
@@ -235,6 +236,54 @@ export const activityLog = pgTable(
 /* Relations                                                           */
 /* ------------------------------------------------------------------ */
 
+/* ------------------------------------------------------------------ */
+/* Interest from vara5.travel                                          */
+/* ------------------------------------------------------------------ */
+
+/**
+ * What a client looked at on the members' site, one row per action.
+ *
+ * Written only by the website, through the signed private-access channel, so
+ * there is no capability check anywhere near it and no staff member can type
+ * one. It is the raw material for the Interest panel on Client 360: which
+ * journeys a client keeps returning to, how long they read, and whether they
+ * asked the Curator.
+ *
+ * Kept as rows rather than a running total per destination, because "opened
+ * four times over three weeks" and "opened four times in one evening" are
+ * different clients, and only rows can tell them apart. Erasing a client takes
+ * their interest with them.
+ */
+export const clientInterests = pgTable(
+  "client_interest",
+  {
+    id: uuid("id").primaryKey().default(sql`vara5_uuid_v7()`),
+    customerId: uuid("customer_id")
+      .notNull()
+      .references(() => customers.id, { onDelete: "cascade" }),
+
+    /** The journey's slug on the website, stable across title edits. */
+    destination: text("destination").notNull(),
+    /** Its title as the client saw it, so the panel reads the same later. */
+    title: text("title").notNull(),
+    kind: interestKindEnum("kind").notNull(),
+    /** Seconds spent, where the action has a duration. Zero otherwise. */
+    seconds: integer("seconds").notNull().default(0),
+
+    occurredAt: timestamp("occurred_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [
+    index("client_interest_customer_idx").on(t.customerId, t.occurredAt),
+    index("client_interest_destination_idx").on(t.destination, t.occurredAt),
+    check(
+      "client_interest_seconds_sane",
+      sql`seconds >= 0 and seconds <= 86400`,
+    ),
+  ],
+).enableRLS();
+
 export const milestoneRelations = relations(milestones, ({ one }) => ({
   customer: one(customers, {
     fields: [milestones.customerId],
@@ -283,3 +332,12 @@ export type Milestone = typeof milestones.$inferSelect;
 export type Interaction = typeof interactions.$inferSelect;
 export type Task = typeof tasks.$inferSelect;
 export type ActivityLogEntry = typeof activityLog.$inferSelect;
+
+export const clientInterestRelations = relations(clientInterests, ({ one }) => ({
+  customer: one(customers, {
+    fields: [clientInterests.customerId],
+    references: [customers.id],
+  }),
+}));
+
+export type ClientInterest = typeof clientInterests.$inferSelect;

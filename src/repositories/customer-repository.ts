@@ -5,6 +5,7 @@ import { db } from "@/db";
 import {
   activityLog,
   clientDirectives,
+  clientInterests,
   customerPreferenceProfile,
   customerPreferences,
   customers,
@@ -709,6 +710,7 @@ export async function findPrivateAccessGuests(digits: string) {
   return db
     .select({
       id: customers.id,
+      ref: customers.ref,
       firstName: customers.firstName,
       preferredName: customers.preferredName,
       email: customers.email,
@@ -727,6 +729,114 @@ export async function findPrivateAccessGuests(digits: string) {
       ),
     )
     .limit(2);
+}
+
+/**
+ * The same answer as above, found by key instead of by number.
+ *
+ * The website re-checks a signed-in guest on every page load. By id, not by
+ * phone, so a member of staff correcting a client's number mid-session does not
+ * throw that client out of the site.
+ */
+export async function findPrivateAccessGuestById(customerId: string) {
+  const [guest] = await db
+    .select({
+      id: customers.id,
+      ref: customers.ref,
+      firstName: customers.firstName,
+      preferredName: customers.preferredName,
+      email: customers.email,
+      mobileNormalized: customers.mobileNormalized,
+      whatsappNormalized: customers.whatsappNormalized,
+    })
+    .from(customers)
+    .where(
+      and(
+        eq(customers.id, customerId),
+        isNull(customers.archivedAt),
+        eq(customers.status, "active"),
+      ),
+    )
+    .limit(1);
+
+  return guest ?? null;
+}
+
+/* ------------------------------------------------------------------ */
+/* Interest from vara5.travel                                          */
+/* ------------------------------------------------------------------ */
+
+export type InterestSummaryRow = {
+  destination: string;
+  title: string;
+  opens: number;
+  seconds: number;
+  photos: number;
+  videos: number;
+  askedAt: Date | null;
+  lastSeenAt: Date;
+};
+
+/**
+ * One line per journey for the Interest panel: how often the client opened it,
+ * how long they read, and whether they asked the Curator about it.
+ *
+ * Grouped in the database rather than in the page, because a client who reads
+ * every week builds hundreds of rows and the panel only ever shows a handful of
+ * lines. The title is the most recent one the client actually saw.
+ */
+export async function summariseInterest(
+  customerId: string,
+): Promise<InterestSummaryRow[]> {
+  const rows = await db
+    .select({
+      destination: clientInterests.destination,
+      title: sql<string>`(array_agg(${clientInterests.title} order by ${clientInterests.occurredAt} desc))[1]`,
+      opens: sql<number>`count(*) filter (where ${clientInterests.kind} = 'opened')::int`,
+      seconds: sql<number>`coalesce(sum(${clientInterests.seconds}) filter (where ${clientInterests.kind} = 'read'), 0)::int`,
+      photos: sql<number>`count(*) filter (where ${clientInterests.kind} = 'photos')::int`,
+      videos: sql<number>`count(*) filter (where ${clientInterests.kind} = 'video')::int`,
+      // A raw expression carries no column mapper, and the driver hands
+      // timestamps back as strings for Drizzle to convert. Borrow the column's.
+      askedAt: sql<Date | null>`max(${clientInterests.occurredAt}) filter (where ${clientInterests.kind} = 'cta_clicked')`.mapWith(
+        clientInterests.occurredAt,
+      ),
+      lastSeenAt: sql<Date>`max(${clientInterests.occurredAt})`.mapWith(
+        clientInterests.occurredAt,
+      ),
+    })
+    .from(clientInterests)
+    .where(eq(clientInterests.customerId, customerId))
+    .groupBy(clientInterests.destination)
+    // Asked about first, then the most read, then the most recent.
+    .orderBy(
+      sql`max(${clientInterests.occurredAt}) filter (where ${clientInterests.kind} = 'cta_clicked') desc nulls last`,
+      sql`coalesce(sum(${clientInterests.seconds}) filter (where ${clientInterests.kind} = 'read'), 0) desc`,
+      sql`max(${clientInterests.occurredAt}) desc`,
+    )
+    .limit(12);
+
+  return rows as InterestSummaryRow[];
+}
+
+/** What the whole client list has been reading lately, for the dashboard. */
+export async function topInterestDestinations(since: Date, limit = 5) {
+  return db
+    .select({
+      destination: clientInterests.destination,
+      title: sql<string>`(array_agg(${clientInterests.title} order by ${clientInterests.occurredAt} desc))[1]`,
+      clients: sql<number>`count(distinct ${clientInterests.customerId})::int`,
+      opens: sql<number>`count(*) filter (where ${clientInterests.kind} = 'opened')::int`,
+      asked: sql<number>`count(*) filter (where ${clientInterests.kind} = 'cta_clicked')::int`,
+    })
+    .from(clientInterests)
+    .where(sql`${clientInterests.occurredAt} >= ${since.toISOString()}::timestamptz`)
+    .groupBy(clientInterests.destination)
+    .orderBy(
+      sql`count(distinct ${clientInterests.customerId}) desc`,
+      sql`count(*) desc`,
+    )
+    .limit(limit);
 }
 
 /* ------------------------------------------------------------------ */

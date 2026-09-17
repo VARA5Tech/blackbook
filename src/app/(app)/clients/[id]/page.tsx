@@ -3,7 +3,11 @@ import { notFound } from "next/navigation";
 import { can, getActor } from "@/auth/session";
 import { Client360View } from "@/components/clients/client-360";
 import { displayName } from "@/domain/customers";
-import { getClient360 } from "@/services/client-service";
+import {
+  getClient360,
+  getClientInterest,
+  getClientReplays,
+} from "@/services/client-service";
 import { getCatalogue } from "@/services/preference-service";
 
 export async function generateMetadata({
@@ -26,12 +30,20 @@ export default async function ClientPage({
   const [record, actor] = await Promise.all([getClient360(id), getActor()]);
   if (!record || !actor) notFound();
 
-  const catalogue = await getCatalogue();
+  // PostHog is a network hop and may be unconfigured; both read alongside the
+  // catalogue so a slow answer never delays the rest of the record.
+  const [catalogue, interest, replays] = await Promise.all([
+    getCatalogue(),
+    getClientInterest(id),
+    getClientReplays(id),
+  ]);
 
   return (
     <Client360View
       record={record}
       catalogue={Object.fromEntries(catalogue)}
+      interest={interest}
+      replays={replays}
       permissions={{
         canEdit: can(actor, "client.update"),
         canArchive: can(actor, "client.archive"),

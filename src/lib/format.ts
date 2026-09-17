@@ -37,6 +37,19 @@ export function daysSince(value: Date | string | null | undefined): number | nul
   return Math.abs(differenceInCalendarDays(new Date(), date));
 }
 
+/**
+ * "4 min", "1 hr 12 min" - how long someone spent reading, rounded the way a
+ * curator would say it out loud. Anything under a minute is not worth a number.
+ */
+export function readingTime(seconds: number): string {
+  if (!Number.isFinite(seconds) || seconds < 60) return "under a minute";
+  const minutes = Math.round(seconds / 60);
+  if (minutes < 60) return `${minutes} min`;
+  const hours = Math.floor(minutes / 60);
+  const rest = minutes % 60;
+  return rest === 0 ? `${hours} hr` : `${hours} hr ${rest} min`;
+}
+
 /** "in 30 days", "tomorrow", "today". */
 export function countdown(days: number): string {
   if (days === 0) return "today";

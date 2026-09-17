@@ -8,6 +8,7 @@ import {
   Pencil,
   Phone,
   Plane,
+  Sparkles,
   UserRound,
   UtensilsCrossed,
 } from "lucide-react";
@@ -17,6 +18,7 @@ import { BriefMeDialog } from "@/components/clients/brief-me-dialog";
 import { ClientDnaPanel } from "@/components/clients/client-dna-panel";
 import { HouseholdPanel } from "@/components/clients/household-panel";
 import { InteractionPanel } from "@/components/clients/interaction-panel";
+import { InterestPanel } from "@/components/clients/interest-panel";
 import { MilestonePanel } from "@/components/clients/milestone-panel";
 import { PreferenceSection } from "@/components/preferences/preference-section";
 import { PreferenceProfileForm } from "@/components/preferences/preference-profile-form";
@@ -25,7 +27,8 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import type { Client360 } from "@/repositories/customer-repository";
+import type { Client360, InterestSummaryRow } from "@/repositories/customer-repository";
+import type { SessionReplay } from "@/lib/posthog";
 import type { CatalogueOption } from "@/domain/preferences";
 import {
   GENDER_LABELS,
@@ -49,14 +52,20 @@ export function Client360View({
   record,
   catalogue,
   permissions,
+  interest,
+  replays,
 }: {
   record: Client360;
   catalogue: Record<string, CatalogueOption[]>;
   permissions: Client360Permissions;
+  interest: InterestSummaryRow[];
+  replays: SessionReplay[];
 }) {
   const { customer, household, rm } = record;
 
   const nextMilestone = record.milestones[0];
+  // Sorted asked-first, so if anything was asked about it is the first line.
+  const asked = interest[0]?.askedAt ? interest[0] : null;
   const assistant = executiveAssistantFor(customer, household);
 
   return (
@@ -221,6 +230,15 @@ export function Client360View({
             </span>
           </div>
         ) : null}
+
+        {asked ? (
+          <div className="flex items-center gap-2 rounded-md border border-accent bg-accent/40 px-3 py-2 text-sm text-accent-foreground">
+            <Sparkles className="size-4 shrink-0" />
+            <span>
+              Asked the Curator about {asked.title}, {timeAgo(asked.askedAt)}
+            </span>
+          </div>
+        ) : null}
       </header>
 
       <Tabs defaultValue="overview">
@@ -294,6 +312,8 @@ export function Client360View({
 
         {/* ---------------- Travel ---------------- */}
         <TabsContent value="travel" className="mt-6 space-y-8">
+          <InterestPanel interest={interest} replays={replays} />
+
           <PreferenceSection
             customerId={customer.id}
             title="Destinations"

@@ -130,6 +130,9 @@ Environment the running container needs:
 | `AI_MODEL` | Optional. Defaults to a cheap current model |
 | `RESEND_API_KEY` | Sends password reset codes and invitations |
 | `PRIVATE_ACCESS_SECRET` | Shared with vara5.travel for its guest lookup. Without it nobody gets past the website's gate |
+| `POSTHOG_PROJECT_ID` | Optional. Adds session replay links to Client 360 |
+| `POSTHOG_API_KEY` | Optional. A personal API key with read scopes; never exposed to a browser |
+| `POSTHOG_API_HOST` | Optional. Defaults to `https://us.posthog.com` |
 
 Dokploy is driven from a web interface with no host shell, so nothing here
 assumes one.
@@ -247,6 +250,18 @@ The decisions that are not obvious from reading the tables:
   `+` is refused, and every number is stored in international format
   (`+65 8123 4567`), so the digits-only columns are full international numbers.
   Guessing a country instead would read a ten-digit Singapore number as Indian.
+- **Search is Postgres native**: a weighted `tsvector` for names and references,
+  plus trigram indexes for misspellings and partial phone numbers. At Vara5's
+  data volume a dedicated search service would be infrastructure without a
+  payoff. Query operators are escaped rather than stripped, so names like
+  O'Brien and Jean-Luc match the tokens Postgres actually indexed.
+- **Prepared statements are on unless the connection is a transaction pooler**,
+  which is port 6543 by convention. A direct connection and a session-mode
+  pooler both support them.
+- **Archiving is the normal path.** Records are soft-deleted. Permanent erasure
+  is a separate, administrator-only capability that requires the client to be
+  archived first and a written reason, and it leaves an audit entry behind that
+  outlives the data it erased.
 
 ## Private access for vara5.travel
 
@@ -270,18 +285,33 @@ number to send the code to, or `found: false`. No other client data leaves.
   never travels, a signature more than five minutes old is refused, and signed
   lookups are capped per minute. Without the secret the route answers 503, so
   the gate fails closed.
-- **Search is Postgres native**: a weighted `tsvector` for names and references,
-  plus trigram indexes for misspellings and partial phone numbers. At Vara5's
-  data volume a dedicated search service would be infrastructure without a
-  payoff. Query operators are escaped rather than stripped, so names like
-  O'Brien and Jean-Luc match the tokens Postgres actually indexed.
-- **Prepared statements are on unless the connection is a transaction pooler**,
-  which is port 6543 by convention. A direct connection and a session-mode
-  pooler both support them.
-- **Archiving is the normal path.** Records are soft-deleted. Permanent erasure
-  is a separate, administrator-only capability that requires the client to be
-  archived first and a written reason, and it leaves an audit entry behind that
-  outlives the data it erased.
+- **What the website reports back:** `POST /api/private-access/interest`, signed
+  the same way, writes one row per thing a client did — opened a journey, read
+  it for a while, looked at the photos, played the film, asked the Curator. The
+  Interest panel on Client 360 groups those into one line per journey, strongest
+  interest first, and the ask alone also lands on the activity timeline. An
+  archived, inactive or unknown client is answered `recorded: false` rather than
+  an error, because a guest must never see a refusal.
+- **One number, one client, in the table too.** The service already refused a
+  duplicate; a trigger now refuses one across both `mobile` and `whatsapp`, so
+  an import cannot create the collision that would lock two clients out at once.
+
+## PostHog
+
+Optional, read-only, and entirely on the website's side of the wall. vara5.travel
+loads PostHog after the gate, identifies the guest by their Blackbook id, and
+records the session with every input masked. Blackbook sends nothing and stores
+nothing there: the parts the desk needs arrive through the interest endpoint and
+live in Postgres, so every screen works with PostHog switched off.
+
+What the key buys is the deep end. With `POSTHOG_PROJECT_ID` and
+`POSTHOG_API_KEY` set, Client 360 lists a client's recent visits and links
+straight to the recording. Reads are cached for five minutes, time out after
+eight seconds and fail soft.
+
+The key is a personal API key. It can read the whole project, so it is an
+operator credential: it lives in Dokploy, never in the website's bundle, and
+never in a `NEXT_PUBLIC_` variable. Only `src/lib/posthog.ts` reads it.
 
 ## Sharing a database with Supabase
 

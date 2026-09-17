@@ -1,9 +1,11 @@
 import "server-only";
 import { and, eq } from "drizzle-orm";
+import { z } from "zod";
 import { db } from "@/db";
 import {
   activityLog,
   clientDirectives,
+  clientInterests,
   customerPreferenceProfile,
   customers,
   households,
@@ -20,8 +22,15 @@ import {
   type CreateCustomerInput,
   type UpdateCustomerInput,
 } from "@/domain/customers";
-import { onlyProvided, optionalEmail, parseInternationalPhone } from "@/domain/shared";
+import {
+  onlyProvided,
+  optionalEmail,
+  parseInternationalPhone,
+  requiredText,
+  uuidSchema,
+} from "@/domain/shared";
 import { logger } from "@/lib/logger";
+import { posthogIsConfigured, sessionReplays } from "@/lib/posthog";
 import * as repo from "@/repositories/customer-repository";
 import { diffFields, logActivity } from "./activity-service";
 
@@ -61,7 +70,14 @@ export async function getClient360(customerId: string) {
 /* Private access, for the vara5.travel website                        */
 /* ------------------------------------------------------------------ */
 
-export type PrivateAccessGuest = { name: string; phone: string; email: string | null };
+export type PrivateAccessGuest = {
+  /** The key the website seals into its session, and PostHog's person id. */
+  id: string;
+  ref: string;
+  name: string;
+  phone: string;
+  email: string | null;
+};
 
 /**
  * Whether a phone number belongs to a client allowed through the website's
@@ -109,6 +125,37 @@ export async function lookupPrivateAccessGuest(
 
   logger.info("private_access.lookup", { outcome: "found", customerId: guest.id });
   return {
+    id: guest.id,
+    ref: guest.ref,
+    name: guest.preferredName?.trim() || guest.firstName,
+    phone: `+${sendTo}`,
+    email: guest.email,
+  };
+}
+
+/**
+ * The same answer, for a guest the website has already signed in.
+ *
+ * The website re-checks on every page load by the id in its signed session, not
+ * by the number typed weeks ago, so correcting a client's phone in Blackbook
+ * does not sign them out and their history stays on one client. Archiving them
+ * or making them inactive still ends access at the next load.
+ */
+export async function lookupPrivateAccessGuestById(
+  customerId: string,
+): Promise<PrivateAccessGuest | null> {
+  if (!uuidSchema.safeParse(customerId).success) return null;
+
+  const guest = await repo.findPrivateAccessGuestById(customerId);
+  const sendTo = guest?.whatsappNormalized ?? guest?.mobileNormalized;
+  if (!guest || !sendTo) {
+    logger.info("private_access.lookup_by_id", { outcome: "not_found" });
+    return null;
+  }
+
+  return {
+    id: guest.id,
+    ref: guest.ref,
     name: guest.preferredName?.trim() || guest.firstName,
     phone: `+${sendTo}`,
     email: guest.email,
@@ -157,6 +204,102 @@ export async function savePrivateAccessEmail(
 
   logger.info("private_access.email_saved", { customerId: guest.id });
   return true;
+}
+
+/* ------------------------------------------------------------------ */
+/* Interest, reported by vara5.travel                                  */
+/* ------------------------------------------------------------------ */
+
+export const INTEREST_KINDS = [
+  "opened",
+  "read",
+  "photos",
+  "video",
+  "cta_clicked",
+] as const;
+
+const interestSchema = z.object({
+  customerId: uuidSchema,
+  /** The journey's slug, which the website owns. */
+  destination: requiredText("Destination", 120),
+  title: requiredText("Title", 200),
+  kind: z.enum(INTEREST_KINDS),
+  /** Capped in the schema as well as the table, so a stuck timer cannot lie. */
+  seconds: z.coerce.number().int().min(0).max(86_400).default(0),
+});
+
+export type RecordInterestInput = z.input<typeof interestSchema>;
+
+/**
+ * Records what a client looked at on the members' site.
+ *
+ * No capability check, for the same reason as the lookup above: the caller is
+ * the website, not a member of staff, and `/api/private-access/interest`
+ * authenticates it by signature before calling this. Nothing else may call it.
+ *
+ * Refused for a client who is archived or inactive, so access ending ends the
+ * record keeping with it. Only the Curator click reaches the timeline: a client
+ * reading four journeys on a Sunday would otherwise bury the interactions staff
+ * actually write.
+ */
+export async function recordPrivateAccessInterest(
+  input: RecordInterestInput,
+): Promise<boolean> {
+  const parsed = interestSchema.safeParse(input);
+  if (!parsed.success) return false;
+  const data = parsed.data;
+
+  const guest = await repo.findPrivateAccessGuestById(data.customerId);
+  if (!guest) {
+    logger.info("private_access.interest", { outcome: "not_found" });
+    return false;
+  }
+
+  await db.transaction(async (tx) => {
+    await tx.insert(clientInterests).values({
+      customerId: data.customerId,
+      destination: data.destination,
+      title: data.title,
+      kind: data.kind,
+      seconds: data.seconds,
+    });
+
+    if (data.kind === "cta_clicked") {
+      await tx.insert(activityLog).values({
+        entityType: "customer",
+        entityId: data.customerId,
+        customerId: data.customerId,
+        action: "interaction_logged",
+        summary: `Asked the Curator about ${data.title} on vara5.travel`,
+        // Nobody signed in as staff did this, so the trail records no actor.
+        actorId: null,
+      });
+    }
+  });
+
+  logger.info("private_access.interest", {
+    outcome: "recorded",
+    customerId: data.customerId,
+    kind: data.kind,
+  });
+  return true;
+}
+
+/** What a client has been reading on the members' site, for the Interest panel. */
+export async function getClientInterest(customerId: string) {
+  await requireCapability("client.read");
+  return repo.summariseInterest(customerId);
+}
+
+/**
+ * Links to the recordings of a client's visits, for the curator who wants to
+ * watch rather than read a summary. Empty whenever PostHog is unconfigured or
+ * unreachable, which the panel shows as simply having nothing to offer.
+ */
+export async function getClientReplays(customerId: string) {
+  await requireCapability("client.read");
+  if (!posthogIsConfigured()) return [];
+  return sessionReplays(customerId);
 }
 
 /* ------------------------------------------------------------------ */

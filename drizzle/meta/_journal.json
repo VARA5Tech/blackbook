@@ -78,6 +78,20 @@
       "when": 1789584064890,
       "tag": "0010_memberships_and_remarks",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1789634814772,
+      "tag": "0011_client_interest",
+      "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1789634837846,
+      "tag": "0012_one_number_one_client",
+      "breakpoints": true
     }
   ]
 }

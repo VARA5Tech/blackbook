@@ -1,5 +1,5 @@
 import { createHash, createHmac, randomUUID } from "node:crypto";
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { POST as privateAccessLookup } from "@/app/api/private-access/lookup/route";
 import { auth } from "@/auth";
@@ -21,10 +21,14 @@ import {
   sendEmail,
   staffInvitationEmail,
 } from "@/lib/email";
+import { POST as privateAccessInterest } from "@/app/api/private-access/interest/route";
 import {
   archiveCustomer,
   createCustomer,
   DomainError,
+  getClient360,
+  getClientInterest,
+  updateCustomer,
 } from "@/services/client-service";
 import {
   acceptInvitation,
@@ -439,7 +443,7 @@ describe("private access lookup for the website", () => {
   }
 
   it("names an active client and the number to send their code to, and nothing else", async () => {
-    await createCustomer({
+    const client = await createCustomer({
       firstName: "Priya",
       lastName: "Nair",
       preferredName: "Pri",
@@ -453,13 +457,54 @@ describe("private access lookup for the website", () => {
     const { status, body } = await lookup(signed({ phone: "+919810011223" }));
 
     expect(status).toBe(200);
-    // The number they typed, which is the handset they are holding, and the
-    // address the website falls back to when WhatsApp refuses the message.
+    // The id is the website's session key and its analytics identity; the phone
+    // is the handset they are holding; the email is the fallback when WhatsApp
+    // refuses the message. Nothing else about the client leaves.
     expect(body).toEqual({
       found: true,
+      id: client.id,
+      ref: client.ref,
       name: "Pri",
       phone: "+919810011223",
       email: "priya@example.com",
+    });
+  });
+
+  /**
+   * The website re-checks by id on every page load, so staff correcting a
+   * client's number mid-session cannot sign that client out of the site.
+   */
+  it("answers by customer id, and stops the moment the client is archived", async () => {
+    const client = await createCustomer({
+      firstName: "Priya",
+      mobile: "+91 98100 11223",
+      customerSince: since,
+    });
+
+    expect((await lookup(signed({ customerId: client.id }))).body).toMatchObject({
+      found: true,
+      id: client.id,
+      ref: client.ref,
+      name: "Priya",
+    });
+
+    // A staff edit to the number leaves the same client findable by id.
+    await updateCustomer({ id: client.id, mobile: "+91 98100 44556" });
+    expect((await lookup(signed({ customerId: client.id }))).body).toMatchObject({
+      found: true,
+      id: client.id,
+    });
+
+    await archiveCustomer(client.id);
+    expect((await lookup(signed({ customerId: client.id }))).body).toEqual({
+      found: false,
+    });
+  });
+
+  it("refuses a request that names neither a number nor a client", async () => {
+    expect((await lookup(signed({}))).status).toBe(400);
+    expect((await lookup(signed({ customerId: "not-a-uuid" }))).body).toEqual({
+      found: false,
     });
   });
 
@@ -472,13 +517,13 @@ describe("private access lookup for the website", () => {
     });
 
     // Both numbers belong to the same client, and either is a valid destination.
-    expect((await lookup(signed({ phone: "+919560076361" }))).body).toEqual({
+    expect((await lookup(signed({ phone: "+919560076361" }))).body).toMatchObject({
       found: true,
       name: "Rishabh",
       phone: "+919560076361",
       email: null,
     });
-    expect((await lookup(signed({ phone: "+919205590866" }))).body).toEqual({
+    expect((await lookup(signed({ phone: "+919205590866" }))).body).toMatchObject({
       found: true,
       name: "Rishabh",
       phone: "+919205590866",
@@ -490,13 +535,13 @@ describe("private access lookup for the website", () => {
     await createCustomer({ firstName: "Arjun", mobile: "+65 8123 4567", customerSince: since });
     await createCustomer({ firstName: "Meera", whatsapp: "+971 50 123 4567", customerSince: since });
 
-    expect((await lookup(signed({ phone: "+6581234567" }))).body).toEqual({
+    expect((await lookup(signed({ phone: "+6581234567" }))).body).toMatchObject({
       found: true,
       name: "Arjun",
       phone: "+6581234567",
       email: null,
     });
-    expect((await lookup(signed({ phone: "+971501234567" }))).body).toEqual({
+    expect((await lookup(signed({ phone: "+971501234567" }))).body).toMatchObject({
       found: true,
       name: "Meera",
       phone: "+971501234567",
@@ -528,11 +573,17 @@ describe("private access lookup for the website", () => {
   });
 
   it("refuses a number two clients share rather than choosing one", async () => {
-    // The app blocks this duplicate, so it can only arrive by hand; written directly.
-    await db.insert(customers).values([
-      { firstName: "One", whatsapp: "+91 98100 33333", customerSince: since },
-      { firstName: "Two", whatsapp: "+91 98100 33333", customerSince: since },
-    ]);
+    // Both the service and the table now refuse this, so a pair like it can
+    // only pre-date the rule. The trigger comes off to recreate one.
+    await db.execute(sql`alter table customer disable trigger customer_phone_is_unique`);
+    try {
+      await db.insert(customers).values([
+        { firstName: "One", whatsapp: "+91 98100 33333", customerSince: since },
+        { firstName: "Two", whatsapp: "+91 98100 33333", customerSince: since },
+      ]);
+    } finally {
+      await db.execute(sql`alter table customer enable trigger customer_phone_is_unique`);
+    }
 
     expect((await lookup(signed({ phone: "+919810033333" }))).body).toEqual({ found: false });
   });
@@ -578,5 +629,239 @@ describe("private access lookup for the website", () => {
 
   it("wants the number with its country code", async () => {
     expect((await lookup(signed({ phone: "9810011223" }))).status).toBe(400);
+  });
+});
+
+/**
+ * What a client reads on vara5.travel, reported back through the same signed
+ * channel so the desk sees it in Blackbook rather than in an analytics tool.
+ */
+describe("interest reported by the website", () => {
+  const SECRET = "test-private-access-secret-of-a-realistic-length";
+  const since = "2026-01-01";
+  let staff: StaffFixtures;
+
+  beforeAll(async () => {
+    staff = await seedStaff();
+  });
+
+  beforeEach(async () => {
+    await resetData();
+    actingAs(staff.admin);
+    vi.stubEnv("PRIVATE_ACCESS_SECRET", SECRET);
+  });
+
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
+  function signed(body: unknown, secret = SECRET) {
+    const raw = JSON.stringify(body);
+    const timestamp = Math.floor(Date.now() / 1000);
+    const signature = createHmac("sha256", secret).update(`${timestamp}.${raw}`).digest("hex");
+    return new Request("http://localhost/api/private-access/interest", {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        "x-blackbook-timestamp": String(timestamp),
+        "x-blackbook-signature": `v1=${signature}`,
+      },
+      body: raw,
+    });
+  }
+
+  async function report(body: unknown, secret = SECRET) {
+    const response = await privateAccessInterest(signed(body, secret));
+    return { status: response.status, body: await response.json() };
+  }
+
+  const antarctica = {
+    destination: "antarctica",
+    title: "Antarctica — White Silence",
+  };
+
+  it("builds one line per journey: opens, reading time, and the ask", async () => {
+    const client = await createCustomer({
+      firstName: "Priya",
+      mobile: "+91 98100 11223",
+      customerSince: since,
+    });
+
+    await report({ ...antarctica, customerId: client.id, kind: "opened" });
+    await report({ ...antarctica, customerId: client.id, kind: "opened" });
+    await report({ ...antarctica, customerId: client.id, kind: "read", seconds: 184 });
+    await report({ ...antarctica, customerId: client.id, kind: "read", seconds: 96 });
+    await report({ ...antarctica, customerId: client.id, kind: "video", seconds: 40 });
+    await report({ ...antarctica, customerId: client.id, kind: "cta_clicked" });
+    await report({
+      customerId: client.id,
+      destination: "courchevel",
+      title: "Courchevel — Above the Cloud",
+      kind: "opened",
+    });
+
+    const interest = await getClientInterest(client.id);
+
+    // The journey they asked about leads, whatever else they read.
+    expect(interest[0]).toMatchObject({
+      destination: "antarctica",
+      title: "Antarctica — White Silence",
+      opens: 2,
+      seconds: 280,
+      videos: 1,
+    });
+    expect(interest[0].askedAt).toBeInstanceOf(Date);
+    expect(interest[1]).toMatchObject({ destination: "courchevel", opens: 1, seconds: 0 });
+    expect(interest[1].askedAt).toBeNull();
+  });
+
+  /** A curator needs the ask on the timeline. The reading would bury it. */
+  it("puts only the Curator click on the timeline", async () => {
+    const client = await createCustomer({
+      firstName: "Priya",
+      mobile: "+91 98100 11223",
+      customerSince: since,
+    });
+
+    await report({ ...antarctica, customerId: client.id, kind: "opened" });
+    await report({ ...antarctica, customerId: client.id, kind: "read", seconds: 120 });
+    await report({ ...antarctica, customerId: client.id, kind: "cta_clicked" });
+
+    const record = await getClient360(client.id);
+    const summaries = record?.timeline.map((entry) => entry.summary) ?? [];
+
+    expect(summaries).toContain("Asked the Curator about Antarctica — White Silence on vara5.travel");
+    expect(summaries.filter((line) => line.includes("vara5.travel"))).toHaveLength(1);
+  });
+
+  it("records nothing for a client who is archived, inactive or unknown", async () => {
+    const archived = await createCustomer({
+      firstName: "Archived",
+      mobile: "+91 98100 22222",
+      customerSince: since,
+    });
+    await archiveCustomer(archived.id);
+    const inactive = await createCustomer({
+      firstName: "Inactive",
+      mobile: "+91 98100 33333",
+      status: "inactive",
+      customerSince: since,
+    });
+
+    expect((await report({ ...antarctica, customerId: archived.id, kind: "opened" })).body).toEqual({
+      recorded: false,
+    });
+    expect((await report({ ...antarctica, customerId: inactive.id, kind: "opened" })).body).toEqual({
+      recorded: false,
+    });
+    expect(
+      (await report({ ...antarctica, customerId: randomUUID(), kind: "opened" })).body,
+    ).toEqual({ recorded: false });
+
+    expect(await getClientInterest(archived.id)).toHaveLength(0);
+  });
+
+  it("refuses an unsigned or wrongly signed report, and a nonsense kind", async () => {
+    const client = await createCustomer({
+      firstName: "Priya",
+      mobile: "+91 98100 11223",
+      customerSince: since,
+    });
+
+    const wrongSecret = await report(
+      { ...antarctica, customerId: client.id, kind: "opened" },
+      "someone-elses-secret-of-a-similar-length-too",
+    );
+    expect(wrongSecret).toEqual({ status: 401, body: { error: "unauthorised" } });
+
+    const unsigned = await privateAccessInterest(
+      new Request("http://localhost/api/private-access/interest", {
+        method: "POST",
+        body: JSON.stringify({ ...antarctica, customerId: client.id, kind: "opened" }),
+      }),
+    );
+    expect(unsigned.status).toBe(401);
+
+    expect((await report({ ...antarctica, customerId: client.id, kind: "hacked" })).body).toEqual({
+      recorded: false,
+    });
+    expect(await getClientInterest(client.id)).toHaveLength(0);
+  });
+});
+
+/**
+ * The gate refuses a number two clients share rather than guessing between
+ * them, so a collision locks both of them out of vara5.travel. The service
+ * checks for one; these cases go around it, straight to the table, the way an
+ * import or a hand-written statement would.
+ */
+describe("one number, one client", () => {
+  const since = "2026-01-01";
+  let staff: StaffFixtures;
+
+  beforeAll(async () => {
+    staff = await seedStaff();
+  });
+
+  beforeEach(async () => {
+    await resetData();
+    actingAs(staff.admin);
+  });
+
+  /** Runs a statement expected to fail and hands back what Postgres said. */
+  async function refusal(statement: Promise<unknown>): Promise<string> {
+    try {
+      await statement;
+      return "";
+    } catch (error) {
+      return String((error as { cause?: unknown }).cause ?? error);
+    }
+  }
+
+  it("refuses one client's mobile against another's WhatsApp", async () => {
+    const first = await createCustomer({
+      firstName: "Priya",
+      whatsapp: "+91 98100 11223",
+      customerSince: since,
+    });
+
+    // Drizzle wraps the driver's error; the reason is on the cause.
+    await expect(
+      refusal(db.insert(customers).values({ firstName: "Imported", mobile: "+919810011223" })),
+    ).resolves.toContain(`already belongs to ${first.ref}`);
+
+    await expect(
+      refusal(db.insert(customers).values({ firstName: "Imported", whatsapp: "+91 98100 11223" })),
+    ).resolves.toContain("already belongs to");
+  });
+
+  it("lets one client hold the same number as mobile and WhatsApp", async () => {
+    const client = await createCustomer({
+      firstName: "Priya",
+      mobile: "+91 98100 11223",
+      customerSince: since,
+    });
+
+    await expect(
+      updateCustomer({ id: client.id, whatsapp: "+91 98100 11223" }),
+    ).resolves.toMatchObject({ id: client.id });
+  });
+
+  /** Archiving releases the number, exactly as the old index did. */
+  it("frees the number once the client is archived", async () => {
+    const first = await createCustomer({
+      firstName: "Priya",
+      mobile: "+91 98100 11223",
+      customerSince: since,
+    });
+    await archiveCustomer(first.id);
+
+    const second = await createCustomer({
+      firstName: "Arjun",
+      whatsapp: "+91 98100 11223",
+      customerSince: since,
+    });
+
+    expect(second.id).not.toBe(first.id);
   });
 });

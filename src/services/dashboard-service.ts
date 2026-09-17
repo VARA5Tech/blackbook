@@ -4,12 +4,15 @@ import {
   countIncompleteProfiles,
   countNeedingFollowUp,
   recentlyViewedClients,
+  topInterestDestinations,
 } from "@/repositories/customer-repository";
 import { listRecentActivity } from "./activity-service";
 import { countHouseholds } from "./household-service";
 import { countUpcoming, getUpcomingMilestones } from "./milestone-service";
 
 const FOLLOW_UP_DAYS = 60;
+/** Long enough for a pattern, short enough that it still reads as "lately". */
+const INTEREST_DAYS = 30;
 
 /**
  * One authorized read for the operations home screen.
@@ -29,6 +32,7 @@ export async function getOpsDashboard() {
     households,
     recentClients,
     activity,
+    wanted,
   ] = await Promise.all([
     getUpcomingMilestones(45, 12),
     countUpcoming(7, "birthday"),
@@ -38,6 +42,10 @@ export async function getOpsDashboard() {
     countHouseholds(),
     recentlyViewedClients(6),
     listRecentActivity(12),
+    topInterestDestinations(
+      new Date(Date.now() - INTEREST_DAYS * 24 * 60 * 60 * 1000),
+      5,
+    ),
   ]);
 
   return {
@@ -52,5 +60,8 @@ export async function getOpsDashboard() {
     },
     recentClients,
     activity,
+    /** What the client list has been reading on vara5.travel lately. */
+    wanted,
+    wantedDays: INTEREST_DAYS,
   };
 }
