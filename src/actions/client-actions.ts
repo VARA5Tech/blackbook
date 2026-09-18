@@ -9,6 +9,7 @@ import type {
 import {
   archiveCustomer,
   createCustomer,
+  getClientReplay,
   restoreCustomer,
   updateClientDna,
   updateCustomer,
@@ -39,6 +40,16 @@ export async function updateClientDnaAction(input: ClientDnaInput) {
   const result = await run(() => updateClientDna(input));
   if (result.ok) revalidatePath(`/clients/${input.customerId}`);
   return result.ok ? { ok: true as const, data: undefined } : result;
+}
+
+/**
+ * Hands one recording to the player in the browser.
+ *
+ * A server action rather than a route, so the capability check stays in the
+ * service layer where every other read already lives.
+ */
+export async function loadReplayAction(customerId: string, sessionId: string) {
+  return run(() => getClientReplay(customerId, sessionId));
 }
 
 export async function archiveClientAction(customerId: string) {

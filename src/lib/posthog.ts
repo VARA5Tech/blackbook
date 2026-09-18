@@ -1,4 +1,5 @@
 import "server-only";
+import { gunzipSync } from "node:zlib";
 import { logger } from "@/lib/logger";
 
 /**
@@ -24,6 +25,17 @@ const QUERY_TIMEOUT_MS = 8_000;
 const CACHE_TTL_MS = 5 * 60 * 1000;
 /** PostHog allows 240 project queries a minute; a screen refresh must not race that. */
 const MAX_REPLAYS = 10;
+/** A recording is bigger than a query answer and worth waiting a little longer for. */
+const REPLAY_TIMEOUT_MS = 20_000;
+/** Roughly an hour of browsing. Beyond that the browser, not the network, is the limit. */
+const MAX_REPLAY_BYTES = 8 * 1024 * 1024;
+/**
+ * A pause longer than this is the client reading, or the tab sitting forgotten
+ * behind another one. Nothing moves on screen for the whole of it.
+ */
+const IDLE_GAP_MS = 2_000;
+/** What such a pause is shortened to, so the break still reads as a break. */
+const IDLE_KEPT_MS = 1_000;
 
 /** Private endpoints live on the app host, not the `.i.` ingestion host. */
 function apiHost(): string {
@@ -51,6 +63,13 @@ export function replayUrl(sessionId: string): string | null {
 
 type CacheEntry = { at: number; rows: unknown[][] };
 const cache = new Map<string, CacheEntry>();
+
+/**
+ * The website identifies a guest to PostHog by their Blackbook id, so a
+ * distinct id is a UUID and nothing else. Checked rather than escaped: a value
+ * that is not a UUID never reaches the query at all.
+ */
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 /**
  * Runs one HogQL query and hands back its rows.
@@ -112,9 +131,7 @@ export type SessionReplay = {
  * a value that is not a UUID never reaches the query at all.
  */
 export async function sessionReplays(customerId: string): Promise<SessionReplay[]> {
-  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(customerId)) {
-    return [];
-  }
+  if (!UUID.test(customerId)) return [];
 
   const rows = await runQuery(
     "blackbook_client_replays",
@@ -147,4 +164,248 @@ export async function sessionReplays(customerId: string): Promise<SessionReplay[
       },
     ];
   });
+}
+
+/**
+ * The signals PostHog holds that Postgres does not.
+ *
+ * The website reports five things to Blackbook because they are the five a
+ * curator acts on. PostHog sees more: every card turned over, every section
+ * scrolled into view, every button pressed by its label. Those never justified
+ * a column each, but they answer "what caught their eye" on the client's page,
+ * so they are read live rather than copied.
+ */
+export type ClientSignals = {
+  /** Cards turned over, by journey. Reading without opening anything. */
+  flips: Array<{ label: string; count: number }>;
+  /** Which parts of a journey were actually scrolled to. */
+  sections: Array<{ label: string; count: number }>;
+  /** Buttons and links pressed, by the words on them. */
+  clicks: Array<{ label: string; count: number }>;
+  /** Taps on something that does not respond. A design problem, told plainly. */
+  deadClicks: number;
+};
+
+const EMPTY_SIGNALS: ClientSignals = { flips: [], sections: [], clicks: [], deadClicks: 0 };
+
+/** The four blocks of a journey, named the way the page names them. */
+const SECTIONS: Record<string, string> = {
+  stay: "Stay",
+  dine: "Dine",
+  experience: "Experience",
+  take: "The VARA5 Take",
+};
+
+/**
+ * Whether a captured label is a control someone pressed.
+ *
+ * Autocapture reports the text of whatever was clicked, which includes the
+ * close glyph and, when a tap lands on a paragraph, the paragraph. Neither
+ * tells a curator anything, and the second fills the panel with body copy.
+ */
+function isButtonish(text: string): boolean {
+  if (text.length < 2 || text.length > 40) return false;
+  if (/^(close|dismiss|back|next|previous)$/i.test(text)) return false;
+  // An icon font renders its ligature name as text, so a lone lower-case word
+  // of underscores is "volume_up", not anything a person read.
+  if (/^[a-z]+(_[a-z]+)+$/.test(text)) return false;
+  // Something with no letters is a glyph: an arrow, a cross.
+  return /\p{L}/u.test(text);
+}
+
+/**
+ * One query, folded here rather than four round trips.
+ *
+ * The label is chosen per event, not coalesced: `section_viewed` carries both
+ * `section` and `destination`, so taking the first non-null would report which
+ * journey was read rather than how far into it, and the panel would say "read
+ * as far as Antarctica" instead of "as far as Stay and Dine".
+ */
+export async function clientSignals(customerId: string): Promise<ClientSignals> {
+  if (!UUID.test(customerId)) return EMPTY_SIGNALS;
+
+  const rows = await runQuery(
+    "blackbook_client_signals",
+    `select event,
+            case event
+              when 'section_viewed' then properties.section
+              when 'journey_card_flipped' then properties.destination
+              else properties.$el_text
+            end as label,
+            count() as n
+     from events
+     where distinct_id = '${customerId}'
+       and timestamp > now() - interval 90 day
+       and event in ('journey_card_flipped', 'section_viewed', '$autocapture', '$dead_click')
+     group by event, label
+     having n > 0
+     order by n desc
+     limit 60`,
+  );
+  if (!rows) return EMPTY_SIGNALS;
+
+  const signals: ClientSignals = { flips: [], sections: [], clicks: [], deadClicks: 0 };
+
+  for (const row of rows) {
+    const [event, label, count] = row as [string, string, number];
+    const n = Math.max(0, Math.round(Number(count) || 0));
+    if (n === 0) continue;
+
+    if (event === "$dead_click") {
+      signals.deadClicks += n;
+      continue;
+    }
+    // A label is the whole point of these rows; an unlabelled one says nothing.
+    const text = String(label ?? "").trim();
+    if (!text) continue;
+
+    if (event === "journey_card_flipped") signals.flips.push({ label: text, count: n });
+    else if (event === "section_viewed") signals.sections.push({ label: SECTIONS[text] ?? text, count: n });
+    else if (isButtonish(text)) signals.clicks.push({ label: text, count: n });
+  }
+
+  return signals;
+}
+
+/** One rrweb event, as the player consumes it. */
+export type ReplayEvent = { type: number; timestamp: number; data: unknown };
+
+/**
+ * Unpacks a snapshot PostHog stored compressed.
+ *
+ * The large events — the full snapshot of the page — arrive gzipped and
+ * carried as a string, while the small incremental ones stay plain JSON. rrweb
+ * accepts both without complaint and renders a blank white frame for the
+ * compressed one, no error anywhere, so this has to happen before the events
+ * reach the player.
+ *
+ * The bytes survive the JSON as code points below 256, which is why each
+ * character maps back to one byte.
+ */
+function unpack(event: ReplayEvent): ReplayEvent | null {
+  if (typeof event.data !== "string") return event;
+  try {
+    const packed = Uint8Array.from(event.data, (char) => char.charCodeAt(0) & 0xff);
+    if (packed[0] !== 0x1f || packed[1] !== 0x8b) return null;
+    return { ...event, data: JSON.parse(gunzipSync(packed).toString("utf8")) };
+  } catch {
+    // A snapshot that will not unpack cannot be drawn; dropping it is better
+    // than handing the player something it renders as an empty page.
+    return null;
+  }
+}
+
+/**
+ * Squeezes the dead air out of a recording.
+ *
+ * A visit is mostly nothing happening: this client's sixteen minutes hold
+ * fourteen minutes of stillness, one stretch of it five minutes long. Handing
+ * that to the player makes the scrubber useless, because most of the bar is
+ * frozen frames and dragging into one of them appears to hang. rrweb does skip
+ * idle stretches, but only while playing forward through them; land in the
+ * middle of one by dragging and it waits out the remaining minutes in real
+ * time, with nothing to show.
+ *
+ * So every pause is shortened and everything after it moves up to close the
+ * hole. The order of events and the gaps between them are untouched wherever
+ * anything is actually happening, which is all the replay is for. The real
+ * length of the visit is still reported beside the player, from the recording's
+ * own metadata, and it is the number that means something to the desk.
+ */
+function collapseIdle(events: ReplayEvent[]): ReplayEvent[] {
+  const ordered = [...events].sort((a, b) => a.timestamp - b.timestamp);
+
+  let shift = 0;
+  return ordered.map((event, index) => {
+    if (index > 0) {
+      const gap = event.timestamp - ordered[index - 1].timestamp;
+      if (gap > IDLE_GAP_MS) shift += gap - IDLE_KEPT_MS;
+    }
+    return shift === 0 ? event : { ...event, timestamp: event.timestamp - shift };
+  });
+}
+
+/**
+ * The recording itself, so it can be watched inside Blackbook.
+ *
+ * Two things make this safe to expose to a staff screen. The recording's own
+ * `distinct_id` is checked against the client being viewed, so a session id
+ * guessed or copied from elsewhere returns nothing rather than another
+ * client's visit. And the personal API key never leaves this file: the browser
+ * receives rrweb events, not a PostHog credential and not a share link.
+ *
+ * A quarter of a megabyte covers a fifteen-minute session, so the whole thing
+ * is fetched in one range request rather than blob by blob.
+ */
+export async function replayEvents(
+  customerId: string,
+  sessionId: string,
+): Promise<ReplayEvent[]> {
+  const configured = credentials();
+  if (!configured || !UUID.test(customerId) || !UUID.test(sessionId)) return [];
+
+  const base = `${apiHost()}/api/projects/${configured.projectId}/session_recordings/${sessionId}`;
+  const headers = { Authorization: `Bearer ${configured.key}` };
+
+  try {
+    const meta = await fetch(base, {
+      headers,
+      signal: AbortSignal.timeout(QUERY_TIMEOUT_MS),
+    });
+    if (!meta.ok) {
+      logger.warn("posthog.replay_refused", { status: meta.status });
+      return [];
+    }
+
+    // The check that matters: this recording must belong to this client.
+    const recording = (await meta.json()) as { distinct_id?: string };
+    if (recording.distinct_id !== customerId) {
+      logger.warn("posthog.replay_not_theirs", { customerId });
+      return [];
+    }
+
+    const listed = await fetch(`${base}/snapshots`, {
+      headers,
+      signal: AbortSignal.timeout(QUERY_TIMEOUT_MS),
+    });
+    if (!listed.ok) return [];
+
+    const sources = ((await listed.json()) as { sources?: Array<{ source: string; blob_key: string }> })
+      .sources?.filter((source) => source.source === "blob_v2") ?? [];
+    if (sources.length === 0) return [];
+
+    // Both ends are required; asking for one key answers 400.
+    const first = sources[0].blob_key;
+    const last = sources[sources.length - 1].blob_key;
+    const blob = await fetch(
+      `${base}/snapshots?source=blob_v2&start_blob_key=${first}&end_blob_key=${last}`,
+      { headers, signal: AbortSignal.timeout(REPLAY_TIMEOUT_MS) },
+    );
+    if (!blob.ok) return [];
+
+    const body = await blob.text();
+    if (body.length > MAX_REPLAY_BYTES) {
+      logger.warn("posthog.replay_too_large", { bytes: body.length });
+      return [];
+    }
+
+    const events: ReplayEvent[] = [];
+    for (const line of body.split("\n")) {
+      if (!line.trim()) continue;
+      try {
+        // Each line is [windowId, event]; handing the pair to the player
+        // renders a blank screen with no error.
+        const [, event] = JSON.parse(line) as [string, ReplayEvent];
+        if (!event || typeof event.type !== "number") continue;
+        const usable = unpack(event);
+        if (usable) events.push(usable);
+      } catch {
+        // One malformed line should not lose the recording.
+      }
+    }
+    return collapseIdle(events);
+  } catch (error) {
+    logger.warn("posthog.replay_failed", { reason: (error as Error).name });
+    return [];
+  }
 }

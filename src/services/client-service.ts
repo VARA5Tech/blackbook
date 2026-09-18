@@ -30,7 +30,7 @@ import {
   uuidSchema,
 } from "@/domain/shared";
 import { logger } from "@/lib/logger";
-import { posthogIsConfigured, sessionReplays } from "@/lib/posthog";
+import { clientSignals, posthogIsConfigured, replayEvents, sessionReplays } from "@/lib/posthog";
 import * as repo from "@/repositories/customer-repository";
 import { diffFields, logActivity } from "./activity-service";
 
@@ -300,6 +300,32 @@ export async function getClientReplays(customerId: string) {
   await requireCapability("client.read");
   if (!posthogIsConfigured()) return [];
   return sessionReplays(customerId);
+}
+
+/**
+ * One recording, to be watched inside Blackbook rather than in PostHog.
+ *
+ * Staff never need a PostHog login: the events come back through this call and
+ * play in the client's own page. `replayEvents` refuses a session that belongs
+ * to a different client, so a copied id shows nothing.
+ */
+export async function getClientReplay(customerId: string, sessionId: string) {
+  await requireCapability("client.read");
+  if (!posthogIsConfigured()) return [];
+  return replayEvents(customerId, sessionId);
+}
+
+/**
+ * The lighter signals: cards turned over, sections reached, buttons pressed.
+ *
+ * Read live from PostHog rather than stored, because none of it is worth a
+ * column and all of it is worth seeing. Empty whenever PostHog is off, which
+ * the panel renders as simply having less to say.
+ */
+export async function getClientSignals(customerId: string) {
+  await requireCapability("client.read");
+  if (!posthogIsConfigured()) return null;
+  return clientSignals(customerId);
 }
 
 /* ------------------------------------------------------------------ */

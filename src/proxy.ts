@@ -8,6 +8,13 @@ import { NextResponse, type NextRequest } from "next/server";
  * It is not the authorization boundary. Every service call independently loads
  * the session and asserts a capability, because a cookie's presence proves
  * nothing about whether it is still valid.
+ *
+ * For the same reason it never redirects *away* from the sign-in page. A cookie
+ * whose session row is gone — revoked, expired, cleaned up, or a database
+ * restored underneath it — would otherwise bounce between the shell, which
+ * finds no actor and sends the visitor to sign in, and here, which sees the
+ * cookie and sends them back. The sign-in page turns a signed-in visitor away
+ * itself, where the session is actually read.
  */
 export default function proxy(request: NextRequest) {
   const hasSession = Boolean(getSessionCookie(request));
@@ -23,10 +30,6 @@ export default function proxy(request: NextRequest) {
     const url = new URL("/sign-in", request.url);
     if (pathname !== "/") url.searchParams.set("next", `${pathname}${search}`);
     return NextResponse.redirect(url);
-  }
-
-  if (hasSession && isSignIn) {
-    return NextResponse.redirect(new URL("/", request.url));
   }
 
   return NextResponse.next();

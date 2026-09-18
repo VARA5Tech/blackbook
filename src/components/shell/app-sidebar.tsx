@@ -17,6 +17,7 @@ import {
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useSyncExternalStore } from "react";
 import type { Actor } from "@/auth/session";
 import { roleCan, type Capability } from "@/auth/permissions";
 import { UserMenu } from "@/components/shell/user-menu";
@@ -75,8 +76,32 @@ const CREATE: (AnimatedDropdownItem & { capability: Capability })[] = [
   },
 ];
 
+/**
+ * The key that actually opens search on this machine.
+ *
+ * Only the browser knows which one it is, so the server renders nothing and the
+ * label appears on hydration. The box is already its final size, so nothing
+ * moves when it fills in. Rendering a guess instead would tell half the desk to
+ * press a key their keyboard does not have.
+ */
+const noChanges = () => () => {};
+
+function useSearchShortcut(): string {
+  return useSyncExternalStore(
+    noChanges,
+    () => {
+      const platform =
+        (navigator as { userAgentData?: { platform?: string } }).userAgentData
+          ?.platform ?? navigator.platform;
+      return /mac|iphone|ipad/i.test(platform) ? "⌘K" : "Ctrl K";
+    },
+    () => "",
+  );
+}
+
 export function AppSidebar({ actor }: { actor: Actor }) {
   const pathname = usePathname();
+  const shortcut = useSearchShortcut();
   const createItems = CREATE.filter((item) => roleCan(actor.role, item.capability));
 
   function openSearch() {
@@ -132,7 +157,7 @@ export function AppSidebar({ actor }: { actor: Actor }) {
           <Search className="size-4 shrink-0" />
           <span className="flex-1 truncate">Search clients</span>
           <kbd className="rounded border border-border px-1.5 py-0.5 text-[10px] font-medium">
-            ⌘K
+            {shortcut}
           </kbd>
         </button>
       </div>

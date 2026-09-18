@@ -1,115 +1,289 @@
 "use client";
 
-import { Clock, Eye, Film, Image as ImageIcon, PlayCircle, Sparkles } from "lucide-react";
-import type { SessionReplay } from "@/lib/posthog";
+import {
+  Clock,
+  Eye,
+  Film,
+  Image as ImageIcon,
+  MousePointerClick,
+  Sparkles,
+} from "lucide-react";
+import { useState } from "react";
+import type { ClientSignals, SessionReplay } from "@/lib/posthog";
 import type { InterestSummaryRow } from "@/repositories/customer-repository";
-import { Section } from "@/components/page-header";
 import { Badge } from "@/components/ui/badge";
-import { formatDateTime, readingTime, timeAgo } from "@/lib/format";
+import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { ReplayPlayer } from "@/components/clients/replay-player";
+import { readingTime, timeAgo } from "@/lib/format";
+
+/**
+ * "Antarctica", "Antarctica and Courchevel", "Antarctica, Courchevel and two
+ * more" — a list a person reads aloud, not a comma-separated dump.
+ */
+function Plain({ items }: { items: string[] }) {
+  const shown = items.slice(0, 2);
+  const rest = items.length - shown.length;
+  const text =
+    rest > 0
+      ? `${shown.join(", ")} and ${rest} more`
+      : shown.length === 2
+        ? `${shown[0]} and ${shown[1]}`
+        : shown[0];
+  return <span className="font-medium">{text}</span>;
+}
+
+type Props = {
+  customerId: string;
+  interest: InterestSummaryRow[];
+  replays: SessionReplay[];
+  signals: ClientSignals | null;
+};
 
 /**
  * What the client has been reading on vara5.travel.
  *
- * The desk lives in Blackbook, so the summary is here rather than in an
- * analytics tool: one line per journey, strongest interest first, with the
- * Curator ask called out because that is the line worth ringing about. The
- * recordings stay in PostHog and are linked, never copied.
+ * The desk lives in Blackbook, so this is here rather than in an analytics
+ * tool. It reads as one line on the record — the part somebody picking up the
+ * phone needs — and opens in full on demand. Nothing is lost between the two:
+ * the line is the headline, the dialog is the whole story.
+ *
+ * The recordings play inside Blackbook. Nobody at the desk has a PostHog login.
  */
-export function InterestPanel({
-  interest,
-  replays,
-}: {
-  interest: InterestSummaryRow[];
-  replays: SessionReplay[];
-}) {
-  if (interest.length === 0 && replays.length === 0) {
-    return (
-      <Section title="On vara5.travel">
-        <p className="text-sm text-muted-foreground">
-          Nothing yet. This fills in once the client signs in to the members&rsquo;
-          site and opens a journey.
-        </p>
-      </Section>
-    );
-  }
+export function InterestStrip({ customerId, interest, replays, signals }: Props) {
+  const [open, setOpen] = useState(false);
+
+  if (interest.length === 0 && replays.length === 0) return null;
+
+  const taps = signals?.clicks.reduce((total, click) => total + click.count, 0) ?? 0;
+  const seconds = interest.reduce((total, row) => total + row.seconds, 0);
+  const lastSeen = interest[0]?.lastSeenAt ?? replays[0]?.startedAt ?? null;
 
   return (
-    <Section title="On vara5.travel">
-      <ul className="divide-y divide-border">
-        {interest.map((row) => (
-          <li
-            key={row.destination}
-            className="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-2 py-3 first:pt-0"
-          >
-            <div className="min-w-0 space-y-1">
-              <div className="flex flex-wrap items-center gap-2">
-                <span className="font-medium">{row.title}</span>
-                {row.askedAt ? (
-                  <Badge className="gap-1">
-                    <Sparkles className="size-3" />
-                    Asked the Curator
-                  </Badge>
-                ) : null}
-              </div>
-              <p className="text-xs text-muted-foreground">
-                {row.askedAt
-                  ? `Asked ${timeAgo(row.askedAt)} · last seen ${timeAgo(row.lastSeenAt)}`
-                  : `Last seen ${timeAgo(row.lastSeenAt)}`}
-              </p>
-            </div>
+    <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm">
+      <span className="text-xs tracking-[0.08em] text-muted-foreground uppercase">
+        On vara5.travel
+      </span>
 
-            <div className="flex shrink-0 flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
-              <span className="flex items-center gap-1.5">
-                <Eye className="size-3.5" />
-                <span className="tabular">{row.opens}</span>
-                {row.opens === 1 ? "open" : "opens"}
-              </span>
-              <span className="flex items-center gap-1.5">
-                <Clock className="size-3.5" />
-                {readingTime(row.seconds)}
-              </span>
-              {row.photos > 0 ? (
-                <span className="flex items-center gap-1.5">
-                  <ImageIcon className="size-3.5" />
-                  <span className="tabular">{row.photos}</span>
-                </span>
-              ) : null}
-              {row.videos > 0 ? (
-                <span className="flex items-center gap-1.5">
-                  <Film className="size-3.5" />
-                  <span className="tabular">{row.videos}</span>
-                </span>
-              ) : null}
-            </div>
-          </li>
-        ))}
-      </ul>
+      {interest.length > 0 ? (
+        <span>
+          Opened <Plain items={interest.map((row) => row.title)} />
+        </span>
+      ) : null}
 
-      {replays.length > 0 ? (
-        <div className="space-y-2 border-t border-border pt-4">
-          <p className="text-xs tracking-[0.08em] text-muted-foreground uppercase">
-            Recent visits
-          </p>
-          <ul className="flex flex-wrap gap-x-4 gap-y-2 text-sm">
-            {replays.map((replay) => (
-              <li key={replay.sessionId}>
-                <a
-                  href={replay.url}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="flex items-center gap-1.5 hover:underline"
-                >
-                  <PlayCircle className="size-3.5 text-muted-foreground" />
-                  <span>{formatDateTime(replay.startedAt)}</span>
-                  <span className="text-muted-foreground">
-                    ({readingTime(replay.seconds)})
+      {seconds > 0 ? (
+        <span className="text-muted-foreground">
+          {readingTime(seconds)} reading
+        </span>
+      ) : null}
+
+      {taps > 0 ? (
+        <span className="text-muted-foreground">
+          <span className="tabular">{taps}</span> {taps === 1 ? "tap" : "taps"}
+        </span>
+      ) : null}
+
+      {lastSeen ? (
+        <span className="text-muted-foreground">
+          Last seen {timeAgo(lastSeen)}
+        </span>
+      ) : null}
+
+      <ReplayPlayer customerId={customerId} replays={replays} compact />
+
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogTrigger asChild>
+          <Button type="button" variant="ghost" size="sm" className="h-7">
+            See everything
+          </Button>
+        </DialogTrigger>
+
+        <DialogContent className="max-h-[88vh] overflow-y-auto sm:max-w-4xl">
+          <DialogHeader>
+            <DialogTitle>On vara5.travel</DialogTitle>
+            <DialogDescription>
+              Everything the members&rsquo; site has recorded for this client.
+            </DialogDescription>
+          </DialogHeader>
+
+          {/*
+            Rendered only while open, so a record with a long history does not
+            pay for a dialog nobody opened, and the player measures a dialog
+            that already has its width.
+          */}
+          {open ? (
+            <InterestDetail
+              customerId={customerId}
+              interest={interest}
+              replays={replays}
+              signals={signals}
+            />
+          ) : null}
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
+
+function Stat({ value, label }: { value: string; label: string }) {
+  return (
+    <div>
+      <p className="tabular font-display text-2xl tracking-tight">{value}</p>
+      <p className="text-xs text-muted-foreground">{label}</p>
+    </div>
+  );
+}
+
+function Heading({ children }: { children: React.ReactNode }) {
+  return (
+    <p className="text-xs tracking-[0.08em] text-muted-foreground uppercase">
+      {children}
+    </p>
+  );
+}
+
+function InterestDetail({ customerId, interest, replays, signals }: Props) {
+  // PostHog labels a flip with the journey's slug; Blackbook already holds the
+  // title the client actually saw, so it reads "Mnemba Island", not
+  // "mnemba-island". A journey never opened has no row, and falls back.
+  const titleOf = new Map(interest.map((row) => [row.destination, row.title]));
+  const pretty = (slug: string) =>
+    titleOf.get(slug) ??
+    slug.replace(/-/g, " ").replace(/[a-z]/g, (c) => c.toUpperCase());
+
+  const taps = signals?.clicks.reduce((total, click) => total + click.count, 0) ?? 0;
+  const seconds = interest.reduce((total, row) => total + row.seconds, 0);
+
+  return (
+    <div className="space-y-8">
+      <div className="grid grid-cols-2 gap-6 border-y border-border py-4 sm:grid-cols-4">
+        <Stat
+          value={String(interest.length)}
+          label={interest.length === 1 ? "journey opened" : "journeys opened"}
+        />
+        <Stat value={readingTime(seconds)} label="spent reading" />
+        <Stat value={String(taps)} label={taps === 1 ? "tap" : "taps"} />
+        <Stat
+          value={String(replays.length)}
+          label={replays.length === 1 ? "visit recorded" : "visits recorded"}
+        />
+      </div>
+
+      {interest.length > 0 ? (
+        <div className="space-y-3">
+          <Heading>Journeys</Heading>
+          <ul className="divide-y divide-border">
+            {interest.map((row) => (
+              <li
+                key={row.destination}
+                className="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-2 py-3 first:pt-0"
+              >
+                <div className="min-w-0 space-y-1">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="font-medium">{row.title}</span>
+                    {row.askedAt ? (
+                      <Badge className="gap-1">
+                        <Sparkles className="size-3" />
+                        Asked the Curator
+                      </Badge>
+                    ) : null}
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    {row.askedAt
+                      ? `Asked ${timeAgo(row.askedAt)} · last seen ${timeAgo(row.lastSeenAt)}`
+                      : `Last seen ${timeAgo(row.lastSeenAt)}`}
+                  </p>
+                </div>
+
+                <div className="flex shrink-0 flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
+                  <span className="flex items-center gap-1.5">
+                    <Eye className="size-3.5" />
+                    <span className="tabular">{row.opens}</span>
+                    {row.opens === 1 ? "open" : "opens"}
                   </span>
-                </a>
+                  <span className="flex items-center gap-1.5">
+                    <Clock className="size-3.5" />
+                    {readingTime(row.seconds)}
+                  </span>
+                  {row.photos > 0 ? (
+                    <span className="flex items-center gap-1.5">
+                      <ImageIcon className="size-3.5" />
+                      <span className="tabular">{row.photos}</span>
+                    </span>
+                  ) : null}
+                  {row.videos > 0 ? (
+                    <span className="flex items-center gap-1.5">
+                      <Film className="size-3.5" />
+                      <span className="tabular">{row.videos}</span>
+                    </span>
+                  ) : null}
+                </div>
               </li>
             ))}
           </ul>
         </div>
       ) : null}
-    </Section>
+
+      <div className="grid gap-8 sm:grid-cols-2">
+        {signals && (signals.flips.length > 0 || signals.sections.length > 0) ? (
+          <div className="space-y-3">
+            <Heading>What caught their eye</Heading>
+            {signals.flips.length > 0 ? (
+              <p className="text-sm">
+                Turned over{" "}
+                <Plain items={signals.flips.map((flip) => pretty(flip.label))} />{" "}
+                without opening {signals.flips.length === 1 ? "it" : "them"}.
+              </p>
+            ) : null}
+            {signals.sections.length > 0 ? (
+              <p className="text-sm">
+                Read as far as{" "}
+                <Plain
+                  items={signals.sections.map((section) => section.label)}
+                />
+                .
+              </p>
+            ) : null}
+          </div>
+        ) : null}
+
+        {signals && signals.clicks.length > 0 ? (
+          <div className="space-y-3">
+            <Heading>What they pressed</Heading>
+            <ul className="space-y-1.5 text-sm">
+              {signals.clicks.map((click) => (
+                <li
+                  key={click.label}
+                  className="flex items-baseline justify-between gap-4"
+                >
+                  <span className="truncate">{click.label}</span>
+                  <span className="tabular shrink-0 text-xs text-muted-foreground">
+                    {click.count}
+                    {click.count === 1 ? " time" : " times"}
+                  </span>
+                </li>
+              ))}
+            </ul>
+            {signals.deadClicks > 0 ? (
+              <p className="flex items-start gap-2 text-xs text-muted-foreground">
+                <MousePointerClick className="mt-0.5 size-3.5 shrink-0" />
+                Also tapped something that does not respond {signals.deadClicks}{" "}
+                {signals.deadClicks === 1 ? "time" : "times"} — worth a look at
+                the page.
+              </p>
+            ) : null}
+          </div>
+        ) : null}
+      </div>
+
+      <ReplayPlayer customerId={customerId} replays={replays} />
+    </div>
   );
 }

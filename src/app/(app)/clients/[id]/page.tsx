@@ -7,6 +7,7 @@ import {
   getClient360,
   getClientInterest,
   getClientReplays,
+  getClientSignals,
 } from "@/services/client-service";
 import { getCatalogue } from "@/services/preference-service";
 
@@ -32,10 +33,11 @@ export default async function ClientPage({
 
   // PostHog is a network hop and may be unconfigured; both read alongside the
   // catalogue so a slow answer never delays the rest of the record.
-  const [catalogue, interest, replays] = await Promise.all([
+  const [catalogue, interest, replays, signals] = await Promise.all([
     getCatalogue(),
     getClientInterest(id),
     getClientReplays(id),
+    getClientSignals(id),
   ]);
 
   return (
@@ -44,6 +46,7 @@ export default async function ClientPage({
       catalogue={Object.fromEntries(catalogue)}
       interest={interest}
       replays={replays}
+      signals={signals}
       permissions={{
         canEdit: can(actor, "client.update"),
         canArchive: can(actor, "client.archive"),
