@@ -153,10 +153,13 @@ function Stage({
           width,
           height: Math.round((width * 9) / 16),
           autoPlay: true,
-          // The pauses are already squeezed out server-side, so rrweb's own
-          // idle skipping has nothing left to find and would only introduce
-          // speed changes mid-visit.
-          skipInactive: false,
+          /*
+           * The recording is handed over exactly as PostHog holds it, so the
+           * clock here reads the same as the clock there. Idle stretches are
+           * skipped the way PostHog skips them, by rrweb's own toggle on the
+           * controller, which the viewer can switch off.
+           */
+          skipInactive: true,
           showController: true,
         },
       });
@@ -185,13 +188,6 @@ function Stage({
           <span className="sr-only">Close the recording</span>
         </Button>
       </div>
-
-      {state === "playing" ? (
-        <p className="text-xs text-muted-foreground">
-          Long pauses are removed, so the recording plays shorter than the visit
-          lasted.
-        </p>
-      ) : null}
 
       {state === "loading" ? (
         <p className="flex items-center gap-2 py-8 text-sm text-muted-foreground">

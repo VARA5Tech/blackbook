@@ -29,13 +29,6 @@ const MAX_REPLAYS = 10;
 const REPLAY_TIMEOUT_MS = 20_000;
 /** Roughly an hour of browsing. Beyond that the browser, not the network, is the limit. */
 const MAX_REPLAY_BYTES = 8 * 1024 * 1024;
-/**
- * A pause longer than this is the client reading, or the tab sitting forgotten
- * behind another one. Nothing moves on screen for the whole of it.
- */
-const IDLE_GAP_MS = 2_000;
-/** What such a pause is shortened to, so the break still reads as a break. */
-const IDLE_KEPT_MS = 1_000;
 
 /** Private endpoints live on the app host, not the `.i.` ingestion host. */
 function apiHost(): string {
@@ -296,36 +289,6 @@ function unpack(event: ReplayEvent): ReplayEvent | null {
 }
 
 /**
- * Squeezes the dead air out of a recording.
- *
- * A visit is mostly nothing happening: this client's sixteen minutes hold
- * fourteen minutes of stillness, one stretch of it five minutes long. Handing
- * that to the player makes the scrubber useless, because most of the bar is
- * frozen frames and dragging into one of them appears to hang. rrweb does skip
- * idle stretches, but only while playing forward through them; land in the
- * middle of one by dragging and it waits out the remaining minutes in real
- * time, with nothing to show.
- *
- * So every pause is shortened and everything after it moves up to close the
- * hole. The order of events and the gaps between them are untouched wherever
- * anything is actually happening, which is all the replay is for. The real
- * length of the visit is still reported beside the player, from the recording's
- * own metadata, and it is the number that means something to the desk.
- */
-function collapseIdle(events: ReplayEvent[]): ReplayEvent[] {
-  const ordered = [...events].sort((a, b) => a.timestamp - b.timestamp);
-
-  let shift = 0;
-  return ordered.map((event, index) => {
-    if (index > 0) {
-      const gap = event.timestamp - ordered[index - 1].timestamp;
-      if (gap > IDLE_GAP_MS) shift += gap - IDLE_KEPT_MS;
-    }
-    return shift === 0 ? event : { ...event, timestamp: event.timestamp - shift };
-  });
-}
-
-/**
  * The recording itself, so it can be watched inside Blackbook.
  *
  * Two things make this safe to expose to a staff screen. The recording's own
@@ -403,7 +366,7 @@ export async function replayEvents(
         // One malformed line should not lose the recording.
       }
     }
-    return collapseIdle(events);
+    return events;
   } catch (error) {
     logger.warn("posthog.replay_failed", { reason: (error as Error).name });
     return [];

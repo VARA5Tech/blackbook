@@ -314,9 +314,10 @@ themselves.
 The recordings play inside Blackbook through rrweb, so nobody at the desk needs
 a PostHog login and no share link is ever minted. A recording is fetched only
 after `client.read` passes and only if PostHog agrees it belongs to that client;
-anything else is refused and logged. Long pauses are squeezed out of it before
-it reaches the browser, because a sixteen-minute visit is usually fourteen
-minutes of nothing and a scrubber full of frozen frames is no use to anyone.
+anything else is refused and logged. The events are passed through untouched,
+so the clock in Blackbook reads the same as the clock in PostHog; idle
+stretches are skipped by rrweb's own toggle on the controller, exactly as they
+are there.
 
 Reads are cached for five minutes, time out after eight seconds — twenty for a
 recording — and fail soft, so every screen still works with PostHog switched
