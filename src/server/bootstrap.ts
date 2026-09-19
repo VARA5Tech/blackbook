@@ -29,6 +29,8 @@ export async function bootstrap(): Promise<void> {
     // Invited accounts nobody set up in time. Also runs whenever Team is opened.
     const { purgeExpiredInvitations } = await import("@/services/user-service");
     await purgeExpiredInvitations();
+
+    scheduleShareSweep();
   } catch (error) {
     // Never take the server down for this. A failed bootstrap leaves the app
     // running and the reason in the log; a crash loop would hide it.
@@ -71,4 +73,44 @@ async function loadCatalogue(): Promise<void> {
   if (before[0].count === 0) {
     logger.info("bootstrap.catalogue_loaded", { options: rows.length });
   }
+}
+
+
+/** Often enough that a forgotten link is measured in minutes, not days. */
+const SWEEP_EVERY_MS = 10 * 60 * 1000;
+
+/**
+ * Closes replay share links nobody is watching.
+ *
+ * Playing a recording inside Blackbook means asking PostHog to share it, and a
+ * PostHog share link is a public URL. The player hands it back when it closes,
+ * on unmount and by `sendBeacon` when the tab goes — but a browser that is
+ * force quit or crashes never gets to, and what survives is a public link to a
+ * client's session.
+ *
+ * So this runs on a timer and revokes whatever was left behind. It runs at boot
+ * too, which is exactly when the record of what is open has just been lost.
+ *
+ * Here rather than in `src/instrumentation.ts` because that module is loaded
+ * for the edge runtime as well, and reaching PostHog from it pulls a Node-only
+ * logger into an edge bundle. Bootstrap is already node-only.
+ *
+ * Every failure is swallowed. This is housekeeping; it must never be the reason
+ * the server stops serving.
+ */
+function scheduleShareSweep(): void {
+  const sweep = async () => {
+    try {
+      const { sweepShares } = await import("@/lib/posthog");
+      await sweepShares();
+    } catch {
+      // Logged inside the sweep; nothing here can usefully react.
+    }
+  };
+
+  void sweep();
+
+  const timer = setInterval(sweep, SWEEP_EVERY_MS);
+  // Never hold the process open on account of housekeeping.
+  timer.unref?.();
 }

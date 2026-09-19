@@ -5,7 +5,7 @@ import { recordPrivateAccessInterest } from "@/services/client-service";
 /**
  * POST /api/private-access/interest
  *
- * What a signed-in client looked at on vara5.travel: which journey, for how
+ * What a signed-in client looked at on vara5.com: which journey, for how
  * long, and whether they asked the Curator. It is what fills the Interest panel
  * on Client 360, so the desk reads it where they already work instead of in an
  * analytics tool.

@@ -1,9 +1,16 @@
 import { ArrowRight } from "lucide-react";
+import { Suspense } from "react";
 import Link from "next/link";
 import { getActor } from "@/auth/session";
 import { MilestoneList } from "@/components/milestones/milestone-list";
 import { EmptyState, Section } from "@/components/page-header";
-import { getOpsDashboard } from "@/services/dashboard-service";
+import {
+  getMemberAnalytics,
+  getOpsDashboard,
+} from "@/services/dashboard-service";
+import { getRecentVisits } from "@/services/client-service";
+import { RecentVisits } from "@/components/clients/recent-visits";
+import { can } from "@/auth/session";
 import { displayName } from "@/domain/customers";
 import { formatDateTime } from "@/lib/format";
 
@@ -20,6 +27,17 @@ function greeting(): string {
 export default async function HomePage() {
   const [actor, dashboard] = await Promise.all([getActor(), getOpsDashboard()]);
   const { counts } = dashboard;
+
+  /*
+   * The commercial picture belongs to whoever runs the desk, so the strip is
+   * only fetched for someone who can see the screen it links to. The read is
+   * cached for five minutes and shared with that screen, so opening it costs
+   * nothing extra.
+   */
+  const members =
+    actor && can(actor, "analytics.read")
+      ? await getMemberAnalytics(30).catch(() => null)
+      : null;
 
   const stats = [
     {
@@ -77,28 +95,65 @@ export default async function HomePage() {
         ))}
       </section>
 
-      <div className="grid gap-10 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
+      {members?.configured && members.analytics.funnel.visits > 0 ? (
         <Section
-          title="Upcoming milestones"
+          title="On vara5.com · last 30 days"
           action={
             <Link
-              href="/milestones"
+              href="/analytics"
               className="flex items-center gap-1 text-xs text-muted-foreground hover:underline"
             >
-              All milestones
+              All members&rsquo; activity
               <ArrowRight className="size-3" />
             </Link>
           }
         >
-          {dashboard.upcoming.length === 0 ? (
-            <EmptyState
-              title="Nothing in the next 45 days"
-              description="Birthdays and anniversaries appear here as they approach."
-            />
-          ) : (
-            <MilestoneList milestones={dashboard.upcoming} />
-          )}
+          <div className="grid gap-px overflow-hidden rounded-md border border-border bg-border sm:grid-cols-4">
+            {[
+              { value: members.analytics.funnel.clients, label: "clients browsing" },
+              { value: members.analytics.funnel.opened, label: "journeys opened" },
+              { value: members.analytics.funnel.read, label: "read through" },
+              { value: members.analytics.funnel.asked, label: "asked the Curator" },
+            ].map((stat) => (
+              <div key={stat.label} className="bg-card p-4">
+                <p className="tabular font-display text-2xl leading-none tracking-tight">
+                  {stat.value}
+                </p>
+                <p className="mt-1.5 text-xs text-muted-foreground">{stat.label}</p>
+              </div>
+            ))}
+          </div>
         </Section>
+      ) : null}
+
+      <div className="grid gap-10 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
+        <div className="space-y-10">
+          <Suspense fallback={<VisitsPlaceholder />}>
+            <Visits />
+          </Suspense>
+
+          <Section
+            title="Upcoming milestones"
+            action={
+              <Link
+                href="/milestones"
+                className="flex items-center gap-1 text-xs text-muted-foreground hover:underline"
+              >
+                All milestones
+                <ArrowRight className="size-3" />
+              </Link>
+            }
+          >
+            {dashboard.upcoming.length === 0 ? (
+              <EmptyState
+                title="Nothing in the next 45 days"
+                description="Birthdays and anniversaries appear here as they approach."
+              />
+            ) : (
+              <MilestoneList milestones={dashboard.upcoming} />
+            )}
+          </Section>
+        </div>
 
         <div className="space-y-10">
           {dashboard.wanted.length > 0 ? (
@@ -189,5 +244,47 @@ export default async function HomePage() {
         </div>
       </div>
     </div>
+  );
+}
+
+
+/**
+ * Who has been on the members' site, streamed in rather than awaited.
+ *
+ * The replay table is the slowest thing this screen reads and it sits behind a
+ * network hop that may not be configured at all. Suspending it on its own keeps
+ * today's work on screen immediately and lets the visits arrive when they do.
+ */
+async function Visits() {
+  const visits = await getRecentVisits(10).catch(() => []);
+  if (visits.length === 0) return null;
+
+  return (
+    <Section
+      title="Recent visits"
+      action={
+        <Link
+          href="/analytics"
+          className="flex items-center gap-1 text-xs text-muted-foreground hover:underline"
+        >
+          All members&rsquo; activity
+          <ArrowRight className="size-3" />
+        </Link>
+      }
+    >
+      <RecentVisits visits={visits} />
+    </Section>
+  );
+}
+
+function VisitsPlaceholder() {
+  return (
+    <Section title="Recent visits">
+      <div className="space-y-3">
+        {[0, 1, 2].map((row) => (
+          <div key={row} className="h-4 animate-pulse rounded bg-muted" />
+        ))}
+      </div>
+    </Section>
   );
 }

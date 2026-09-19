@@ -66,6 +66,13 @@
  */
 
 :root {
+  /**
+   * Tells the browser which way round the interface is, so the furniture it
+   * paints itself — scrollbars, form controls, the text caret — follows the
+   * theme instead of staying light on a black page.
+   */
+  color-scheme: light;
+
   /* Brand constants. Never referenced directly by a component. */
   --brand-champagne: #e8cfab;
   --brand-black: #090909;
@@ -100,6 +107,10 @@
 
   --border: oklch(0.9 0.009 78);
   --input: oklch(0.9 0.009 78);
+
+  /* A shade past the border: visible on ivory, never loud. */
+  --scrollbar-thumb: oklch(0.84 0.014 78);
+  --scrollbar-thumb-hover: oklch(0.72 0.026 76);
   --ring: oklch(0.62 0.06 70);
 
   --radius: 0.5rem;
@@ -123,6 +134,21 @@
   --brand-surface: var(--brand-black);
   --brand-surface-foreground: oklch(0.95 0.008 85);
 
+  /**
+   * The chart ramp.
+   *
+   * Champagne is the brand's accent and is deliberately sparse, so it carries
+   * the series that matters — the one a reader should look at first — and the
+   * rest step away from it round the wheel at a muted chroma. Five is the
+   * ceiling on purpose: a sixth series is a sign the chart is answering two
+   * questions and should be two charts.
+   */
+  --chart-1: oklch(0.68 0.09 78);
+  --chart-2: oklch(0.55 0.07 110);
+  --chart-3: oklch(0.5 0.06 190);
+  --chart-4: oklch(0.52 0.08 250);
+  --chart-5: oklch(0.56 0.09 25);
+
   /* Semantic tokens for the preference chips. */
   --polarity-prefer: oklch(0.46 0.09 155);
   --polarity-prefer-bg: oklch(0.94 0.03 155);
@@ -133,7 +159,20 @@
 }
 
 .dark {
+  color-scheme: dark;
+
   /* Black ground, champagne accent, ivory text. */
+
+  /* Lifted off the black by as much as the light one sits below the ivory. */
+  --scrollbar-thumb: oklch(0.34 0.012 78);
+  --scrollbar-thumb-hover: oklch(0.48 0.028 78);
+
+  /* The same ramp, lifted to hold its own against a black ground. */
+  --chart-1: oklch(0.8 0.1 80);
+  --chart-2: oklch(0.72 0.09 110);
+  --chart-3: oklch(0.68 0.08 190);
+  --chart-4: oklch(0.68 0.09 250);
+  --chart-5: oklch(0.7 0.11 25);
   --background: var(--brand-black);
   --foreground: oklch(0.94 0.008 85);
 
@@ -209,4 +248,74 @@
   html {
     @apply font-sans;
     }
+}
+
+@layer base {
+  /**
+   * A button looks like a button under the cursor.
+   *
+   * Tailwind v3's preflight set this; v4 dropped it and follows the bare HTML
+   * default, which is an arrow. Nothing in the application asked for that, and
+   * the effect is every control in Blackbook reading as inert on hover. A
+   * disabled control keeps whatever it already says.
+   */
+  button:not(:disabled),
+  [role="button"]:not([aria-disabled="true"]) {
+    cursor: pointer;
+  }
+}
+
+@layer base {
+  /**
+   * Scrollbars, in the theme.
+   *
+   * Firefox and current Chromium take `scrollbar-color`; the WebKit rules below
+   * cover the rest and allow the rounded thumb Chromium cannot express through
+   * the standard property. The track stays transparent so a bar inside a dialog
+   * or a tab row reads as part of the surface rather than a grey channel cut
+   * through it.
+   *
+   * Inherited from the root rather than applied per container, so anything that
+   * scrolls — a dialog, a table, the page — looks the same without remembering
+   * to ask.
+   */
+  html {
+    scrollbar-color: var(--scrollbar-thumb) transparent;
+  }
+
+  /*
+   * `scrollbar-color` inherits, `scrollbar-width` does not, so a dialog or a
+   * table would otherwise keep the platform's full-width bar while the page
+   * around it had a thin one.
+   */
+  * {
+    scrollbar-width: thin;
+  }
+
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+
+  /* The stepper arrows are Windows furniture and belong to no theme. */
+  ::-webkit-scrollbar-button {
+    display: none;
+  }
+
+  ::-webkit-scrollbar-track,
+  ::-webkit-scrollbar-corner {
+    background: transparent;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    /* Padding drawn as a transparent border keeps the thumb clear of the edge. */
+    background-color: var(--scrollbar-thumb);
+    background-clip: content-box;
+    border: 3px solid transparent;
+    border-radius: 999px;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background-color: var(--scrollbar-thumb-hover);
+  }
 }

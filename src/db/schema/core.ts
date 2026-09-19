@@ -25,7 +25,7 @@ import {
  * household).
  *
  * A client's is six random digits from `vara5_member_ref()`, because it is read
- * out, printed and one day typed as a member number on vara5.travel. Counting
+ * out, printed and one day typed as a member number on vara5.com. Counting
  * up would publish how many clients Vara5 has and let anyone walk the list by
  * adding one. Uniqueness comes from the unique index, which the function
  * redraws against, never from the odds alone.

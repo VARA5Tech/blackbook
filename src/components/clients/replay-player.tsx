@@ -1,26 +1,26 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
-import { Loader2, PlayCircle, X } from "lucide-react";
-import { loadReplayAction } from "@/actions/client-actions";
+import { useCallback, useEffect, useState } from "react";
+import { ExternalLink, Loader2, PlayCircle, X } from "lucide-react";
+import { openReplayAction } from "@/actions/client-actions";
 import type { SessionReplay } from "@/lib/posthog";
 import { Button } from "@/components/ui/button";
 import { formatDateTime, readingTime } from "@/lib/format";
 
-/** What the compiled player exposes; see the note in the effect below. */
-type RRwebPlayer = { $destroy: () => void };
-
 /**
- * A client's visit, played inside Blackbook.
+ * A client's visit, played in PostHog's own player without leaving Blackbook.
  *
- * Staff have no PostHog login and should not need one: the recording is
- * fetched through the service layer, which asserts `client.read` and refuses a
- * session belonging to anyone but this client. No share link is ever minted,
- * so a copied URL grants nothing.
+ * Blackbook used to rebuild the recording itself with rrweb. It worked, but it
+ * was a second player that never quite matched the first — the same session
+ * looked different in the two — and PostHog's heatmap was not there at all. So
+ * this embeds PostHog's player instead, which is the one being compared
+ * against, and gets the heatmap for nothing.
  *
- * The player is a quarter of a megabyte of JavaScript and most visits to a
- * client's page never watch a recording, so it is imported on the click rather
- * than with the page.
+ * The trade is a share token, which is a public URL for as long as it exists.
+ * One is minted only when somebody presses play, and revoked the moment the
+ * player closes: on the close button, on navigating away, and best effort when
+ * the tab is shut. Nobody here needs a PostHog login and the API key still
+ * never leaves the server.
  */
 export function ReplayPlayer({
   customerId,
@@ -110,67 +110,62 @@ function Stage({
   replay: SessionReplay;
   onClose: () => void;
 }) {
-  const host = useRef<HTMLDivElement>(null);
+  const [share, setShare] = useState<{ embedUrl: string; sharedUrl: string } | null>(
+    null,
+  );
   const [state, setState] = useState<"loading" | "playing" | "empty">("loading");
+
+  /*
+   * `fetch` with `keepalive` rather than a server action, because this has to
+   * survive the page being torn down: an action cancelled halfway leaves the
+   * public link standing, which is the one outcome worth avoiding.
+   */
+  const revoke = useCallback((sessionId: string) => {
+    try {
+      navigator.sendBeacon(
+        "/api/replay/close",
+        new Blob([JSON.stringify({ sessionId })], { type: "application/json" }),
+      );
+    } catch {
+      void fetch("/api/replay/close", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ sessionId }),
+        keepalive: true,
+      }).catch(() => {});
+    }
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
-    /*
-     * rrweb-player is a compiled Svelte 4 component. Svelte itself is bundled
-     * into it, but the published types still import from `svelte`, which is not
-     * a dependency here — so the exported class types as having no members and
-     * `$destroy` is invisible to TypeScript. It is present at runtime, and
-     * installing Svelte purely to describe it would add a package the build
-     * never uses.
-     */
-    let player: RRwebPlayer | null = null;
+    const sessionId = replay.sessionId;
 
     (async () => {
-      const result = await loadReplayAction(customerId, replay.sessionId);
-      if (cancelled) return;
+      const result = await openReplayAction(customerId, sessionId);
+      if (cancelled) {
+        // Opened and abandoned before the answer arrived: take it back.
+        if (result.ok && result.data) revoke(sessionId);
+        return;
+      }
 
-      const events = result.ok ? result.data : [];
-      // Two events is rrweb's own minimum; below that there is nothing to show.
-      if (!host.current || events.length < 2) {
+      if (!result.ok || !result.data) {
         setState("empty");
         return;
       }
 
-      const { default: Player } = (await import("rrweb-player")) as unknown as {
-        default: new (options: {
-          target: HTMLElement;
-          props: Record<string, unknown>;
-        }) => RRwebPlayer;
-      };
-      await import("rrweb-player/dist/style.css");
-      if (cancelled || !host.current) return;
-
-      const width = host.current.clientWidth || 720;
-      player = new Player({
-        target: host.current,
-        props: {
-          events,
-          width,
-          height: Math.round((width * 9) / 16),
-          autoPlay: true,
-          /*
-           * The recording is handed over exactly as PostHog holds it, so the
-           * clock here reads the same as the clock there. Idle stretches are
-           * skipped the way PostHog skips them, by rrweb's own toggle on the
-           * controller, which the viewer can switch off.
-           */
-          skipInactive: true,
-          showController: true,
-        },
-      });
+      setShare(result.data);
       setState("playing");
     })();
 
+    const onHide = () => revoke(sessionId);
+    window.addEventListener("pagehide", onHide);
+
     return () => {
       cancelled = true;
-      player?.$destroy();
+      window.removeEventListener("pagehide", onHide);
+      revoke(sessionId);
     };
-  }, [customerId, replay.sessionId]);
+  }, [customerId, replay.sessionId, revoke]);
 
   return (
     <div className="mt-3 space-y-2 rounded-md border border-border bg-muted/30 p-3">
@@ -183,16 +178,27 @@ function Stage({
             {replay.clicks > 0 ? ` · ${replay.clicks} clicks` : ""}
           </span>
         </p>
-        <Button type="button" variant="ghost" size="sm" onClick={onClose}>
-          <X className="size-4" />
-          <span className="sr-only">Close the recording</span>
-        </Button>
+
+        <div className="flex items-center gap-1">
+          {share ? (
+            <Button variant="ghost" size="sm" asChild>
+              <a href={share.sharedUrl} target="_blank" rel="noreferrer">
+                <ExternalLink className="size-3.5" />
+                Heatmap
+              </a>
+            </Button>
+          ) : null}
+          <Button type="button" variant="ghost" size="sm" onClick={onClose}>
+            <X className="size-4" />
+            <span className="sr-only">Close the recording</span>
+          </Button>
+        </div>
       </div>
 
       {state === "loading" ? (
         <p className="flex items-center gap-2 py-8 text-sm text-muted-foreground">
           <Loader2 className="size-4 animate-spin" />
-          Fetching the recording…
+          Opening the recording…
         </p>
       ) : null}
 
@@ -203,8 +209,20 @@ function Stage({
         </p>
       ) : null}
 
-      {/* rrweb writes its own markup here; React must not manage the children. */}
-      <div ref={host} className="overflow-x-auto" />
+      {share ? (
+        <iframe
+          src={share.embedUrl}
+          title={`Visit on ${formatDateTime(replay.startedAt)}`}
+          allowFullScreen
+          className="aspect-video w-full rounded border border-border bg-background"
+        />
+      ) : null}
+
+      {state === "playing" ? (
+        <p className="text-xs text-muted-foreground">
+          Played by PostHog. The link closes when you close this.
+        </p>
+      ) : null}
     </div>
   );
 }

@@ -14,7 +14,9 @@ import { requireCapability } from "@/auth/session";
 import {
   clientDnaSchema,
   clientSearchSchema,
+  countsAsClient,
   createCustomerSchema,
+  displayName,
   fullName,
   updateCustomerSchema,
   type ClientDnaInput,
@@ -30,7 +32,14 @@ import {
   uuidSchema,
 } from "@/domain/shared";
 import { logger } from "@/lib/logger";
-import { clientSignals, posthogIsConfigured, replayEvents, sessionReplays } from "@/lib/posthog";
+import {
+  clientSignals,
+  posthogIsConfigured,
+  recentVisits,
+  revokeRecordingShare,
+  sessionReplays,
+  shareRecording,
+} from "@/lib/posthog";
 import * as repo from "@/repositories/customer-repository";
 import { diffFields, logActivity } from "./activity-service";
 
@@ -67,7 +76,7 @@ export async function getClient360(customerId: string) {
 }
 
 /* ------------------------------------------------------------------ */
-/* Private access, for the vara5.travel website                        */
+/* Private access, for the vara5.com website                        */
 /* ------------------------------------------------------------------ */
 
 export type PrivateAccessGuest = {
@@ -207,7 +216,7 @@ export async function savePrivateAccessEmail(
 }
 
 /* ------------------------------------------------------------------ */
-/* Interest, reported by vara5.travel                                  */
+/* Interest, reported by vara5.com                                  */
 /* ------------------------------------------------------------------ */
 
 export const INTEREST_KINDS = [
@@ -241,6 +250,11 @@ export type RecordInterestInput = z.input<typeof interestSchema>;
  * record keeping with it. Only the Curator click reaches the timeline: a client
  * reading four journeys on a Sunday would otherwise bury the interactions staff
  * actually write.
+ *
+ * Also refused for a `staff` record. They pass the gate so the site can be
+ * checked, but nothing they do is interest, and writing it would put testing
+ * into the same table the desk reads for demand. Keeping it out here rather
+ * than filtering it later means the table only ever holds the real thing.
  */
 export async function recordPrivateAccessInterest(
   input: RecordInterestInput,
@@ -252,6 +266,11 @@ export async function recordPrivateAccessInterest(
   const guest = await repo.findPrivateAccessGuestById(data.customerId);
   if (!guest) {
     logger.info("private_access.interest", { outcome: "not_found" });
+    return false;
+  }
+
+  if (!countsAsClient(guest.status)) {
+    logger.info("private_access.interest", { outcome: "tester" });
     return false;
   }
 
@@ -270,7 +289,7 @@ export async function recordPrivateAccessInterest(
         entityId: data.customerId,
         customerId: data.customerId,
         action: "interaction_logged",
-        summary: `Asked the Curator about ${data.title} on vara5.travel`,
+        summary: `Asked the Curator about ${data.title} on vara5.com`,
         // Nobody signed in as staff did this, so the trail records no actor.
         actorId: null,
       });
@@ -303,16 +322,30 @@ export async function getClientReplays(customerId: string) {
 }
 
 /**
- * One recording, to be watched inside Blackbook rather than in PostHog.
+ * Opens one recording in PostHog's own player, inside the client's page.
  *
- * Staff never need a PostHog login: the events come back through this call and
- * play in the client's own page. `replayEvents` refuses a session that belongs
- * to a different client, so a copied id shows nothing.
+ * Staff still never need a PostHog login, and still never receive the API key.
+ * What they do receive is a share token, which is a public URL for as long as
+ * it exists — so it is minted here, at the moment somebody presses play, and
+ * `closeClientReplay` takes it back. `shareRecording` refuses a session that
+ * belongs to a different client, so a copied id mints nothing.
  */
-export async function getClientReplay(customerId: string, sessionId: string) {
+export async function openClientReplay(customerId: string, sessionId: string) {
   await requireCapability("client.read");
-  if (!posthogIsConfigured()) return [];
-  return replayEvents(customerId, sessionId);
+  if (!posthogIsConfigured()) return null;
+  return shareRecording(customerId, sessionId);
+}
+
+/**
+ * Closes it again, which is what makes the link above acceptable.
+ *
+ * Deliberately not tied to the client: whoever can read a client can revoke a
+ * link, and a revoke that fails closed would leave a public URL standing.
+ */
+export async function closeClientReplay(sessionId: string) {
+  await requireCapability("client.read");
+  if (!posthogIsConfigured()) return;
+  await revokeRecordingShare(sessionId);
 }
 
 /**
@@ -664,4 +697,66 @@ function labelFor(field: string): string {
     .replace(/([A-Z])/g, " $1")
     .replace(/^./, (c) => c.toLowerCase())
     .trim();
+}
+
+
+/**
+ * The last visits to the members' site, whoever made them.
+ *
+ * PostHog knows which recordings exist and who they belong to; it does not know
+ * what to call anybody, and its idea of a name is a first name typed into an
+ * analytics property. So the ids come from there and the names come from here,
+ * which is the record of who a client actually is.
+ *
+ * A visit whose client is no longer in the book is dropped rather than shown as
+ * an orphan. Empty whenever PostHog is unconfigured, like every other screen
+ * that reads from it.
+ */
+export async function getRecentVisits(limit = 12, includeTesters = false) {
+  await requireCapability("client.read");
+  if (!posthogIsConfigured()) return [];
+
+  const skip = includeTesters
+    ? []
+    : (await repo.testers()).map((tester) => tester.id);
+
+  const visits = await recentVisits(limit, skip);
+  if (visits.length === 0) return [];
+
+  const clients = await repo.customersByIds([
+    ...new Set(visits.map((visit) => visit.customerId)),
+  ]);
+  const byId = new Map(clients.map((client) => [client.id, client]));
+
+  return visits.flatMap((visit) => {
+    const client = byId.get(visit.customerId);
+    if (!client) return [];
+
+    return [
+      {
+        ...visit,
+        name: displayName(client),
+        ref: client.ref,
+        archived: client.archivedAt !== null,
+      },
+    ];
+  });
+}
+
+/**
+ * Everything one client has done on the members' site, fetched on demand.
+ *
+ * The recent-visits list shows a name and a time; opening one asks for the rest
+ * rather than loading every client's history to draw a list of twelve rows.
+ */
+export async function getClientActivity(customerId: string) {
+  await requireCapability("client.read");
+
+  const [interest, replays, signals] = await Promise.all([
+    getClientInterest(customerId),
+    getClientReplays(customerId),
+    getClientSignals(customerId),
+  ]);
+
+  return { interest, replays, signals };
 }

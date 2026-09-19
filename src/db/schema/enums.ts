@@ -16,7 +16,22 @@ export const userRoleEnum = pgEnum("user_role", [
   "viewer", // read-only
 ]);
 
-export const clientStatusEnum = pgEnum("client_status", ["active", "inactive"]);
+/**
+ * Where a client stands with the firm, and one value that is not a client at
+ * all.
+ *
+ * `staff` marks a record that exists so somebody at the desk can get through
+ * the members' gate and check the site works. They are let in like anybody
+ * else, and counted like nobody: the ops figures, the interest table and every
+ * analytics screen leave them out, because their browsing is testing rather
+ * than interest. A founder who genuinely books through the firm is `active`;
+ * their employment lives on their `app_user` row, not here.
+ */
+export const clientStatusEnum = pgEnum("client_status", [
+  "active",
+  "inactive",
+  "staff",
+]);
 
 export const genderEnum = pgEnum("gender", [
   "male",
@@ -223,7 +238,7 @@ export const experienceStyleEnum = pgEnum("experience_style", [
 ]);
 
 /**
- * What a client did with a journey on vara5.travel. Reported by the website
+ * What a client did with a journey on vara5.com. Reported by the website
  * through the signed private-access channel, never entered by staff.
  */
 export const interestKindEnum = pgEnum("interest_kind", [

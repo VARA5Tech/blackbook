@@ -29,6 +29,7 @@ import {
   updatePreferenceProfile,
 } from "@/services/preference-service";
 import { createTask, setTaskStatus } from "@/services/task-service";
+import { getMemberAnalytics } from "@/services/dashboard-service";
 import {
   createStaffUser,
   inviteStaff,
@@ -121,6 +122,20 @@ describe("role-based access", () => {
         expect(roleCan("manager", capability)).toBe(true);
         expect(roleCan("admin", capability)).toBe(true);
       }
+    });
+
+    /**
+     * Reading one client's activity and reading the whole book's are different
+     * questions. A relationship manager keeps the first through `client.read`
+     * and must not gain the second by being able to open a client record.
+     */
+    it("reserves site-wide analytics for manager and above", () => {
+      expect(roleCan("viewer", "analytics.read")).toBe(false);
+      expect(roleCan("rm", "analytics.read")).toBe(false);
+      expect(roleCan("manager", "analytics.read")).toBe(true);
+      expect(roleCan("admin", "analytics.read")).toBe(true);
+
+      expect(roleCan("rm", "client.read")).toBe(true);
     });
   });
 
@@ -468,6 +483,41 @@ describe("role-based access", () => {
         });
       }
     }
+  });
+
+  describe("site-wide analytics", () => {
+    it("refuses a relationship manager and a viewer", async () => {
+      for (const role of ["viewer", "rm"] as const) {
+        await actingAs(staff[role]);
+        await expect(getMemberAnalytics(30)).rejects.toBeInstanceOf(ForbiddenError);
+      }
+    });
+
+    /**
+     * The key is removed for the duration so the suite never calls PostHog:
+     * a test that reaches the network is a flaky test, and it spends quota.
+     * Removing it also exercises the contract that matters most here, which is
+     * that every screen still works with PostHog switched off.
+     */
+    it("allows a manager and an administrator, and reads empty when unconfigured", async () => {
+      const key = process.env.POSTHOG_API_KEY;
+      delete process.env.POSTHOG_API_KEY;
+
+      try {
+        for (const role of ["manager", "admin"] as const) {
+          await actingAs(staff[role]);
+          const result = await getMemberAnalytics(30);
+
+          expect(result.configured).toBe(false);
+          expect(result.days).toBe(30);
+          expect(result.analytics.journeys).toEqual([]);
+          expect(result.analytics.clients).toEqual([]);
+          expect(result.analytics.funnel.asked).toBe(0);
+        }
+      } finally {
+        if (key !== undefined) process.env.POSTHOG_API_KEY = key;
+      }
+    });
   });
 
   describe("signed out", () => {

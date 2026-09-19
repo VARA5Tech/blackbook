@@ -11,6 +11,7 @@ import {
   HOUSEHOLD_ROLE_LABELS,
   displayName,
   initials,
+  CLIENT_STATUS_LABELS,
 } from "@/domain/customers";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -287,10 +288,10 @@ function DetailCells({ client }: { client: ClientGroupMember }) {
       <TableCell className="text-right">
         {client.archivedAt ? (
           <Badge variant="outline">Archived</Badge>
-        ) : client.status === "active" ? (
-          <Badge variant="secondary">Active</Badge>
         ) : (
-          <Badge variant="outline">Inactive</Badge>
+          <Badge variant={client.status === "active" ? "secondary" : "outline"}>
+            {CLIENT_STATUS_LABELS[client.status]}
+          </Badge>
         )}
       </TableCell>
     </>

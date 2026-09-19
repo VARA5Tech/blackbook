@@ -30,6 +30,16 @@ export const CAPABILITIES = [
   "task.manage",
   "user.manage",
   "ai.use",
+  /**
+   * Reading how the members' site is performing across every client, rather
+   * than one client's own activity, which `client.read` already covers.
+   *
+   * Separate because it is a different question. A relationship manager needs
+   * to know what their client has been reading; who is browsing across the
+   * whole book, which journeys convert and which are ignored is a commercial
+   * picture, and it belongs to whoever runs the desk.
+   */
+  "analytics.read",
 ] as const;
 
 export type Capability = (typeof CAPABILITIES)[number];
@@ -48,7 +58,12 @@ const RM: Capability[] = [
   "task.manage",
 ];
 
-const MANAGER: Capability[] = [...RM, "client.archive", "client.reassign_rm"];
+const MANAGER: Capability[] = [
+  ...RM,
+  "client.archive",
+  "client.reassign_rm",
+  "analytics.read",
+];
 
 const ADMIN: Capability[] = [...MANAGER, "user.manage", "client.destroy"];
 

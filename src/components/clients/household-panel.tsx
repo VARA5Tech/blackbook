@@ -2,7 +2,10 @@ import Link from "next/link";
 import { Section } from "@/components/page-header";
 import { Badge } from "@/components/ui/badge";
 import type { Household } from "@/db/schema";
-import { HOUSEHOLD_ROLE_LABELS, displayName } from "@/domain/customers";
+import { HOUSEHOLD_ROLE_LABELS, displayName,
+  type ClientStatus,
+  CLIENT_STATUS_LABELS,
+} from "@/domain/customers";
 import { age, formatDayMonth } from "@/lib/format";
 
 type Member = {
@@ -21,7 +24,7 @@ type Member = {
     | "other"
     | null;
   dateOfBirth: string | null;
-  status: "active" | "inactive";
+  status: ClientStatus;
 };
 
 /**
@@ -104,9 +107,9 @@ export function HouseholdPanel({
                     .join(" · ")}
                 </span>
 
-                {member.status === "inactive" ? (
+                {member.status !== "active" ? (
                   <Badge variant="outline" className="text-[10px]">
-                    Inactive
+                    {CLIENT_STATUS_LABELS[member.status]}
                   </Badge>
                 ) : null}
               </li>

@@ -1,5 +1,6 @@
 import "server-only";
-import { and, asc, desc, eq, inArray, isNull, lt, or, sql } from "drizzle-orm";
+import { and, asc, desc, eq, inArray, isNull, lt, ne, or, sql } from "drizzle-orm";
+import { GATE_STATUSES } from "@/domain/customers";
 import { alias } from "drizzle-orm/pg-core";
 import { db } from "@/db";
 import {
@@ -714,6 +715,7 @@ export async function findPrivateAccessGuests(digits: string) {
       firstName: customers.firstName,
       preferredName: customers.preferredName,
       email: customers.email,
+      status: customers.status,
       mobileNormalized: customers.mobileNormalized,
       whatsappNormalized: customers.whatsappNormalized,
     })
@@ -721,7 +723,10 @@ export async function findPrivateAccessGuests(digits: string) {
     .where(
       and(
         isNull(customers.archivedAt),
-        eq(customers.status, "active"),
+        // `staff` is let through: the record exists so the desk can check the
+        // site. The status travels with the row so callers past the gate can
+        // tell a tester from a client.
+        inArray(customers.status, [...GATE_STATUSES]),
         or(
           eq(customers.mobileNormalized, digits),
           eq(customers.whatsappNormalized, digits),
@@ -746,6 +751,7 @@ export async function findPrivateAccessGuestById(customerId: string) {
       firstName: customers.firstName,
       preferredName: customers.preferredName,
       email: customers.email,
+      status: customers.status,
       mobileNormalized: customers.mobileNormalized,
       whatsappNormalized: customers.whatsappNormalized,
     })
@@ -754,7 +760,7 @@ export async function findPrivateAccessGuestById(customerId: string) {
       and(
         eq(customers.id, customerId),
         isNull(customers.archivedAt),
-        eq(customers.status, "active"),
+        inArray(customers.status, [...GATE_STATUSES]),
       ),
     )
     .limit(1);
@@ -763,7 +769,7 @@ export async function findPrivateAccessGuestById(customerId: string) {
 }
 
 /* ------------------------------------------------------------------ */
-/* Interest from vara5.travel                                          */
+/* Interest from vara5.com                                          */
 /* ------------------------------------------------------------------ */
 
 export type InterestSummaryRow = {
@@ -830,7 +836,21 @@ export async function topInterestDestinations(since: Date, limit = 5) {
       asked: sql<number>`count(*) filter (where ${clientInterests.kind} = 'cta_clicked')::int`,
     })
     .from(clientInterests)
-    .where(sql`${clientInterests.occurredAt} >= ${since.toISOString()}::timestamptz`)
+    /*
+     * Joined only to leave the desk's own browsing out.
+     *
+     * Nothing a `staff` record does is written here any more, but rows written
+     * before that rule existed are still in the table, and they outnumber the
+     * real ones. Filtering rather than deleting keeps the history intact and
+     * makes the figure correct the moment somebody is marked staff.
+     */
+    .innerJoin(customers, eq(customers.id, clientInterests.customerId))
+    .where(
+      and(
+        sql`${clientInterests.occurredAt} >= ${since.toISOString()}::timestamptz`,
+        ne(customers.status, "staff"),
+      ),
+    )
     .groupBy(clientInterests.destination)
     .orderBy(
       sql`count(distinct ${clientInterests.customerId}) desc`,
@@ -897,7 +917,46 @@ export async function recentlyViewedClients(limit = 6) {
       updatedAt: customers.updatedAt,
     })
     .from(customers)
-    .where(isNull(customers.archivedAt))
+    // A tester's record changes whenever somebody checks the site; that is not
+    // news the desk needs on the home screen.
+    .where(and(isNull(customers.archivedAt), ne(customers.status, "staff")))
     .orderBy(desc(customers.updatedAt))
     .limit(limit);
+}
+
+
+/**
+ * The handful of clients behind a list of ids, for a screen that already knows
+ * which ones it wants. Archived clients come back too: a visit they made is
+ * still a fact, and the screen decides how to show it.
+ */
+export async function customersByIds(ids: string[]) {
+  if (ids.length === 0) return [];
+
+  return db
+    .select({
+      id: customers.id,
+      ref: customers.ref,
+      firstName: customers.firstName,
+      lastName: customers.lastName,
+      preferredName: customers.preferredName,
+      archivedAt: customers.archivedAt,
+    })
+    .from(customers)
+    .where(inArray(customers.id, ids));
+}
+
+
+/**
+ * The references of every record that is a tester rather than a client.
+ *
+ * Small by nature — a handful of people at the desk — and read on the way into
+ * a PostHog query, which has no join back to this database and so has to be
+ * told who to ignore.
+ */
+export async function testers(): Promise<{ id: string; ref: string }[]> {
+  return db
+    .select({ id: customers.id, ref: customers.ref })
+    .from(customers)
+    .where(eq(customers.status, "staff"));
 }

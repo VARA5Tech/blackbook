@@ -39,6 +39,8 @@ import {
   HOUSEHOLD_ROLE_LABELS,
   displayName,
   initials,
+  type ClientStatus,
+  CLIENT_STATUS_LABELS,
 } from "@/domain/customers";
 import { age, timeAgo } from "@/lib/format";
 
@@ -58,7 +60,7 @@ type Member = {
     | "other"
     | null;
   dateOfBirth: string | null;
-  status: "active" | "inactive";
+  status: ClientStatus;
   city: string | null;
   lastInteractionAt: Date | null;
   rmName: string | null;
@@ -153,8 +155,8 @@ export function HouseholdMembers({
                       Primary
                     </Badge>
                   ) : null}
-                  {member.status === "inactive" ? (
-                    <Badge variant="outline">Inactive</Badge>
+                  {member.status !== "active" ? (
+                    <Badge variant="outline">{CLIENT_STATUS_LABELS[member.status]}</Badge>
                   ) : null}
                 </div>
 

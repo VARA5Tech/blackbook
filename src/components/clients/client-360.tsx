@@ -39,6 +39,7 @@ import {
   executiveAssistantFor,
   fullName,
   initials,
+  CLIENT_STATUS_LABELS,
 } from "@/domain/customers";
 import { countdown, formatDate, humanise, timeAgo } from "@/lib/format";
 
@@ -459,10 +460,12 @@ export function Client360View({
                 </h1>
                 {customer.archivedAt ? (
                   <Badge variant="outline">Archived</Badge>
-                ) : customer.status === "active" ? (
-                  <Badge variant="secondary">Active</Badge>
                 ) : (
-                  <Badge variant="outline">Inactive</Badge>
+                  <Badge
+                    variant={customer.status === "active" ? "secondary" : "outline"}
+                  >
+                    {CLIENT_STATUS_LABELS[customer.status]}
+                  </Badge>
                 )}
               </div>
 

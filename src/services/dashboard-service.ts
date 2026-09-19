@@ -1,5 +1,9 @@
 import "server-only";
 import { requireCapability } from "@/auth/session";
+import { memberAnalytics, posthogIsConfigured } from "@/lib/posthog";
+import { testers } from "@/repositories/customer-repository";
+import { EMPTY_ANALYTICS } from "@/domain/engagement";
+import type { AnalyticsRange, MemberAnalytics } from "@/domain/engagement";
 import {
   countIncompleteProfiles,
   countNeedingFollowUp,
@@ -60,8 +64,50 @@ export async function getOpsDashboard() {
     },
     recentClients,
     activity,
-    /** What the client list has been reading on vara5.travel lately. */
+    /** What the client list has been reading on vara5.com lately. */
     wanted,
     wantedDays: INTEREST_DAYS,
+  };
+}
+
+
+/**
+ * How the members' site is performing, for whoever runs the desk.
+ *
+ * Separate from the screen above and from a client's own Interest panel. That
+ * one answers "what has this client been reading"; this one answers "which
+ * journeys earn an ask, which are turned over and abandoned, and who is warm
+ * this week" — a commercial question, which is why it needs `analytics.read`
+ * rather than `client.read`.
+ *
+ * Reads PostHog only. Nothing here touches the database, so a slow or
+ * unconfigured PostHog costs this screen and nothing else.
+ */
+export async function getMemberAnalytics(
+  days: AnalyticsRange,
+  includeTesters = false,
+): Promise<{
+  configured: boolean;
+  days: AnalyticsRange;
+  analytics: MemberAnalytics;
+  testers: number;
+}> {
+  await requireCapability("analytics.read");
+
+  const configured = posthogIsConfigured();
+  if (!configured) {
+    return { configured, days, analytics: EMPTY_ANALYTICS, testers: 0 };
+  }
+
+  // The desk's own browsing is testing, not demand. Left out unless asked for,
+  // because it is heavier than every client put together.
+  const ours = await testers();
+  const excluded = includeTesters ? [] : ours.map((tester) => tester.ref);
+
+  return {
+    configured,
+    days,
+    analytics: await memberAnalytics(days, excluded),
+    testers: ours.length,
   };
 }

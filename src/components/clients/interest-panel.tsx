@@ -47,8 +47,11 @@ type Props = {
   signals: ClientSignals | null;
 };
 
+/** What one client has done on the members' site, as the service returns it. */
+export type ClientActivity = Omit<Props, "customerId">;
+
 /**
- * What the client has been reading on vara5.travel.
+ * What the client has been reading on vara5.com.
  *
  * The desk lives in Blackbook, so this is here rather than in an analytics
  * tool. It reads as one line on the record — the part somebody picking up the
@@ -69,7 +72,7 @@ export function InterestStrip({ customerId, interest, replays, signals }: Props)
   return (
     <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm">
       <span className="text-xs tracking-[0.08em] text-muted-foreground uppercase">
-        On vara5.travel
+        On vara5.com
       </span>
 
       {interest.length > 0 ? (
@@ -107,7 +110,7 @@ export function InterestStrip({ customerId, interest, replays, signals }: Props)
 
         <DialogContent className="max-h-[88vh] overflow-y-auto sm:max-w-4xl">
           <DialogHeader>
-            <DialogTitle>On vara5.travel</DialogTitle>
+            <DialogTitle>On vara5.com</DialogTitle>
             <DialogDescription>
               Everything the members&rsquo; site has recorded for this client.
             </DialogDescription>
@@ -149,7 +152,7 @@ function Heading({ children }: { children: React.ReactNode }) {
   );
 }
 
-function InterestDetail({ customerId, interest, replays, signals }: Props) {
+export function InterestDetail({ customerId, interest, replays, signals }: Props) {
   // PostHog labels a flip with the journey's slug; Blackbook already holds the
   // title the client actually saw, so it reads "Mnemba Island", not
   // "mnemba-island". A journey never opened has no row, and falls back.

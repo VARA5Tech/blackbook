@@ -92,6 +92,13 @@
       "when": 1789634837846,
       "tag": "0012_one_number_one_client",
       "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1789753497356,
+      "tag": "0013_staff_client_status",
+      "breakpoints": true
     }
   ]
 }

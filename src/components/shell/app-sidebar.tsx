@@ -3,6 +3,7 @@
 import {
   Activity,
   CalendarHeart,
+  ChartLine,
   House,
   LayoutDashboard,
   ListChecks,
@@ -43,6 +44,12 @@ const NAV: NavItem[] = [
   { href: "/milestones", label: "Milestones", icon: CalendarHeart },
   { href: "/tasks", label: "Tasks", icon: ListChecks },
   { href: "/activity", label: "Activity", icon: Activity },
+  {
+    href: "/analytics",
+    label: "Members",
+    icon: ChartLine,
+    capability: "analytics.read",
+  },
   {
     href: "/settings/users",
     label: "Team",

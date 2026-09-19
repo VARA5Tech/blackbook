@@ -12,7 +12,29 @@ import {
 } from "./shared";
 
 export const GENDERS = ["male", "female", "other", "prefer_not_to_say"] as const;
-export const CLIENT_STATUSES = ["active", "inactive"] as const;
+export const CLIENT_STATUSES = ["active", "inactive", "staff"] as const;
+
+export type ClientStatus = (typeof CLIENT_STATUSES)[number];
+
+export const CLIENT_STATUS_LABELS: Record<ClientStatus, string> = {
+  active: "Active",
+  inactive: "Inactive",
+  staff: "Staff",
+};
+
+/**
+ * The statuses that get past the members' gate.
+ *
+ * `staff` is in here on purpose: the record exists so somebody can sign in and
+ * check the site. Everything downstream of the gate then treats them as what
+ * they are, which is not a client.
+ */
+export const GATE_STATUSES = ["active", "staff"] as const;
+
+/** Whose browsing counts as interest rather than testing. */
+export function countsAsClient(status: ClientStatus): boolean {
+  return status !== "staff";
+}
 export const HOUSEHOLD_ROLES = [
   "primary",
   "spouse",

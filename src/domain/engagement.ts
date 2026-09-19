@@ -116,3 +116,70 @@ export const FIELD_LABELS: Record<string, string> = {
   date: "Date",
   celebrationStyle: "Celebration style",
 };
+
+
+/* ---------------- what the members' site reports ---------------- */
+
+/**
+ * The windows the analytics screen offers, and the only values that ever reach
+ * a HogQL query. Here rather than beside the query because the range switch is
+ * a client component and `src/lib/posthog.ts` is `server-only`.
+ */
+export const ANALYTICS_RANGES = [7, 30, 90] as const;
+export type AnalyticsRange = (typeof ANALYTICS_RANGES)[number];
+
+/**
+ * How the members' site is doing, across every client at once.
+ *
+ * The shape is shared between the service that fills it from PostHog and the
+ * screen that draws it, so it lives here where both can reach it.
+ */
+export type MemberAnalytics = {
+  /** How far a guest gets: turning a card over, opening it, reading it, asking. */
+  funnel: {
+    flipped: number;
+    opened: number;
+    read: number;
+    asked: number;
+    clients: number;
+    visits: number;
+    seconds: number;
+  };
+  /** One row a day, for the trend. */
+  daily: { day: string; visits: number; clients: number }[];
+  /** Demand and intent, journey by journey. */
+  journeys: {
+    slug: string;
+    title: string;
+    flipped: number;
+    opened: number;
+    read: number;
+    asked: number;
+    clients: number;
+    seconds: number;
+  }[];
+  /** Which parts of an itinerary get read. */
+  sections: { key: string; label: string; views: number; clients: number }[];
+  /** Who has been on the site, warmest first. Joins to a client record by id. */
+  clients: {
+    customerId: string;
+    ref: string;
+    name: string;
+    visits: number;
+    opened: number;
+    asked: number;
+    seconds: number;
+    lastSeen: string;
+  }[];
+  /** How they read it. Worth knowing before sending a link. */
+  devices: { device: string; sessions: number }[];
+};
+
+export const EMPTY_ANALYTICS: MemberAnalytics = {
+  funnel: { flipped: 0, opened: 0, read: 0, asked: 0, clients: 0, visits: 0, seconds: 0 },
+  daily: [],
+  journeys: [],
+  sections: [],
+  clients: [],
+  devices: [],
+};

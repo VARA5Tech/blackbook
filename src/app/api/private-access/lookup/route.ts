@@ -9,7 +9,7 @@ import {
 /**
  * POST /api/private-access/lookup
  *
- * Asked by vara5.travel before it sends a guest a WhatsApp code, and again on
+ * Asked by vara5.com before it sends a guest a WhatsApp code, and again on
  * every page load to check the guest is still a client. Nothing else about the
  * client leaves Blackbook.
  *

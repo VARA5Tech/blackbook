@@ -311,13 +311,18 @@ journeys they opened and for how long, which ones they turned over without
 opening, how far down each page they read, what they pressed, and the visits
 themselves.
 
-The recordings play inside Blackbook through rrweb, so nobody at the desk needs
-a PostHog login and no share link is ever minted. A recording is fetched only
-after `client.read` passes and only if PostHog agrees it belongs to that client;
-anything else is refused and logged. The events are passed through untouched,
-so the clock in Blackbook reads the same as the clock in PostHog; idle
-stretches are skipped by rrweb's own toggle on the controller, exactly as they
-are there.
+The recordings play inside Blackbook in PostHog's own player, so nobody at the
+desk needs a PostHog login and the API key never reaches a browser. Blackbook
+rebuilt the recording itself with rrweb for a while; it worked, but it was a
+second player that never quite matched the first, and it had no heatmap.
+
+Embedding PostHog's player means asking PostHog to share the recording, and a
+PostHog share link is public — anyone holding the URL can watch it without a
+login. So the token is minted at the moment somebody presses play, after
+`client.read` passes and only if PostHog agrees the recording belongs to the
+client being viewed, and it is revoked when the player closes: on the close
+button, on unmount, and by `sendBeacon` to `/api/replay/close` if the tab is
+shut. The link lives about as long as somebody is watching.
 
 Reads are cached for five minutes, time out after eight seconds — twenty for a
 recording — and fail soft, so every screen still works with PostHog switched

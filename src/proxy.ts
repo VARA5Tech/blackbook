@@ -42,7 +42,7 @@ export const config = {
      * the container orchestrator polls, the website's private access lookup,
      * and public brand assets.
      *
-     * The lookup is called server to server by vara5.travel, which has no
+     * The lookup is called server to server by vara5.com, which has no
      * staff session; it authenticates each request by signature itself.
      *
      * The manifest and icons must stay reachable without a session: a browser

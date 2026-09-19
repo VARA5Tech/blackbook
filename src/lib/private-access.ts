@@ -3,7 +3,7 @@ import { createHmac, timingSafeEqual } from "node:crypto";
 import { logger } from "@/lib/logger";
 
 /**
- * The door vara5.travel knocks on.
+ * The door vara5.com knocks on.
  *
  * Staff sign-in does not apply to these routes: the caller is the website's
  * server, not a person, so the proxy lets the path through and every request

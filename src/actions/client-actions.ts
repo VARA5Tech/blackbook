@@ -9,7 +9,9 @@ import type {
 import {
   archiveCustomer,
   createCustomer,
-  getClientReplay,
+  closeClientReplay,
+  getClientActivity,
+  openClientReplay,
   restoreCustomer,
   updateClientDna,
   updateCustomer,
@@ -43,13 +45,27 @@ export async function updateClientDnaAction(input: ClientDnaInput) {
 }
 
 /**
- * Hands one recording to the player in the browser.
+ * Opens one recording, and closes it again.
  *
- * A server action rather than a route, so the capability check stays in the
- * service layer where every other read already lives.
+ * Server actions rather than routes, so the capability check stays in the
+ * service layer where every other read already lives. The close path is also
+ * reachable at `/api/replay/close`, which is the only shape `sendBeacon` can
+ * use when a tab is shut mid-recording.
  */
-export async function loadReplayAction(customerId: string, sessionId: string) {
-  return run(() => getClientReplay(customerId, sessionId));
+export async function openReplayAction(customerId: string, sessionId: string) {
+  return run(() => openClientReplay(customerId, sessionId));
+}
+
+/** Everything one client has done on the members' site, for the visits list. */
+export async function clientActivityAction(customerId: string) {
+  return run(() => getClientActivity(customerId));
+}
+
+export async function closeReplayAction(sessionId: string) {
+  return run(async () => {
+    await closeClientReplay(sessionId);
+    return null;
+  });
 }
 
 export async function archiveClientAction(customerId: string) {

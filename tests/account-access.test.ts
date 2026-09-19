@@ -28,6 +28,7 @@ import {
   DomainError,
   getClient360,
   getClientInterest,
+  lookupPrivateAccessGuest,
   updateCustomer,
 } from "@/services/client-service";
 import {
@@ -396,7 +397,7 @@ describe("joining by invitation", () => {
 });
 
 /**
- * Guests getting into vara5.travel's private Inspirations: the website asks
+ * Guests getting into vara5.com's private Inspirations: the website asks
  * Blackbook whether a number belongs to an active client, signing every request
  * with a secret only the two of them hold.
  */
@@ -633,7 +634,7 @@ describe("private access lookup for the website", () => {
 });
 
 /**
- * What a client reads on vara5.travel, reported back through the same signed
+ * What a client reads on vara5.com, reported back through the same signed
  * channel so the desk sees it in Blackbook rather than in an analytics tool.
  */
 describe("interest reported by the website", () => {
@@ -730,8 +731,8 @@ describe("interest reported by the website", () => {
     const record = await getClient360(client.id);
     const summaries = record?.timeline.map((entry) => entry.summary) ?? [];
 
-    expect(summaries).toContain("Asked the Curator about Antarctica — White Silence on vara5.travel");
-    expect(summaries.filter((line) => line.includes("vara5.travel"))).toHaveLength(1);
+    expect(summaries).toContain("Asked the Curator about Antarctica — White Silence on vara5.com");
+    expect(summaries.filter((line) => line.includes("vara5.com"))).toHaveLength(1);
   });
 
   it("records nothing for a client who is archived, inactive or unknown", async () => {
@@ -759,6 +760,47 @@ describe("interest reported by the website", () => {
     ).toEqual({ recorded: false });
 
     expect(await getClientInterest(archived.id)).toHaveLength(0);
+  });
+
+  /**
+   * A record marked `staff` exists so somebody at the desk can sign in and
+   * check the site. They get through the gate like anybody else, and nothing
+   * they do reaches the interest table, because it would be testing sitting in
+   * the column the desk reads for demand.
+   */
+  it("lets a staff record through the gate", async () => {
+    const tester = await createCustomer({
+      firstName: "Tester",
+      mobile: "+91 98100 44444",
+      status: "staff",
+      customerSince: since,
+    });
+
+    const guest = await lookupPrivateAccessGuest("+91 98100 44444");
+
+    expect(guest).toMatchObject({ id: tester.id, name: "Tester" });
+  });
+
+  it("records nothing a staff record does on the site", async () => {
+    const tester = await createCustomer({
+      firstName: "Tester",
+      mobile: "+91 98100 55555",
+      status: "staff",
+      customerSince: since,
+    });
+
+    expect((await report({ ...antarctica, customerId: tester.id, kind: "opened" })).body).toEqual({
+      recorded: false,
+    });
+    // Even the Curator click, which is the one thing that reaches the timeline.
+    expect(
+      (await report({ ...antarctica, customerId: tester.id, kind: "cta_clicked" })).body,
+    ).toEqual({ recorded: false });
+
+    expect(await getClientInterest(tester.id)).toHaveLength(0);
+
+    const record = await getClient360(tester.id);
+    expect(record?.timeline.some((entry) => entry.summary.includes("Curator"))).toBe(false);
   });
 
   it("refuses an unsigned or wrongly signed report, and a nonsense kind", async () => {
@@ -791,7 +833,7 @@ describe("interest reported by the website", () => {
 
 /**
  * The gate refuses a number two clients share rather than guessing between
- * them, so a collision locks both of them out of vara5.travel. The service
+ * them, so a collision locks both of them out of vara5.com. The service
  * checks for one; these cases go around it, straight to the table, the way an
  * import or a hand-written statement would.
  */
