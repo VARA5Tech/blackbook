@@ -4,6 +4,10 @@ import { Search, X } from "lucide-react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
 import type { CatalogueOption } from "@/domain/preferences";
+import {
+  CLIENT_STATUS_LABELS,
+  type ClientStatus,
+} from "@/domain/customers";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -17,6 +21,38 @@ import {
 import { PreferencePicker } from "@/components/preferences/preference-picker";
 
 const ANY = "__any__";
+
+/**
+ * Named questions, kept as the query they stand for.
+ *
+ * A view is on when the URL already carries its parameters, so pressing one
+ * twice turns it off and the browser's back button behaves. They are the same
+ * filters anybody could build by hand; naming them is what makes them worth
+ * opening the screen for.
+ */
+const SAVED_VIEWS = [
+  {
+    name: "Never contacted",
+    query: "stale=1&sort=recent&dir=desc",
+    matches: (params: URLSearchParams) => params.get("stale") === "1",
+  },
+  {
+    name: "Gone quiet",
+    query: "stale=60&sort=last_interaction&dir=asc",
+    matches: (params: URLSearchParams) => params.get("stale") === "60",
+  },
+  {
+    name: "Newest first",
+    query: "sort=recent&dir=desc",
+    matches: (params: URLSearchParams) =>
+      params.get("sort") === "recent" && !params.get("stale"),
+  },
+  {
+    name: "Inactive",
+    query: "status=inactive",
+    matches: (params: URLSearchParams) => params.get("status") === "inactive",
+  },
+] as const;
 
 type Staff = { id: string; name: string };
 
@@ -91,8 +127,67 @@ export function ClientFilters({
   const labelFor = (id: string) =>
     allOptions.find((option) => option.id === id)?.label ?? "Unknown";
 
+  /**
+   * Every filter that is not a preference, as something you can see and drop.
+   *
+   * The dropdowns above are how a filter is added; these are how you read what
+   * is currently applied and remove one of them without clearing the rest.
+   */
+  const staleDays = params.get("stale");
+  const statusValue = params.get("status");
+  const rmValue = params.get("rm");
+  const plainChips = [
+    statusValue
+      ? {
+          key: "status",
+          label: CLIENT_STATUS_LABELS[statusValue as ClientStatus] ?? statusValue,
+        }
+      : null,
+    rmValue
+      ? {
+          key: "rm",
+          label: staff.find((member) => member.id === rmValue)?.name ?? "Manager",
+        }
+      : null,
+    staleDays
+      ? { key: "stale", label: `Not contacted in ${staleDays} days` }
+      : null,
+  ].filter((chip): chip is { key: string; label: string } => chip !== null);
+
+  const activeView = SAVED_VIEWS.find((view) => view.matches(params));
+
   return (
     <div className="space-y-3">
+      {/*
+        The questions the desk actually opens this screen to ask. They were
+        already scattered as links on the dashboard; here they are the same
+        thing, named, and visibly on or off.
+      */}
+      <div className="flex flex-wrap items-center gap-1.5">
+        {SAVED_VIEWS.map((view) => {
+          const on = activeView?.name === view.name;
+          return (
+            <button
+              key={view.name}
+              type="button"
+              onClick={() =>
+                startTransition(() => {
+                  setTerm("");
+                  router.push(on ? pathname : `${pathname}?${view.query}`);
+                })
+              }
+              className={`rounded-full border px-3 py-1 text-xs transition-colors ${
+                on
+                  ? "border-transparent bg-secondary text-secondary-foreground"
+                  : "border-border text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              {view.name}
+            </button>
+          );
+        })}
+      </div>
+
       <div className="flex flex-wrap items-center gap-2">
         <div className="relative min-w-56 flex-1">
           <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
@@ -193,8 +288,20 @@ export function ClientFilters({
         ) : null}
       </div>
 
-      {prefers.length + avoids.length > 0 ? (
+      {prefers.length + avoids.length + plainChips.length > 0 ? (
         <div className="flex flex-wrap gap-1.5">
+          {plainChips.map((chip) => (
+            <Badge key={chip.key} variant="secondary" className="gap-1 font-normal">
+              {chip.label}
+              <button
+                type="button"
+                aria-label={`Remove ${chip.label}`}
+                onClick={() => apply((next) => next.delete(chip.key))}
+              >
+                <X className="size-3" />
+              </button>
+            </Badge>
+          ))}
           {prefers.map((id) => (
             <Badge
               key={`prefer-${id}`}

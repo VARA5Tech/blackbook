@@ -411,7 +411,6 @@ describe("role-based access", () => {
             name: "New Colleague",
             email: `colleague-${randomUUID()}@vara5.com`,
             role: "rm",
-            password: "a-sufficiently-long-password",
           }),
       },
       {
@@ -421,13 +420,13 @@ describe("role-based access", () => {
           inviteStaff({
             name: "Invited Colleague",
             email: `invitee-${randomUUID()}`,
-            role: "viewer",
+            role: "rm",
           }),
       },
       {
         name: "change a colleague's role",
         allowedFrom: "admin",
-        run: async (fixtures) => setUserRole(fixtures.viewer.id, "viewer"),
+        run: async (fixtures) => setUserRole(fixtures.viewer.id, "rm"),
       },
       {
         name: "erase a client",
@@ -494,10 +493,9 @@ describe("role-based access", () => {
     });
 
     /**
-     * The key is removed for the duration so the suite never calls PostHog:
-     * a test that reaches the network is a flaky test, and it spends quota.
-     * Removing it also exercises the contract that matters most here, which is
-     * that every screen still works with PostHog switched off.
+     * The suite runs with no PostHog key at all (see `tests/setup.ts`), so this
+     * also exercises the contract that matters most: every screen still works
+     * with PostHog switched off.
      */
     it("allows a manager and an administrator, and reads empty when unconfigured", async () => {
       const key = process.env.POSTHOG_API_KEY;
@@ -544,7 +542,7 @@ describe("role-based access", () => {
   describe("an administrator cannot lock themselves out", () => {
     it("refuses to demote the acting administrator", async () => {
       actingAs(staff.admin);
-      await expect(setUserRole(staff.admin.id, "viewer")).rejects.toThrow(
+      await expect(setUserRole(staff.admin.id, "rm")).rejects.toThrow(
         /own administrator access/,
       );
     });

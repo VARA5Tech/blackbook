@@ -1,6 +1,6 @@
 import "server-only";
 import { Resend } from "resend";
-import { INVITATION_DAYS, PASSWORD_RESET_CODE_MINUTES } from "@/domain/staff";
+import { EMAIL_CODE_MINUTES, INVITATION_DAYS } from "@/domain/staff";
 import { logger } from "@/lib/logger";
 
 /**
@@ -18,7 +18,7 @@ export type OutboundEmail = {
   html: string;
   /** Plain-text version, for clients that do not render HTML and for spam scoring. */
   text: string;
-  /** A short label shown in Resend, such as "password-reset". Letters, digits, dashes. */
+  /** A short label shown in Resend, such as "sign-in-code". Letters, digits, dashes. */
   category: string;
 };
 
@@ -34,7 +34,7 @@ let client: Resend | undefined;
 /**
  * Sends one email, or says exactly why it did not.
  *
- * Without a key, production refuses loudly: a password reset that quietly sends
+ * Without a key, production refuses loudly: a sign-in code that quietly sends
  * nothing is a locked-out colleague with no error anywhere. Development prints
  * the message to the terminal instead, so the flow can be used on a laptop.
  *
@@ -198,33 +198,37 @@ const note = (text: string, margin: string) =>
 
 /* --------------------------------------------------------------- messages */
 
+
 /**
- * A password reset code. A code rather than a link: it is typed into the reset
- * page the person already has open, so it survives a mail client that rewrites
- * or pre-fetches links, and it is useless to anyone who only sees the subject.
+ * The code that signs somebody in.
+ *
+ * Deliberately not a link. A link in a mailbox is a credential that a scanner,
+ * a preview pane or a forwarded thread can spend; a six-digit code is useless
+ * without the browser that asked for it, which is already open at the sign-in
+ * page.
  */
-export function passwordResetEmail({ code }: { code: string }) {
-  const minutes = `${PASSWORD_RESET_CODE_MINUTES} minutes`;
-  const subject = "Your Blackbook password reset code";
+export function signInCodeEmail({ code }: { code: string }) {
+  const minutes = `${EMAIL_CODE_MINUTES} minutes`;
+  const subject = "Your Blackbook sign-in code";
 
   const body = `
-            ${heading("Reset your password")}
-            ${paragraph(`Enter this code on the Blackbook password reset page to choose a new password. It works once and expires in ${minutes}.`, "0 0 30px")}
+            ${heading("Sign in to Blackbook")}
+            ${paragraph(`Enter this code on the Blackbook sign-in page. It works once and expires in ${minutes}.`, "0 0 30px")}
             <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
               <tr>
                 <td align="center" style="background-color:${C.ivory};border:1px solid ${C.rule};padding:24px 12px 24px 22px;font-family:${MONO};font-size:34px;line-height:40px;letter-spacing:10px;color:${C.ink};">${escapeHtml(code)}</td>
               </tr>
             </table>
-            ${note("If you did not ask to reset your password, you can ignore this email. Your password stays as it is.", "30px 0 0")}`;
+            ${note("If you did not try to sign in, you can ignore this email. Nobody can get in with this code alone.", "30px 0 0")}`;
 
   const text = [
-    "Reset your password",
+    "Sign in to Blackbook",
     "",
-    `Your Blackbook password reset code is ${code}.`,
+    `Your Blackbook sign-in code is ${code}.`,
     "",
-    `Enter it on the password reset page to choose a new password. It works once and expires in ${minutes}.`,
+    `Enter it on the sign-in page. It works once and expires in ${minutes}.`,
     "",
-    "If you did not ask to reset your password, you can ignore this email. Your password stays as it is.",
+    "If you did not try to sign in, you can ignore this email.",
     "",
     "Blackbook, Vara5",
   ].join("\n");
@@ -241,21 +245,24 @@ export function passwordResetEmail({ code }: { code: string }) {
 }
 
 /**
- * An invitation to join. A link, unlike the reset code, because the person has
- * no Blackbook page open yet. Opening it only shows a form; the password is set
- * when the form is submitted, so a mail scanner that pre-fetches links cannot
- * use it up.
+ * A note saying an account now exists.
+ *
+ * No link and nothing to set up. There is no password, so a link could only
+ * sign somebody in, and a link that signs somebody in is a credential sitting
+ * in a mailbox where a scanner, a preview pane or a forwarded thread can spend
+ * it. The address is the whole invitation: they go to Blackbook and ask for a
+ * code, exactly as they will every day after this.
  */
 export function staffInvitationEmail({
   name,
   invitedBy,
   roleLabel,
-  link,
+  signInUrl,
 }: {
   name: string;
   invitedBy: string | null;
   roleLabel: string;
-  link: string;
+  signInUrl: string;
 }) {
   const days = `${INVITATION_DAYS} days`;
   const subject = "You are invited to Blackbook";
@@ -265,28 +272,28 @@ export function staffInvitationEmail({
   const body = `
             ${heading(`Welcome, ${firstName}`)}
             ${paragraph(intro)}
-            ${paragraph(`Choose a password to finish setting up your account. The link works once and expires in ${days}.`, "0 0 30px")}
+            ${paragraph(`Go to Blackbook and enter this address. It will email you a six-digit code to sign in with. There is no password to choose.`, "0 0 30px")}
             <table role="presentation" cellpadding="0" cellspacing="0" border="0">
               <tr>
                 <td bgcolor="${C.ink}" style="background-color:${C.ink};">
-                  <a href="${escapeHtml(link)}" style="display:inline-block;padding:14px 30px;font-family:${SANS};font-size:15px;line-height:20px;font-weight:600;color:${C.white};text-decoration:none;">Set up my account</a>
+                  <a href="${escapeHtml(signInUrl)}" style="display:inline-block;padding:14px 30px;font-family:${SANS};font-size:15px;line-height:20px;font-weight:600;color:${C.white};text-decoration:none;">Go to Blackbook</a>
                 </td>
               </tr>
             </table>
-            <p style="margin:30px 0 6px;font-family:${SANS};font-size:13px;line-height:20px;color:${C.muted};">If the button does not work, paste this link into your browser:</p>
-            <p style="margin:0;font-family:${MONO};font-size:12px;line-height:18px;color:${C.body};word-break:break-all;">${escapeHtml(link)}</p>
-            ${note("If you were not expecting this, you can ignore this email. The invitation lapses on its own.", "26px 0 0")}`;
+            <p style="margin:30px 0 6px;font-family:${SANS};font-size:13px;line-height:20px;color:${C.muted};">Or paste this into your browser:</p>
+            <p style="margin:0;font-family:${MONO};font-size:12px;line-height:18px;color:${C.body};word-break:break-all;">${escapeHtml(signInUrl)}</p>
+            ${note(`If you were not expecting this, you can ignore this email. Nothing here signs anybody in, and an account nobody uses is removed after ${days}.`, "26px 0 0")}`;
 
   const text = [
     `Welcome, ${firstName}`,
     "",
     intro,
     "",
-    `Choose a password to finish setting up your account. The link works once and expires in ${days}:`,
+    "Go to Blackbook and enter this address. It will email you a six-digit code to sign in with. There is no password to choose.",
     "",
-    link,
+    signInUrl,
     "",
-    "If you were not expecting this, you can ignore this email. The invitation lapses on its own.",
+    `If you were not expecting this, you can ignore this email. Nothing here signs anybody in, and an account nobody uses is removed after ${days}.`,
     "",
     "Blackbook, Vara5",
   ].join("\n");
@@ -296,7 +303,7 @@ export function staffInvitationEmail({
     text,
     html: renderEmail({
       title: subject,
-      preheader: `Set up your Blackbook account. The link expires in ${days}.`,
+      preheader: "Your Blackbook account is ready. Sign in with an emailed code.",
       body,
     }),
   };

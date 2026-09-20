@@ -22,7 +22,7 @@ pnpm dev
 
 The seed creates the preference catalogue, three staff accounts and one demo
 household. Sign in at http://localhost:3000 with `admin@vara5.com`,
-`priya@vara5.com` or `viewer@vara5.com`. The seed prints the shared password.
+`priya@vara5.com` or `viewer@vara5.com`. Blackbook emails each of them a code.
 Those accounts are development fixtures and the seed refuses to run against
 anything but a local database.
 
@@ -85,7 +85,7 @@ and hid the champagne logo completely.
 | Framework | Next.js 16 App Router, React 19, TypeScript strict |
 | Database | PostgreSQL 18 |
 | Data access | Drizzle ORM with SQL migrations |
-| Auth | Better Auth, email and password, no public sign-up |
+| Auth | Better Auth, emailed sign-in code, no password, no public sign-up |
 | UI | Tailwind v4, shadcn/ui on Radix |
 | Validation | Zod, shared between forms and services |
 | AI | Vercel AI SDK over OpenRouter, model set by env var |
@@ -128,7 +128,7 @@ Environment the running container needs:
 | `BETTER_AUTH_URL` | `https://blackbook.vara5.travel` |
 | `OPENROUTER_API_KEY` | Optional. Without it, Brief Me explains it is off |
 | `AI_MODEL` | Optional. Defaults to a cheap current model |
-| `RESEND_API_KEY` | Sends password reset codes and invitations |
+| `RESEND_API_KEY` | Sends sign-in codes and invitations. Without it nobody can sign in |
 | `PRIVATE_ACCESS_SECRET` | Shared with vara5.travel for its guest lookup. Without it nobody gets past the website's gate |
 | `POSTHOG_PROJECT_ID` | Optional. Plays a client's visits inside Client 360 |
 | `POSTHOG_API_KEY` | Optional. A personal API key with read scopes; never exposed to a browser |
@@ -143,34 +143,37 @@ the Docker network. A failure there aborts the boot rather than serving a
 half-applied schema. The files under `drizzle/` can also be pasted into a SQL
 console in order, which is what `/pg/query` is for.
 
-**First administrator.** A new instance has no account to create others from.
-Better Auth stores a scrypt hash with a random salt, `salt:key`, and a hand-typed
-value is never valid, so the first account is inserted with a hash produced by
-Better Auth's own `hashPassword`. The password it was made from should be
-changed from the user menu on first sign-in.
+**Signing in.** There is no password. You type a `@vara5.com` address,
+Blackbook emails a six-digit code, and the code signs you in. It works once and
+expires in ten minutes. Nothing else opens the door: the credential provider is
+switched off, so those endpoints refuse outright rather than answering "wrong
+password" to a guess, and no account carries a hash.
+
+Asking for a code says the same thing whether or not the address has an account
+— an unknown one is answered with the same "invalid code" as a wrong digit — so
+the form cannot be used to find out who works here.
+
+**First administrator.** A new instance has no account to create others from,
+so the first row is inserted by hand: an `app_user` with the address, a role of
+`admin`, and `email_verified` true. Nothing else is needed, because there is no
+password to set.
 
 **Everyone else** is added from Team in the sidebar, which administrators see.
-The default is an emailed invitation: a link to `/invite/<token>` where the
-colleague chooses their own password. It uses no table of its own. The invited
-person is a normal account, unverified and without a password, shown on Team as
-Invited with Send again and Withdraw. The link's SHA-256 is kept in Better
-Auth's `app_verification` table. Using it sets the password and verifies the
-address. If nobody does within two days, the account is deleted, whenever Team
-is opened, an invitation is sent, a link is followed or the app boots. For
-someone who cannot get email yet, Team can instead set an initial password to
-pass on privately.
+They receive an email saying the account exists, carrying **no link** — there is
+nothing to set up, and a link that signed somebody in would be a credential
+sitting in a mailbox. They go to Blackbook and ask for a code like anybody else.
+Until they do, Team shows them as Invited with Send again and Withdraw, and an
+account nobody signs in to is deleted after two days: whenever Team is opened,
+an invitation is sent, or the app boots. Signing in with a code verifies the
+address and is what ends that.
 
 **Only `@vara5.com` addresses.** Type a name and Team completes the domain, or
 paste the full address. The rule is enforced on the server: the services refuse
-other domains, and Better Auth refuses any sign-in, reset code or user it would
-write for one. Subdomains and lookalikes are refused too.
+other domains, and Better Auth refuses any sign-in, code or user it would write
+for one. Subdomains and lookalikes are refused too.
 
-**Passwords.** Anyone can reset their own at `/forgot-password`, which emails a
-six-digit code from `blackbook@vara5.travel` through Resend. The code
-works once and expires in ten minutes, and a reset signs out every other
-session. Signed in, the user menu has Change password, which also signs out
-other devices. Set `RESEND_API_KEY` for this; without it, development prints
-the email to the terminal and production reports an error.
+Set `RESEND_API_KEY`, or nobody can sign in: without it, development prints the
+code to the terminal and production reports an error.
 
 Applying migrations uses drizzle-orm's migrator rather than the drizzle-kit
 CLI, so the production image carries no build tooling. drizzle-kit still

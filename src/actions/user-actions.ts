@@ -2,7 +2,6 @@
 
 import { revalidatePath } from "next/cache";
 import {
-  acceptInvitation,
   createStaffUser,
   inviteStaff,
   resendInvitation,
@@ -49,8 +48,3 @@ export async function revokeInvitationAction(userId: string) {
   return result.ok ? { ok: true as const, data: undefined } : result;
 }
 
-/** Called signed out, from the invitation page. The token is the credential. */
-export async function acceptInvitationAction(token: string, password: string) {
-  const result = await run(() => acceptInvitation({ token, password }));
-  return result.ok ? { ok: true as const, data: undefined } : result;
-}

@@ -2,20 +2,25 @@ import { z } from "zod";
 
 /**
  * Account rules shared by the browser, the services and Better Auth: who can
- * hold an account, how strong a password must be, and how long links and codes
+ * hold an account, and how long a code lasts
  * last.
  */
 export const STAFF_EMAIL_DOMAIN = "vara5.com";
 export const STAFF_EMAIL_SUFFIX = `@${STAFF_EMAIL_DOMAIN}`;
 export const STAFF_DOMAIN_MESSAGE = `Only ${STAFF_EMAIL_SUFFIX} addresses can have a Blackbook account.`;
 
-export const MIN_STAFF_PASSWORD_LENGTH = 12;
 
 /** An invited account nobody sets up within this many days is deleted. */
 export const INVITATION_DAYS = 2;
 
-/** How long a password reset code works. */
-export const PASSWORD_RESET_CODE_MINUTES = 10;
+/**
+ * How long an emailed code lasts, whatever it is for.
+ *
+ * One number rather than one per purpose, because the plugin takes a single
+ * `expiresIn` for every type it issues. Two constants would read as a choice
+ * nobody can actually make.
+ */
+export const EMAIL_CODE_MINUTES = 10;
 
 /**
  * Lower-cases and trims, and completes a bare name with the Vara5 domain, so
@@ -57,20 +62,3 @@ export const staffEmailSchema = z
       .email("Enter a valid email address")
       .refine(isStaffEmail, STAFF_DOMAIN_MESSAGE),
   );
-
-export const staffPasswordSchema = z
-  .string()
-  .min(
-    MIN_STAFF_PASSWORD_LENGTH,
-    `Use at least ${MIN_STAFF_PASSWORD_LENGTH} characters`,
-  )
-  .max(200, "That is too long");
-
-/** The same check the forms run before asking the server, or null when it passes. */
-export function newPasswordProblem(password: string, confirm: string): string | null {
-  if (password.length < MIN_STAFF_PASSWORD_LENGTH) {
-    return `Use at least ${MIN_STAFF_PASSWORD_LENGTH} characters.`;
-  }
-  if (password !== confirm) return "The two passwords do not match.";
-  return null;
-}

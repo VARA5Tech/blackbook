@@ -82,9 +82,31 @@ export function capabilitiesFor(role: UserRole): readonly Capability[] {
   return ROLE_CAPABILITIES[role];
 }
 
+/**
+ * What each role is called on screen.
+ *
+ * The stored values are untouched. `rm` is written into `app_user.role`, into
+ * `customer.primary_rm_id` and into every audit row already on the trail, and
+ * renaming the enum would mean rewriting all three to change a word nobody
+ * stores. The label is the word people read; the value is the word the database
+ * keeps.
+ */
 export const ROLE_LABELS: Record<UserRole, string> = {
-  admin: "Administrator",
+  admin: "Admin",
   manager: "Manager",
-  rm: "Relationship Manager",
+  rm: "Curator",
   viewer: "Viewer",
 };
+
+/**
+ * The roles somebody can actually be given.
+ *
+ * `viewer` is retired: it could read every client and do nothing with them,
+ * which turned out to describe nobody at the desk. It stays in the enum because
+ * the value may still sit on an old row, and it still grants what it always
+ * granted, but nothing offers it any more.
+ */
+export const ASSIGNABLE_ROLES = ["admin", "manager", "rm"] as const satisfies readonly UserRole[];
+
+/** A role somebody can be given, as opposed to one they may still hold. */
+export type AssignableRole = (typeof ASSIGNABLE_ROLES)[number];

@@ -1,5 +1,5 @@
 import "server-only";
-import { and, eq } from "drizzle-orm";
+import { and, eq, inArray } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "@/db";
 import {
@@ -9,6 +9,7 @@ import {
   customerPreferenceProfile,
   customers,
   households,
+  users,
 } from "@/db/schema";
 import { requireCapability } from "@/auth/session";
 import {
@@ -692,11 +693,39 @@ function summariseChanges(changes: Record<string, unknown>): string {
   return `Updated ${fields.length} fields`;
 }
 
+/**
+ * What a changed field is called on the audit trail.
+ *
+ * Splitting the property name apart is a fair guess for most of them and a poor
+ * one for the rest: `primaryRmId` came out as "primary Rm Id", which reads like
+ * a database column because it is one. The trail is read by people, so the
+ * fields whose names do not survive the translation are spelled out.
+ */
+const FIELD_LABELS: Record<string, string> = {
+  primaryRmId: "relationship manager",
+  householdId: "household",
+  householdRole: "role in the household",
+  clientDna: "client DNA",
+  eaName: "assistant's name",
+  eaEmail: "assistant's email",
+  eaPhone: "assistant's phone",
+  eaNotes: "assistant's notes",
+  dateOfBirth: "date of birth",
+  customerSince: "client since",
+  locationUrl: "location pin",
+  whatsapp: "WhatsApp number",
+  mobile: "mobile number",
+  preferredName: "preferred name",
+};
+
 function labelFor(field: string): string {
-  return field
-    .replace(/([A-Z])/g, " $1")
-    .replace(/^./, (c) => c.toLowerCase())
-    .trim();
+  return (
+    FIELD_LABELS[field] ??
+    field
+      .replace(/([A-Z])/g, " $1")
+      .replace(/^./, (c) => c.toLowerCase())
+      .trim()
+  );
 }
 
 
@@ -759,4 +788,86 @@ export async function getClientActivity(customerId: string) {
   ]);
 
   return { interest, replays, signals };
+}
+
+
+const reassignSchema = z.object({
+  customerIds: z.array(uuidSchema).min(1).max(100),
+  /** Null hands the clients back to nobody, which is a real answer. */
+  primaryRmId: uuidSchema.nullable(),
+});
+
+export type ReassignInput = z.input<typeof reassignSchema>;
+
+/**
+ * Moves several clients to one relationship manager at once.
+ *
+ * The same capability as changing one, because it is the same act repeated: a
+ * bulk path that asked for less would be the way round the check. One
+ * transaction, so a failure halfway leaves nobody half-moved, and one audit row
+ * per client rather than a single line about a batch — the trail is read one
+ * client at a time, and "reassigned in a group of twelve" answers nothing on
+ * the record of the client somebody is actually looking at.
+ *
+ * Clients already with that manager are skipped rather than rewritten, so the
+ * trail records what changed instead of what was selected.
+ */
+export async function reassignClients(input: ReassignInput) {
+  const actor = await requireCapability("client.reassign_rm");
+  const data = reassignSchema.parse(input);
+
+  if (data.primaryRmId) {
+    const manager = await db.query.users.findFirst({
+      where: eq(users.id, data.primaryRmId),
+    });
+    if (!manager) throw new DomainError("That colleague no longer has an account");
+  }
+
+  const targets = await db
+    .select({
+      id: customers.id,
+      ref: customers.ref,
+      primaryRmId: customers.primaryRmId,
+    })
+    .from(customers)
+    .where(inArray(customers.id, data.customerIds));
+
+  const moving = targets.filter((row) => row.primaryRmId !== data.primaryRmId);
+  if (moving.length === 0) return { moved: 0 };
+
+  const to = data.primaryRmId
+    ? ((await db.query.users.findFirst({ where: eq(users.id, data.primaryRmId) }))?.name ??
+      "another colleague")
+    : "nobody";
+
+  await db.transaction(async (tx) => {
+    await tx
+      .update(customers)
+      .set({
+        primaryRmId: data.primaryRmId,
+        updatedAt: new Date(),
+        updatedBy: actor.id,
+      })
+      .where(inArray(customers.id, moving.map((row) => row.id)));
+
+    for (const row of moving) {
+      await logActivity(
+        {
+          entityType: "customer",
+          entityId: row.id,
+          customerId: row.id,
+          action: "updated",
+          summary: `Relationship manager changed to ${to}`,
+          changes: {
+            primaryRmId: { from: row.primaryRmId, to: data.primaryRmId },
+          },
+          actor,
+        },
+        tx,
+      );
+    }
+  });
+
+  logger.info("client.reassigned", { count: moving.length });
+  return { moved: moving.length };
 }

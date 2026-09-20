@@ -4,7 +4,10 @@ import { beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { db } from "@/db";
 import { uuidv7 } from "@/domain/shared";
 import { activityLog, customerPreferenceProfile, customers } from "@/db/schema";
-import { executiveAssistantFor } from "@/domain/customers";
+import {
+  CLIENT_SORT_DEFAULT_DIRECTION,
+  executiveAssistantFor,
+} from "@/domain/customers";
 import {
   archiveCustomer,
   createCustomer,
@@ -12,6 +15,7 @@ import {
   eraseCustomer,
   getClient360,
   restoreCustomer,
+  reassignClients,
   searchClients,
   updateCustomer,
 } from "@/services/client-service";
@@ -765,5 +769,239 @@ describe("customer master", () => {
       });
       expect(executiveAssistantFor(none, null)).toBeNull();
     });
+  });
+});
+
+describe("ordering the client list", () => {
+  let staff: StaffFixtures;
+  const since = "2024-01-01";
+
+  beforeAll(async () => {
+    await seedCatalogue();
+    staff = await seedStaff();
+  });
+
+  beforeEach(async () => {
+    await resetData();
+    actingAs(staff.admin);
+  });
+
+  async function book() {
+    // Deliberately not alphabetical, and deliberately sharing a city, so the
+    // tiebreaker is exercised rather than assumed.
+    const ayesha = await createCustomer({
+      firstName: "Ayesha",
+      mobile: "+91 98100 10001",
+      city: "Mumbai",
+      customerSince: since,
+    });
+    const bhavna = await createCustomer({
+      firstName: "Bhavna",
+      mobile: "+91 98100 10002",
+      city: "Delhi",
+      customerSince: since,
+    });
+    const chirag = await createCustomer({
+      firstName: "Chirag",
+      mobile: "+91 98100 10003",
+      customerSince: since,
+    });
+    return { ayesha, bhavna, chirag };
+  }
+
+  const names = async (sort: string, dir: "asc" | "desc") =>
+    (await searchClients({ sort: sort as never, dir })).rows.map(
+      (row) => row.firstName,
+    );
+
+  it("reverses when the same column is asked for the other way round", async () => {
+    await book();
+
+    expect(await names("name", "asc")).toEqual(["Ayesha", "Bhavna", "Chirag"]);
+    expect(await names("name", "desc")).toEqual(["Chirag", "Bhavna", "Ayesha"]);
+  });
+
+  /**
+   * Postgres sorts nulls first descending and last ascending, so without an
+   * explicit rule a client with no city would lead the list on one click and
+   * trail it on the next. A blank is not an answer to "who is in Mumbai".
+   */
+  it("keeps a client with no city at the bottom whichever way the column points", async () => {
+    await book();
+
+    const ascending = await names("city", "asc");
+    const descending = await names("city", "desc");
+
+    expect(ascending).toEqual(["Bhavna", "Ayesha", "Chirag"]);
+    expect(descending).toEqual(["Ayesha", "Bhavna", "Chirag"]);
+    expect(ascending.at(-1)).toBe("Chirag");
+    expect(descending.at(-1)).toBe("Chirag");
+  });
+
+  it("puts the most recently contacted first, and the never contacted last", async () => {
+    const { ayesha, bhavna } = await book();
+
+    await db
+      .update(customers)
+      .set({ lastInteractionAt: new Date("2026-01-10T00:00:00Z") })
+      .where(eq(customers.id, ayesha.id));
+    await db
+      .update(customers)
+      .set({ lastInteractionAt: new Date("2026-06-01T00:00:00Z") })
+      .where(eq(customers.id, bhavna.id));
+
+    expect(await names("last_interaction", "desc")).toEqual([
+      "Bhavna",
+      "Ayesha",
+      "Chirag",
+    ]);
+    expect(await names("last_interaction", "asc")).toEqual([
+      "Ayesha",
+      "Bhavna",
+      "Chirag",
+    ]);
+  });
+
+  it("opens each column the way that column is usually asked", async () => {
+    // Names read from A; a date column is asked "who most recently".
+    expect(CLIENT_SORT_DEFAULT_DIRECTION.name).toBe("asc");
+    expect(CLIENT_SORT_DEFAULT_DIRECTION.city).toBe("asc");
+    expect(CLIENT_SORT_DEFAULT_DIRECTION.last_interaction).toBe("desc");
+    expect(CLIENT_SORT_DEFAULT_DIRECTION.recent).toBe("desc");
+  });
+});
+
+describe("handing several clients to a colleague", () => {
+  let staff: StaffFixtures;
+  const since = "2024-01-01";
+
+  beforeAll(async () => {
+    await seedCatalogue();
+    staff = await seedStaff();
+  });
+
+  beforeEach(async () => {
+    await resetData();
+    actingAs(staff.admin);
+  });
+
+  async function three() {
+    return Promise.all([
+      createCustomer({ firstName: "One", mobile: "+91 98100 20001", customerSince: since }),
+      createCustomer({ firstName: "Two", mobile: "+91 98100 20002", customerSince: since }),
+      createCustomer({ firstName: "Three", mobile: "+91 98100 20003", customerSince: since }),
+    ]);
+  }
+
+  it("moves them all and writes one audit row each, not one about a batch", async () => {
+    const clients = await three();
+
+    const { moved } = await reassignClients({
+      customerIds: clients.map((client) => client.id),
+      primaryRmId: staff.rm.id,
+    });
+    expect(moved).toBe(3);
+
+    for (const client of clients) {
+      const row = await db.query.customers.findFirst({
+        where: eq(customers.id, client.id),
+      });
+      expect(row?.primaryRmId).toBe(staff.rm.id);
+
+      const trail = await db
+        .select()
+        .from(activityLog)
+        .where(eq(activityLog.customerId, client.id));
+      const reassignments = trail.filter((entry) =>
+        entry.summary.includes("Relationship manager changed"),
+      );
+      expect(reassignments).toHaveLength(1);
+    }
+  });
+
+  it("skips the ones already with that colleague, so the trail records what changed", async () => {
+    const clients = await three();
+    await reassignClients({
+      customerIds: [clients[0].id],
+      primaryRmId: staff.rm.id,
+    });
+
+    const { moved } = await reassignClients({
+      customerIds: clients.map((client) => client.id),
+      primaryRmId: staff.rm.id,
+    });
+    expect(moved).toBe(2);
+  });
+
+  it("hands them back to nobody", async () => {
+    const clients = await three();
+    await reassignClients({
+      customerIds: clients.map((client) => client.id),
+      primaryRmId: staff.rm.id,
+    });
+
+    const { moved } = await reassignClients({
+      customerIds: clients.map((client) => client.id),
+      primaryRmId: null,
+    });
+    expect(moved).toBe(3);
+
+    const row = await db.query.customers.findFirst({
+      where: eq(customers.id, clients[0].id),
+    });
+    expect(row?.primaryRmId).toBeNull();
+  });
+
+  /**
+   * The same capability as changing one, because it is the same act repeated.
+   * A bulk path that asked for less would be the way round the check.
+   */
+  it("refuses anybody who may not reassign a single client", async () => {
+    const clients = await three();
+
+    for (const role of ["viewer", "rm"] as const) {
+      actingAs(staff[role]);
+      await expect(
+        reassignClients({
+          customerIds: clients.map((client) => client.id),
+          primaryRmId: staff.rm.id,
+        }),
+      ).rejects.toThrow();
+    }
+
+    const row = await db.query.customers.findFirst({
+      where: eq(customers.id, clients[0].id),
+    });
+    expect(row?.primaryRmId).toBeNull();
+  });
+
+  it("refuses a colleague who no longer has an account", async () => {
+    const clients = await three();
+
+    await expect(
+      reassignClients({
+        customerIds: [clients[0].id],
+        primaryRmId: uuidv7(),
+      }),
+    ).rejects.toThrow(DomainError);
+  });
+
+  /** Nothing about a client's own details is touched by moving their manager. */
+  it("leaves every phone number exactly as it was", async () => {
+    const clients = await three();
+    const before = await db
+      .select({ id: customers.id, mobile: customers.mobile, whatsapp: customers.whatsapp })
+      .from(customers);
+
+    await reassignClients({
+      customerIds: clients.map((client) => client.id),
+      primaryRmId: staff.rm.id,
+    });
+
+    const after = await db
+      .select({ id: customers.id, mobile: customers.mobile, whatsapp: customers.whatsapp })
+      .from(customers);
+
+    expect(after).toEqual(before);
   });
 });

@@ -117,6 +117,67 @@ export type ClientDnaInput = z.input<typeof clientDnaSchema>;
 /* Search and filtering                                                */
 /* ------------------------------------------------------------------ */
 
+/**
+ * What the client list can be ordered by.
+ *
+ * `relevance` only means anything while there is a search term; without one it
+ * falls back to name, which is why it is the default rather than a column
+ * anybody can click.
+ */
+export const CLIENT_SORTS = [
+  "relevance",
+  "name",
+  "city",
+  "manager",
+  "status",
+  "recent",
+  "last_interaction",
+] as const;
+
+export type ClientSort = (typeof CLIENT_SORTS)[number];
+
+/**
+ * The columns the client list can show, declared once.
+ *
+ * The header, the cells and the chooser all read this, so a column cannot be
+ * sortable in one place and not in another, or appear in the menu and nowhere
+ * in the table. `on` is what a new reader sees before they choose anything.
+ *
+ * `city` is off by default on purpose: not one client in the book has one, so
+ * it was a column of dashes taking width from something worth reading.
+ */
+export const CLIENT_COLUMNS = [
+  { key: "household", label: "Household", sort: null, on: true },
+  { key: "city", label: "City", sort: "city", on: false },
+  { key: "manager", label: "Manager", sort: "manager", on: true },
+  { key: "since", label: "Client since", sort: "recent", on: false },
+  { key: "lastContacted", label: "Last contacted", sort: "last_interaction", on: true },
+  { key: "status", label: "Status", sort: "status", on: true },
+] as const satisfies readonly {
+  key: string;
+  label: string;
+  sort: ClientSort | null;
+  on: boolean;
+}[];
+
+export type ClientColumnKey = (typeof CLIENT_COLUMNS)[number]["key"];
+
+export const DEFAULT_CLIENT_COLUMNS: ClientColumnKey[] = CLIENT_COLUMNS.filter(
+  (column) => column.on,
+).map((column) => column.key);
+
+/** The direction a column opens in when it is first clicked. */
+export const CLIENT_SORT_DEFAULT_DIRECTION: Record<ClientSort, "asc" | "desc"> = {
+  relevance: "desc",
+  name: "asc",
+  city: "asc",
+  manager: "asc",
+  status: "asc",
+  // Dates are asked "who most recently", not "who longest ago".
+  recent: "desc",
+  last_interaction: "desc",
+};
+
 export const clientSearchSchema = z.object({
   /**
    * Free text matched against name, reference, mobile, email and city.
@@ -144,9 +205,13 @@ export const clientSearchSchema = z.object({
   includeArchived: z.boolean().default(false),
   limit: z.coerce.number().int().min(1).max(100).default(25),
   offset: z.coerce.number().int().min(0).default(0),
-  sort: z
-    .enum(["relevance", "name", "recent", "last_interaction"])
-    .default("relevance"),
+  sort: z.enum(CLIENT_SORTS).default("relevance"),
+  /**
+   * Which way round. Every column declares the direction it should open in,
+   * because the useful first answer differs: names read A to Z, but a date
+   * column is asked "who most recently", not "who longest ago".
+   */
+  dir: z.enum(["asc", "desc"]).optional(),
 });
 
 export type ClientSearchInput = z.input<typeof clientSearchSchema>;

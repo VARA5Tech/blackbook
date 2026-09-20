@@ -22,7 +22,7 @@ export default async function SignInPage({
       <SignInForm
         next={next}
         notice={
-          params.reset === "1" ? "reset" : params.welcome === "1" ? "welcome" : null
+          params.signedOut === "1" ? "signedOut" : null
         }
       />
     </AuthShell>

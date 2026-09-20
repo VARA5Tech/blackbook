@@ -5,13 +5,16 @@ import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
 import {
-  createStaffUserAction,
   inviteStaffAction,
   resendInvitationAction,
   revokeInvitationAction,
   setUserRoleAction,
 } from "@/actions/user-actions";
-import { ROLE_LABELS } from "@/auth/permissions";
+import {
+  ASSIGNABLE_ROLES,
+  ROLE_LABELS,
+  type AssignableRole,
+} from "@/auth/permissions";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -45,17 +48,19 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import type { UserRole } from "@/db/schema";
 import {
   INVITATION_DAYS,
-  MIN_STAFF_PASSWORD_LENGTH,
   STAFF_EMAIL_SUFFIX,
   staffEmailLocalPart,
 } from "@/domain/staff";
 import { formatDate } from "@/lib/format";
 
-const ROLES: UserRole[] = ["viewer", "rm", "manager", "admin"];
+/**
+ * Offered least to most, and without `viewer`, which is retired. Somebody who
+ * still holds it keeps it until they are changed; nobody can be given it.
+ */
+const ROLES: readonly UserRole[] = ASSIGNABLE_ROLES;
 
 type StaffRow = {
   id: string;
@@ -214,23 +219,20 @@ export function UserTable({
   );
 }
 
-type Method = "invite" | "password";
 
 function NewUserDialog() {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [pending, startTransition] = useTransition();
-  const [method, setMethod] = useState<Method>("invite");
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
-  const [role, setRole] = useState<UserRole>("rm");
-  const [password, setPassword] = useState("");
+  // Only a role that may be given: the form never offers the retired one.
+  const [role, setRole] = useState<AssignableRole>("rm");
   const [fieldErrors, setFieldErrors] = useState<Record<string, string[]>>({});
 
   function reset() {
     setName("");
     setEmail("");
-    setPassword("");
     setFieldErrors({});
   }
 
@@ -239,10 +241,7 @@ function NewUserDialog() {
     startTransition(async () => {
       // The raw field goes to the server, which completes a bare name with
       // @vara5.com and refuses any other domain. Nothing here is trusted.
-      const result =
-        method === "invite"
-          ? await inviteStaffAction({ name, email, role })
-          : await createStaffUserAction({ name, email, role, password });
+      const result = await inviteStaffAction({ name, email, role });
 
       if (!result.ok) {
         setFieldErrors(result.fieldErrors ?? {});
@@ -250,7 +249,7 @@ function NewUserDialog() {
         return;
       }
 
-      toast.success(method === "invite" ? "Invitation sent" : "Account created");
+      toast.success("Invitation sent");
       setOpen(false);
       reset();
       router.refresh();
@@ -276,18 +275,11 @@ function NewUserDialog() {
         <DialogHeader>
           <DialogTitle>Add a colleague</DialogTitle>
           <DialogDescription>
-            {method === "invite"
-              ? `They get an email with a link to choose their own password. If they have not set it up within ${INVITATION_DAYS} days, the invitation and the account are removed.`
-              : "Set a password and pass it on privately. They can change it from the user menu once they are in."}
+            They get an email saying the account exists. Signing in is an
+            emailed code, so there is nothing for them to set up. An account
+            nobody uses within {INVITATION_DAYS} days is removed.
           </DialogDescription>
         </DialogHeader>
-
-        <Tabs value={method} onValueChange={(value) => setMethod(value as Method)}>
-          <TabsList className="w-full">
-            <TabsTrigger value="invite">Email an invitation</TabsTrigger>
-            <TabsTrigger value="password">Set a password</TabsTrigger>
-          </TabsList>
-        </Tabs>
 
         <div className="space-y-4">
           <div className="space-y-2">
@@ -334,7 +326,7 @@ function NewUserDialog() {
             <Label htmlFor="user-role">Role</Label>
             <Select
               value={role}
-              onValueChange={(value) => setRole(value as UserRole)}
+              onValueChange={(value) => setRole(value as AssignableRole)}
             >
               <SelectTrigger id="user-role">
                 <SelectValue />
@@ -348,27 +340,6 @@ function NewUserDialog() {
               </SelectContent>
             </Select>
           </div>
-
-          {method === "password" ? (
-            <div className="space-y-2">
-              <Label htmlFor="user-password">Initial password</Label>
-              <Input
-                id="user-password"
-                type="password"
-                value={password}
-                onChange={(event) => setPassword(event.target.value)}
-                autoComplete="new-password"
-              />
-              <p className="text-xs text-muted-foreground">
-                At least {MIN_STAFF_PASSWORD_LENGTH} characters.
-              </p>
-              {fieldErrors.password ? (
-                <p className="text-xs text-destructive">
-                  {fieldErrors.password[0]}
-                </p>
-              ) : null}
-            </div>
-          ) : null}
         </div>
 
         <DialogFooter>
@@ -376,7 +347,7 @@ function NewUserDialog() {
             onClick={submit}
             disabled={pending || name.trim() === "" || email.trim() === ""}
           >
-            {method === "invite" ? "Send invitation" : "Create account"}
+            Send invitation
           </Button>
         </DialogFooter>
       </DialogContent>

@@ -9,7 +9,6 @@
  */
 import { uuidv7 } from "@/domain/shared";
 import { eq, sql as raw } from "drizzle-orm";
-import { auth } from "@/auth";
 import { CATALOGUE } from "@/db/catalogue";
 import { db, sql } from "@/db";
 import {
@@ -32,7 +31,6 @@ import {
   type UserRole,
 } from "@/db/schema";
 
-const DEMO_PASSWORD = "vara5-demo-password";
 
 async function seedCatalogue() {
   const rows = CATALOGUE.map((entry, index) => ({
@@ -68,9 +66,6 @@ async function seedUser(input: {
     where: eq(users.email, input.email),
   });
   if (existing) return existing.id;
-
-  const ctx = await auth.$context;
-  const hash = await ctx.password.hash(DEMO_PASSWORD);
   const id = uuidv7();
 
   await db.insert(users).values({
@@ -86,7 +81,6 @@ async function seedUser(input: {
     userId: id,
     accountId: id,
     providerId: "credential",
-    password: hash,
   });
 
   console.log(`  user: ${input.email} (${input.role})`);
@@ -339,7 +333,7 @@ async function main() {
 
   await seedDemoHousehold(rmId, adminId);
 
-  console.log(`\nDone. Sign in with any seeded email, password: ${DEMO_PASSWORD}`);
+  console.log("\nDone. Sign in with any seeded email; Blackbook emails a code.");
 }
 
 main()

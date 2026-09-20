@@ -1,6 +1,9 @@
 import "server-only";
 import { and, asc, desc, eq, inArray, isNull, lt, ne, or, sql } from "drizzle-orm";
-import { GATE_STATUSES } from "@/domain/customers";
+import {
+  CLIENT_SORT_DEFAULT_DIRECTION,
+  GATE_STATUSES,
+} from "@/domain/customers";
 import { alias } from "drizzle-orm/pg-core";
 import { db } from "@/db";
 import {
@@ -174,7 +177,15 @@ function searchConditions(query: ClientSearchQuery) {
 
   if (!query.includeArchived) conditions.push(isNull(customers.archivedAt));
   if (query.q) conditions.push(searchPredicate(query.q));
+
+  /*
+   * The client list is the client list. A `staff` record only exists so the
+   * desk can get through the members' gate, and having five of them sitting
+   * among the real book makes every count wrong at a glance. They are still
+   * reachable: ask for them by status and they come back.
+   */
   if (query.status) conditions.push(eq(customers.status, query.status));
+  else conditions.push(ne(customers.status, "staff"));
   if (query.rmId) conditions.push(eq(customers.primaryRmId, query.rmId));
   if (query.householdId)
     conditions.push(eq(customers.householdId, query.householdId));
@@ -204,18 +215,37 @@ export async function searchCustomers(query: ClientSearchQuery): Promise<{
 }> {
   const where = searchConditions(query);
 
+  /**
+   * `nulls last` on every column that can be empty, in both directions.
+   *
+   * Postgres sorts nulls first descending and last ascending, so a client with
+   * no city or no interaction would lead the list on one click and trail it on
+   * the next. A blank is not an answer to "who most recently", so it goes to
+   * the bottom whichever way the column is pointing.
+   */
   const orderBy = (() => {
+    const direction = query.dir ?? CLIENT_SORT_DEFAULT_DIRECTION[query.sort];
+    const way = direction === "asc" ? sql`asc` : sql`desc`;
+    const byName =
+      direction === "asc"
+        ? [asc(customers.firstName), asc(customers.lastName)]
+        : [desc(customers.firstName), desc(customers.lastName)];
+
     switch (query.sort) {
       case "name":
-        return [asc(customers.firstName), asc(customers.lastName)];
+        return byName;
+      case "city":
+        return [sql`lower(${customers.city}) ${way} nulls last`, asc(customers.firstName)];
+      case "manager":
+        return [sql`lower(${users.name}) ${way} nulls last`, asc(customers.firstName)];
+      case "status":
+        return [sql`${customers.status} ${way}`, asc(customers.firstName)];
       case "recent":
-        return [desc(customers.createdAt)];
+        return [sql`${customers.createdAt} ${way}`];
       case "last_interaction":
-        return [sql`${customers.lastInteractionAt} desc nulls last`];
+        return [sql`${customers.lastInteractionAt} ${way} nulls last`, asc(customers.firstName)];
       default:
-        return query.q
-          ? [desc(rankExpression(query.q)), asc(customers.firstName)]
-          : [asc(customers.firstName), asc(customers.lastName)];
+        return query.q ? [desc(rankExpression(query.q)), asc(customers.firstName)] : byName;
     }
   })();
 
@@ -315,14 +345,29 @@ export async function searchClientGroups(query: ClientSearchQuery): Promise<{
     min(${customers.firstName})
   ))`;
 
+  /**
+   * A group sorts by the strongest answer any member gives, not by its lead
+   * row: a household is "recently contacted" if anybody in it was. The column
+   * headers are the same ones the flat list offers, so both read the same way.
+   */
   const groupOrder = (() => {
+    const direction = query.dir ?? CLIENT_SORT_DEFAULT_DIRECTION[query.sort];
+    const way = direction === "asc" ? sql`asc` : sql`desc`;
+    const pick = direction === "asc" ? sql`min` : sql`max`;
+
     switch (query.sort) {
       case "recent":
-        return [sql`max(${customers.createdAt}) desc`, groupKey];
+        return [sql`${pick}(${customers.createdAt}) ${way}`, groupKey];
       case "last_interaction":
-        return [sql`max(${customers.lastInteractionAt}) desc nulls last`, groupKey];
+        return [sql`${pick}(${customers.lastInteractionAt}) ${way} nulls last`, groupKey];
+      case "city":
+        return [sql`${pick}(lower(${customers.city})) ${way} nulls last`, groupKey];
+      case "manager":
+        return [sql`${pick}(lower(${users.name})) ${way} nulls last`, groupKey];
+      case "status":
+        return [sql`${pick}(${customers.status}::text) ${way}`, groupKey];
       case "name":
-        return [asc(leadName), groupKey];
+        return [direction === "asc" ? asc(leadName) : desc(leadName), groupKey];
       default:
         return query.q
           ? [sql`max(${rankExpression(query.q)}) desc`, asc(leadName), groupKey]
@@ -336,6 +381,8 @@ export async function searchClientGroups(query: ClientSearchQuery): Promise<{
       .from(customers)
       .leftJoin(households, eq(customers.householdId, households.id))
       .leftJoin(pointedPrimary, eq(pointedPrimary.id, households.primaryCustomerId))
+      // Joined for ordering only: a group can be sorted by its manager.
+      .leftJoin(users, eq(customers.primaryRmId, users.id))
       .where(where)
       .groupBy(groupKey)
       .orderBy(...groupOrder)

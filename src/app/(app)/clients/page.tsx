@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Plus } from "lucide-react";
 import { getActor } from "@/auth/session";
+import type { ClientStatus } from "@/domain/customers";
 import { can } from "@/auth/session";
 import { ClientFilters } from "@/components/clients/client-filters";
 import { ClientTable } from "@/components/clients/client-table";
@@ -53,14 +54,15 @@ export default async function ClientsPage({
     }
   }
 
-  // Sorting is not narrowing. Any other parameter means the reader is looking
+  // Ordering is not narrowing. Any other parameter means the reader is looking
   // for particular people, so their households open to show who matched.
-  const filtering = [...baseQuery.keys()].some((key) => key !== "sort");
+  const ORDERING = new Set(["sort", "dir"]);
+  const filtering = [...baseQuery.keys()].some((key) => !ORDERING.has(key));
 
   const [results, catalogue, staff] = await Promise.all([
     searchClientGroups({
       q: first(params, "q"),
-      status: first(params, "status") as "active" | "inactive" | undefined,
+      status: first(params, "status") as ClientStatus | undefined,
       rmId: first(params, "rm"),
       city: first(params, "city"),
       prefers: all(params, "prefers"),
@@ -70,6 +72,7 @@ export default async function ClientsPage({
         : undefined,
       includeArchived: first(params, "archived") === "1",
       sort: (first(params, "sort") ?? "relevance") as never,
+      dir: first(params, "dir") as "asc" | "desc" | undefined,
       limit,
       offset: (Math.max(page, 1) - 1) * limit,
     }),
@@ -78,6 +81,7 @@ export default async function ClientsPage({
   ]);
 
   const canCreate = actor ? can(actor, "client.create") : false;
+  const canReassign = actor ? can(actor, "client.reassign_rm") : false;
 
   return (
     <>
@@ -118,6 +122,8 @@ export default async function ClientsPage({
             pageSize={limit}
             baseQuery={baseQuery.toString()}
             expandByDefault={filtering}
+            staff={staff}
+            canReassign={canReassign}
           />
         )}
       </div>

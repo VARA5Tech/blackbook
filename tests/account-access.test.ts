@@ -1,12 +1,12 @@
-import { createHash, createHmac, randomUUID } from "node:crypto";
+import { createHmac, randomUUID } from "node:crypto";
 import { eq, sql } from "drizzle-orm";
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { POST as privateAccessLookup } from "@/app/api/private-access/lookup/route";
 import { auth } from "@/auth";
 import { db } from "@/db";
-import { accounts, customers, users, verifications } from "@/db/schema";
+import { accounts, customers, users } from "@/db/schema";
 import {
-  PASSWORD_RESET_CODE_MINUTES,
+  EMAIL_CODE_MINUTES,
   STAFF_DOMAIN_MESSAGE,
   isStaffEmail,
   normaliseStaffEmail,
@@ -16,8 +16,7 @@ import {
 import {
   EMAIL_MONOGRAM_URL,
   EmailNotConfiguredError,
-  escapeHtml,
-  passwordResetEmail,
+  signInCodeEmail,
   sendEmail,
   staffInvitationEmail,
 } from "@/lib/email";
@@ -32,9 +31,7 @@ import {
   updateCustomer,
 } from "@/services/client-service";
 import {
-  acceptInvitation,
   createStaffUser,
-  findInvitationByToken,
   inviteStaff,
   listAllUsers,
   listStaff,
@@ -52,46 +49,30 @@ import { actingAs, resetData, seedStaff, type StaffFixtures } from "./helpers";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
-describe("password reset email", () => {
-  const email = passwordResetEmail({ code: "482913" });
+describe("sign-in code email", () => {
+  const email = signInCodeEmail({ code: "704155" });
 
   it("carries the code in both the HTML and the plain-text versions", () => {
-    expect(email.html).toContain("482913");
-    expect(email.text).toContain("482913");
+    expect(email.html).toContain("704155");
+    expect(email.text).toContain("704155");
   });
 
   it("says how long the code works, matching the auth configuration", () => {
-    expect(email.text).toContain(`${PASSWORD_RESET_CODE_MINUTES} minutes`);
-    expect(email.html).toContain(`${PASSWORD_RESET_CODE_MINUTES} minutes`);
+    expect(email.text).toContain(`${EMAIL_CODE_MINUTES} minutes`);
+    expect(email.html).toContain(`${EMAIL_CODE_MINUTES} minutes`);
   });
 
   /**
-   * An email is opened far from the laptop that sent it, so the monogram comes
-   * from production as a PNG, the one image form every client renders.
+   * A link in a mailbox is a credential a scanner or a preview pane can spend.
+   * A six-digit code is useless without the browser that asked for it.
    */
-  it("loads its monogram as a hosted PNG from production", () => {
-    expect(EMAIL_MONOGRAM_URL).toMatch(/^https:\/\/blackbook\.vara5\.travel\/.+\.png$/);
-    expect(email.html).toContain(`src="${EMAIL_MONOGRAM_URL}"`);
-    expect(email.html).not.toMatch(/<svg|data:image|cid:|localhost/i);
+  it("offers a code and never a link that would sign somebody in", () => {
+    expect(email.html).not.toMatch(/href="https?:\/\/[^"]*(sign-in|invite|token)/i);
+    expect(email.text).not.toMatch(/https?:\/\/\S*(sign-in|invite|token)/i);
   });
 
-  /**
-   * Outlook hides a new sender's images until they are trusted. Until then the
-   * alternative text stands in, styled as a champagne serif B, and the wordmark
-   * below is live text either way.
-   */
-  it("stands a styled B in for the monogram while images are blocked", () => {
-    expect(email.html).toMatch(/<img[^>]*alt="B"[^>]*style="[^"]*font-family:[^"]*color:#E8CFAB/);
-    expect(email.subject).toContain("Blackbook");
-    expect(email.html).toMatch(/>BLACKBOOK<\/div>/);
-  });
-
-  it("escapes anything it interpolates", () => {
-    expect(escapeHtml(`<script>"x" & 'y'</script>`)).toBe(
-      "&lt;script&gt;&quot;x&quot; &amp; &#39;y&#39;&lt;/script&gt;",
-    );
-    const hostile = passwordResetEmail({ code: "<b>1</b>" });
-    expect(hostile.html).not.toContain("<b>1</b>");
+  it("says plainly what it is for", () => {
+    expect(email.subject).toMatch(/sign[- ]in/i);
   });
 });
 
@@ -169,7 +150,6 @@ describe("who can hold an account", () => {
         name: "Outsider",
         email: "outsider@gmail.com",
         role: "rm",
-        password: "a-sufficiently-long-password",
       }),
     ).rejects.toThrow(STAFF_DOMAIN_MESSAGE);
 
@@ -215,148 +195,83 @@ describe("joining by invitation", () => {
     vi.restoreAllMocks();
   });
 
-  /** Runs something that emails an invitation, and reads the link back out. */
-  async function captureLink(send: () => Promise<unknown>): Promise<string> {
-    const printed = vi.spyOn(console, "info").mockImplementation(() => {});
-    vi.spyOn(console, "warn").mockImplementation(() => {});
-    vi.spyOn(console, "log").mockImplementation(() => {});
-
-    let output = "";
-    try {
-      await send();
-      output = printed.mock.calls.map((call) => call.map(String).join(" ")).join("\n");
-    } finally {
-      vi.restoreAllMocks();
-    }
-
-    const token = output.match(/\/invite\/([A-Za-z0-9_-]{43})/)?.[1];
-    if (!token) throw new Error("No invitation link was printed");
-    return token;
-  }
+  
 
   async function invite(local: string) {
-    let result: Awaited<ReturnType<typeof inviteStaff>> | undefined;
-    const token = await captureLink(async () => {
-      result = await inviteStaff({ name: "Priya Nair", email: local, role: "rm" });
-    });
-    return { ...result!, token };
+    return inviteStaff({ name: "Priya Nair", email: local, role: "rm" });
   }
+
 
   const lookUp = (id: string) => db.query.users.findFirst({ where: eq(users.id, id) });
 
-  it("holds an invited colleague as an unverified account with no password until the link is used", async () => {
-    const local = `invitee-${randomUUID()}`;
-    const { id, email, token } = await invite(local);
-    expect(email).toBe(`${local}@vara5.com`);
-
-    expect(await lookUp(id)).toMatchObject({ email, role: "rm", emailVerified: false });
-    expect(await db.query.accounts.findFirst({ where: eq(accounts.userId, id) })).toBeUndefined();
-
-    // On Team with a lapse date, but not offered as a relationship manager.
-    expect((await listAllUsers()).find((user) => user.id === id)?.inviteExpiresAt).toBeInstanceOf(Date);
-    expect((await listStaff()).some((user) => user.id === id)).toBe(false);
-
-    // Only a hash of the token is kept, in Better Auth's own table.
-    const [stored] = await db.select().from(verifications).where(eq(verifications.value, id));
-    expect(stored.identifier).toBe(
-      `staff-invite:${createHash("sha256").update(token).digest("hex")}`,
-    );
-
-    expect(await findInvitationByToken(token)).toEqual({ name: "Priya Nair", email });
-
-    actingAs(null);
-    await acceptInvitation({ token, password: "chosen-by-the-colleague" });
-
-    expect(await lookUp(id)).toMatchObject({ emailVerified: true });
-    const credential = await db.query.accounts.findFirst({ where: eq(accounts.userId, id) });
-    const context = await auth.$context;
-    expect(
-      await context.password.verify({
-        hash: credential!.password!,
-        password: "chosen-by-the-colleague",
-      }),
-    ).toBe(true);
-
-    actingAs(staff.admin);
-    expect((await listAllUsers()).find((user) => user.id === id)?.inviteExpiresAt).toBeNull();
-    expect((await listStaff()).some((user) => user.id === id)).toBe(true);
-
-    // One use only.
-    expect(await findInvitationByToken(token)).toBeNull();
-    await expect(
-      acceptInvitation({ token, password: "someone-elses-password" }),
-    ).rejects.toThrow(DomainError);
-  });
-
-  it("refuses a link past its expiry", async () => {
-    const { id, token } = await invite(`late-${randomUUID()}`);
-    await db
-      .update(verifications)
-      .set({ expiresAt: new Date(Date.now() - 1000) })
-      .where(eq(verifications.value, id));
-
-    actingAs(null);
-    await expect(
-      acceptInvitation({ token, password: "chosen-by-the-colleague" }),
-    ).rejects.toThrow(DomainError);
-    expect(await db.query.accounts.findFirst({ where: eq(accounts.userId, id) })).toBeUndefined();
-  });
-
-  it("deletes an invited account nobody set up within two days, and nothing else", async () => {
+  /**
+   * The signal is `emailVerified`, and it is the only one left: nobody has a
+   * password to hold an account open. An invitation nobody uses lapses; an
+   * account somebody has signed in to has proved its address and stays.
+   */
+  it("deletes an invited account nobody used within two days, and nothing else", async () => {
     const stale = await invite(`stale-${randomUUID()}`);
     const fresh = await invite(`fresh-${randomUUID()}`);
     const established = await createStaffUser({
       name: "Established",
       email: `established-${randomUUID()}`,
-      role: "viewer",
-      password: "a-sufficiently-long-password",
+      role: "rm",
     });
 
     const threeDaysAgo = new Date(Date.now() - 3 * DAY_MS);
     await db.update(users).set({ createdAt: threeDaysAgo }).where(eq(users.id, stale.id));
-    // Old and unverified, but it has a password, so it is a real account.
+    // Just as old, but this one has signed in, which is what verified it.
     await db
       .update(users)
-      .set({ createdAt: threeDaysAgo, emailVerified: false })
+      .set({ createdAt: threeDaysAgo })
       .where(eq(users.id, established.id));
 
     await purgeExpiredInvitations();
 
     expect(await lookUp(stale.id)).toBeUndefined();
-    expect(await db.select().from(verifications).where(eq(verifications.value, stale.id))).toHaveLength(0);
-    expect(await findInvitationByToken(stale.token)).toBeNull();
     expect(await lookUp(fresh.id)).toBeDefined();
     expect(await lookUp(established.id)).toBeDefined();
   });
 
-  it("sends a new link and restarts the two days when sent again", async () => {
-    const first = await invite(`twice-${randomUUID()}`);
-    const oneDayAgo = new Date(Date.now() - DAY_MS);
-    await db.update(users).set({ createdAt: oneDayAgo }).where(eq(users.id, first.id));
+  /**
+   * An invitation is now only an account nobody has used yet: no link, no
+   * token, nothing to set up. Team has to be able to tell that state apart, or
+   * an administrator cannot see who has actually arrived.
+   */
+  it("shows an invited colleague as invited, with nothing to sign in with", async () => {
+    const { id, email } = await invite(`pending-${randomUUID()}`);
 
-    const secondToken = await captureLink(() => resendInvitation(first.id));
+    const row = await lookUp(id);
+    expect(row?.emailVerified).toBe(false);
 
-    expect(await findInvitationByToken(first.token)).toBeNull();
-    expect(await findInvitationByToken(secondToken)).toMatchObject({ email: first.email });
-    expect((await lookUp(first.id))!.createdAt.getTime()).toBeGreaterThan(oneDayAgo.getTime());
+    const credentials = await db
+      .select()
+      .from(accounts)
+      .where(eq(accounts.userId, id));
+    expect(credentials).toHaveLength(0);
+
+    const listed = (await listAllUsers()).find((user) => user.email === email);
+    expect(listed?.inviteExpiresAt).toBeInstanceOf(Date);
+
+    // Not yet somebody a client can be assigned to.
+    expect((await listStaff()).some((member) => member.id === id)).toBe(false);
+  });
+
+  it("restarts the window when the invitation is sent again", async () => {
+    const { id } = await invite(`resent-${randomUUID()}`);
+    const threeDaysAgo = new Date(Date.now() - 3 * DAY_MS);
+    await db.update(users).set({ createdAt: threeDaysAgo }).where(eq(users.id, id));
+
+    await resendInvitation(id);
+    await purgeExpiredInvitations();
+
+    expect(await lookUp(id)).toBeDefined();
   });
 
   it("deletes the invited account when withdrawn", async () => {
-    const { id, token } = await invite(`withdrawn-${randomUUID()}`);
+    const { id } = await invite(`withdrawn-${randomUUID()}`);
     await revokeInvitation(id);
     expect(await lookUp(id)).toBeUndefined();
-    expect(await findInvitationByToken(token)).toBeNull();
-  });
-
-  it("never withdraws an account that has a password", async () => {
-    const { id } = await createStaffUser({
-      name: "Real Colleague",
-      email: `real-${randomUUID()}`,
-      role: "viewer",
-      password: "a-sufficiently-long-password",
-    });
-    await expect(revokeInvitation(id)).rejects.toThrow(DomainError);
-    expect(await lookUp(id)).toBeDefined();
   });
 
   it("will not invite an address that already has an account or an open invitation", async () => {
@@ -364,8 +279,7 @@ describe("joining by invitation", () => {
     await createStaffUser({
       name: "Existing",
       email,
-      role: "viewer",
-      password: "a-sufficiently-long-password",
+      role: "rm",
     });
     await expect(inviteStaff({ name: "Existing", email, role: "rm" })).rejects.toThrow(DomainError);
 
@@ -375,20 +289,15 @@ describe("joining by invitation", () => {
     ).rejects.toThrow(DomainError);
   });
 
-  it("ignores anything that is not a well-formed token", async () => {
-    expect(await findInvitationByToken("not-a-token")).toBeNull();
-    expect(await findInvitationByToken("x".repeat(43))).toBeNull();
-  });
-
   it("writes an invitation email that names the role, the lapse and escapes the name", () => {
     const message = staffInvitationEmail({
       name: "<b>Priya</b> Nair",
       invitedBy: "Sudhansu",
       roleLabel: "Relationship Manager",
-      link: "https://blackbook.vara5.travel/invite/abc",
+      signInUrl: "https://blackbook.vara5.travel/sign-in",
     });
-    expect(message.html).toContain("https://blackbook.vara5.travel/invite/abc");
-    expect(message.text).toContain("https://blackbook.vara5.travel/invite/abc");
+    expect(message.html).toContain("https://blackbook.vara5.travel/sign-in");
+    expect(message.text).toContain("https://blackbook.vara5.travel/sign-in");
     expect(message.text).toContain("Relationship Manager");
     expect(message.text).toContain("2 days");
     expect(message.html).not.toContain("<b>Priya</b>");

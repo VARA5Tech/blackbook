@@ -12,9 +12,11 @@ import {
   closeClientReplay,
   getClientActivity,
   openClientReplay,
+  reassignClients,
   restoreCustomer,
   updateClientDna,
   updateCustomer,
+  type ReassignInput,
 } from "@/services/client-service";
 import { run } from "./action-result";
 
@@ -84,4 +86,21 @@ export async function restoreClientAction(customerId: string) {
     revalidatePath("/clients");
   }
   return result.ok ? { ok: true as const, data: undefined } : result;
+}
+
+/**
+ * Moves the selected clients to one relationship manager.
+ *
+ * Revalidates the list and each record it touched, so the rows the reader is
+ * looking at show the new manager rather than the one they just changed.
+ */
+export async function reassignClientsAction(input: ReassignInput) {
+  const result = await run(() => reassignClients(input));
+
+  if (result.ok) {
+    revalidatePath("/clients");
+    for (const id of input.customerIds) revalidatePath(`/clients/${id}`);
+  }
+
+  return result;
 }

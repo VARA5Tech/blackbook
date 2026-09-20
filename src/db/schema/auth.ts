@@ -80,6 +80,11 @@ export const accounts = pgTable(
     }),
     scope: text("scope"),
     idToken: text("id_token"),
+    /**
+     * Never written. Better Auth's adapter expects the column on the account
+     * table, so it stays and stays empty: signing in is an emailed code and the
+     * credential provider is switched off.
+     */
     password: text("password"),
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()

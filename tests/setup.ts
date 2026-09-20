@@ -26,6 +26,19 @@ process.env.BETTER_AUTH_SECRET ??= "test-secret-not-used-for-signing-anything";
 process.env.RESEND_API_KEY = "";
 
 /**
+ * Never reach PostHog from a test run either, for the same reason and one more.
+ *
+ * `.env.local` holds a real personal API key that reads the whole project, so a
+ * test touching a replay or the members' screen would query live data, spend
+ * quota against a rate limit the application shares, and answer differently
+ * depending on what clients happened to be browsing that day. Unset, every one
+ * of those reads takes its documented "not configured" path, which is the one
+ * worth asserting anyway.
+ */
+process.env.POSTHOG_API_KEY = "";
+process.env.POSTHOG_PROJECT_ID = "";
+
+/**
  * The runtime resolver is the thing that actually decides, so assert against it
  * rather than against what we just set. If a future change alters that
  * precedence, the suite stops here instead of silently truncating real data.

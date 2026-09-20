@@ -20,11 +20,10 @@ export default function proxy(request: NextRequest) {
   const hasSession = Boolean(getSessionCookie(request));
   const { pathname, search } = request.nextUrl;
   const isSignIn = pathname.startsWith("/sign-in");
-  // Reachable signed out, because they exist for people who cannot sign in yet.
+  // The only page reachable signed out. There is nothing else to reach: an
+  // account is created by an administrator and entered with an emailed code.
   const isPublic =
-    isSignIn ||
-    pathname.startsWith("/forgot-password") ||
-    pathname.startsWith("/invite/");
+isSignIn;
 
   if (!hasSession && !isPublic) {
     const url = new URL("/sign-in", request.url);
