@@ -4,7 +4,6 @@ import { z } from "zod";
 import { requireCapability } from "@/auth/session";
 import { db } from "@/db";
 import {
-  customerPreferenceProfile,
   customerPreferences,
   customers,
   preferenceOptions,
@@ -253,17 +252,17 @@ export async function updatePreferenceProfile(input: PreferenceProfileInput) {
   if (Object.keys(values).length === 0) return;
 
   await db.transaction(async (tx) => {
-    await tx
-      .insert(customerPreferenceProfile)
-      .values({ customerId, ...values, updatedBy: actor.id })
-      .onConflictDoUpdate({
-        target: customerPreferenceProfile.customerId,
-        set: { ...values, updatedAt: new Date(), updatedBy: actor.id },
-      });
-
+    // One write. These were two tables and therefore an upsert followed by a
+    // touch of the client row; they are one row now.
     await tx
       .update(customers)
-      .set({ profileUpdatedAt: new Date(), updatedBy: actor.id })
+      .set({
+        ...values,
+        preferencesUpdatedAt: new Date(),
+        preferencesUpdatedBy: actor.id,
+        profileUpdatedAt: new Date(),
+        updatedBy: actor.id,
+      })
       .where(eq(customers.id, customerId));
 
     await logActivity(

@@ -19,8 +19,6 @@ import {
 import {
   accounts,
   activityLog,
-  clientDirectives,
-  customerPreferenceProfile,
   customerPreferences,
   customers,
   households,
@@ -187,8 +185,9 @@ async function seedDemoHousehold(rmId: string, actorId: string) {
     .set({ primaryCustomerId: rishabh.id })
     .where(eq(households.id, household.id));
 
-  await db.insert(customerPreferenceProfile).values({
-    customerId: rishabh.id,
+  await db
+    .update(customers)
+    .set({
     travelTypicalTripNights: 7,
     travelParty: "couple",
     travelFrequency: "three_to_four_per_year",
@@ -203,8 +202,9 @@ async function seedDemoHousehold(rmId: string, actorId: string) {
     diningFineDining: "essential",
     diningNotes: "Books omakase wherever available.",
     lifestyleExperienceStyle: "private_bespoke",
-    updatedBy: actorId,
-  });
+    preferencesUpdatedBy: actorId,
+    })
+    .where(eq(customers.id, rishabh.id));
 
   await db.insert(customerPreferences).values([
     { customerId: rishabh.id, optionId: opt("destination", "japan"), polarity: "prefer" as const, rank: 0 },
@@ -233,14 +233,21 @@ async function seedDemoHousehold(rmId: string, actorId: string) {
     { customerId: aarav.id, optionId: opt("activity", "scuba_diving"), polarity: "wishlist" as const },
   ]);
 
-  await db.insert(clientDirectives).values([
-    { customerId: rishabh.id, kind: "do" as const, body: "Boutique properties under 60 keys", sortOrder: 0 },
-    { customerId: rishabh.id, kind: "do" as const, body: "Direct flights only on long-haul", sortOrder: 1 },
-    { customerId: rishabh.id, kind: "do" as const, body: "Confirm everything on WhatsApp", sortOrder: 2 },
-    { customerId: rishabh.id, kind: "dont" as const, body: "Large resorts or convention hotels", sortOrder: 0 },
-    { customerId: rishabh.id, kind: "dont" as const, body: "Departures before 9am", sortOrder: 1 },
-    { customerId: rishabh.id, kind: "dont" as const, body: "Group tours or shared transfers", sortOrder: 2 },
-  ]);
+  await db
+    .update(customers)
+    .set({
+      dos: [
+        "Boutique properties under 60 keys",
+        "Direct flights only on long-haul",
+        "Confirm everything on WhatsApp",
+      ],
+      donts: [
+        "Large resorts or convention hotels",
+        "Departures before 9am",
+        "Group tours or shared transfers",
+      ],
+    })
+    .where(eq(customers.id, rishabh.id));
 
   await db.insert(milestones).values([
     { customerId: rishabh.id, type: "birthday" as const, title: "Rishabh's birthday", date: "1982-04-18", createdBy: actorId },

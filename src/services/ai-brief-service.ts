@@ -74,12 +74,9 @@ function renderRecord(record: NonNullable<Awaited<ReturnType<typeof getClient360
     lines.push("", `Client DNA: ${customer.clientDna}`);
   }
 
-  const dos = record.directives.filter((d) => d.kind === "do");
-  const donts = record.directives.filter((d) => d.kind === "dont");
-  if (dos.length > 0)
-    lines.push(`DO: ${dos.map((d) => d.body).join("; ")}`);
-  if (donts.length > 0)
-    lines.push(`DON'T: ${donts.map((d) => d.body).join("; ")}`);
+  if (customer.dos.length > 0) lines.push(`DO: ${customer.dos.join("; ")}`);
+  if (customer.donts.length > 0)
+    lines.push(`DON'T: ${customer.donts.join("; ")}`);
 
   if (record.preferences.length > 0) {
     lines.push("", "Preferences:");

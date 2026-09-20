@@ -16,9 +16,7 @@ export async function resetData(): Promise<void> {
   await sql.unsafe(`
     truncate table
       activity_log,
-      client_directive,
       customer_preference,
-      customer_preference_profile,
       interaction,
       milestone,
       task,

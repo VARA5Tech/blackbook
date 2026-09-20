@@ -8,9 +8,9 @@ import { alias } from "drizzle-orm/pg-core";
 import { db } from "@/db";
 import {
   activityLog,
-  clientDirectives,
   clientInterests,
-  customerPreferenceProfile,
+  PREFERENCE_PROFILE_FIELDS,
+  type CustomerPreferenceProfile,
   customerPreferences,
   customers,
   households,
@@ -575,20 +575,12 @@ export async function loadClient360(customerId: string) {
   const record = customer[0];
 
   const [
-    directives,
     preferences,
-    profile,
     householdMembers,
     clientMilestones,
     recentInteractions,
     timeline,
   ] = await Promise.all([
-    db
-      .select()
-      .from(clientDirectives)
-      .where(eq(clientDirectives.customerId, customerId))
-      .orderBy(asc(clientDirectives.kind), asc(clientDirectives.sortOrder)),
-
     db
       .select({
         id: customerPreferences.id,
@@ -609,10 +601,6 @@ export async function loadClient360(customerId: string) {
       )
       .where(eq(customerPreferences.customerId, customerId))
       .orderBy(asc(customerPreferences.rank), asc(preferenceOptions.label)),
-
-    db.query.customerPreferenceProfile.findFirst({
-      where: eq(customerPreferenceProfile.customerId, customerId),
-    }),
 
     record.household
       ? db
@@ -704,9 +692,18 @@ export async function loadClient360(customerId: string) {
     customer: record.customer,
     household: record.household,
     rm: record.rm,
-    directives,
     preferences,
-    profile: profile ?? null,
+    /*
+     * Assembled from the client row rather than fetched.
+     *
+     * These are columns on `customer` now, so there is no query and no null
+     * case: a client always has a profile, which is what the eagerly-created
+     * row used to be for. The screens still receive the grouping they are
+     * built around.
+     */
+    profile: Object.fromEntries(
+      PREFERENCE_PROFILE_FIELDS.map((field) => [field, record.customer[field]]),
+    ) as CustomerPreferenceProfile,
     householdMembers,
     milestones: clientMilestones,
     interactions: recentInteractions,

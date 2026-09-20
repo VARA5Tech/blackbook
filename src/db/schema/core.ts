@@ -13,11 +13,19 @@ import {
 } from "drizzle-orm/pg-core";
 import { users } from "./auth";
 import {
+  bookingLeadTimeEnum,
+  budgetRangeEnum,
+  cabinClassEnum,
   clientStatusEnum,
-  directiveKindEnum,
+  dietaryPreferenceEnum,
+  directFlightPreferenceEnum,
+  experienceStyleEnum,
+  fineDiningPreferenceEnum,
   genderEnum,
   householdRoleEnum,
   householdTravelPatternEnum,
+  travelFrequencyEnum,
+  travellingPartyEnum,
 } from "./enums";
 
 /**
@@ -181,6 +189,17 @@ export const customers = pgTable(
     clientDna: text("client_dna"),
 
     /**
+     * Must-dos and deal-breakers, in the order the desk wrote them.
+     *
+     * Arrays rather than rows: they are only ever read for one client, only
+     * ever written all at once, and the position in the array is the running
+     * order the editor already sends. A table bought nothing for that and cost
+     * a join, an enum and a sort column.
+     */
+    dos: text("dos").array().notNull().default(sql`'{}'`),
+    donts: text("donts").array().notNull().default(sql`'{}'`),
+
+    /**
      * Anything that fits nowhere else: a note from a call, a caution, a standing
      * arrangement. Client DNA is the narrative of who they are and the section
      * notes are about travel; this is the catch-all the desk asked for, edited
@@ -192,6 +211,55 @@ export const customers = pgTable(
     lastInteractionAt: timestamp("last_interaction_at", { withTimezone: true }),
     /** Distinct from updatedAt: only bumped by meaningful profile edits. */
     profileUpdatedAt: timestamp("profile_updated_at", { withTimezone: true }),
+
+    /* ---------------------------------------------------------------- */
+    /* Preference profile                                                 */
+    /* ---------------------------------------------------------------- */
+
+    /**
+     * The single-valued half of a client's preferences.
+     *
+     * These were a table of their own, one row per client, created eagerly so
+     * that every edit could be an update rather than an upsert. A row that is
+     * always present, never repeats and carries no fields of its own is a set
+     * of columns; keeping it apart cost a join on the screen that reads it and
+     * a second write on every save. The plural half — destinations, hotels,
+     * airlines, memberships — stays in `customer_preference`, because each of
+     * those rows points at a catalogue option and carries a polarity, a note
+     * and a rank, and because "who avoids large resorts" is a real query.
+     */
+    travelTypicalTripNights: integer("travel_typical_trip_nights"),
+    travelParty: travellingPartyEnum("travel_party"),
+    travelFrequency: travelFrequencyEnum("travel_frequency"),
+    travelBudgetRange: budgetRangeEnum("travel_budget_range"),
+    travelBookingLeadTime: bookingLeadTimeEnum("travel_booking_lead_time"),
+    travelNotes: text("travel_notes"),
+    hotelNotes: text("hotel_notes"),
+    flightCabin: cabinClassEnum("flight_cabin"),
+    flightDirectPreference: directFlightPreferenceEnum(
+      "flight_direct_preference",
+    ),
+    flightNotes: text("flight_notes"),
+    diningDietary: dietaryPreferenceEnum("dining_dietary"),
+    diningFineDining: fineDiningPreferenceEnum("dining_fine_dining"),
+    diningNotes: text("dining_notes"),
+    lifestyleExperienceStyle: experienceStyleEnum("lifestyle_experience_style"),
+    lifestyleNotes: text("lifestyle_notes"),
+
+    /**
+     * Kept distinct from `profileUpdatedAt`, which also moves when the Client
+     * DNA narrative is saved. On the day these merged they already disagreed
+     * on 29 of 39 clients, so they are two facts, not one written twice.
+     */
+    preferencesUpdatedAt: timestamp("preferences_updated_at", {
+      withTimezone: true,
+    })
+      .notNull()
+      .defaultNow(),
+    preferencesUpdatedBy: text("preferences_updated_by").references(
+      () => users.id,
+      { onDelete: "set null" },
+    ),
 
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
@@ -227,31 +295,6 @@ export const customers = pgTable(
 );
 
 /* ------------------------------------------------------------------ */
-/* DO and DON'T directives                                             */
-/* ------------------------------------------------------------------ */
-
-/**
- * Deal-breakers and must-dos, kept as rows so the Client 360 screen can render
- * them as two ordered lists and so they stay searchable.
- */
-export const clientDirectives = pgTable(
-  "client_directive",
-  {
-    id: uuid("id").primaryKey().default(sql`vara5_uuid_v7()`),
-    customerId: uuid("customer_id")
-      .notNull()
-      .references(() => customers.id, { onDelete: "cascade" }),
-    kind: directiveKindEnum("kind").notNull(),
-    body: text("body").notNull(),
-    sortOrder: integer("sort_order").notNull().default(0),
-    createdAt: timestamp("created_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
-  },
-  (t) => [index("client_directive_customer_idx").on(t.customerId, t.kind)],
-);
-
-/* ------------------------------------------------------------------ */
 /* Relations                                                           */
 /* ------------------------------------------------------------------ */
 
@@ -264,7 +307,7 @@ export const householdRelations = relations(households, ({ one, many }) => ({
   members: many(customers, { relationName: "household_members" }),
 }));
 
-export const customerRelations = relations(customers, ({ one, many }) => ({
+export const customerRelations = relations(customers, ({ one }) => ({
   household: one(households, {
     fields: [customers.householdId],
     references: [households.id],
@@ -274,19 +317,7 @@ export const customerRelations = relations(customers, ({ one, many }) => ({
     fields: [customers.primaryRmId],
     references: [users.id],
   }),
-  directives: many(clientDirectives),
 }));
-
-export const clientDirectiveRelations = relations(
-  clientDirectives,
-  ({ one }) => ({
-    customer: one(customers, {
-      fields: [clientDirectives.customerId],
-      references: [customers.id],
-    }),
-  }),
-);
 
 export type Household = typeof households.$inferSelect;
 export type Customer = typeof customers.$inferSelect;
-export type ClientDirective = typeof clientDirectives.$inferSelect;

@@ -10,20 +10,8 @@ import {
   uuid,
 } from "drizzle-orm/pg-core";
 import { users } from "./auth";
-import { customers } from "./core";
-import {
-  bookingLeadTimeEnum,
-  budgetRangeEnum,
-  cabinClassEnum,
-  dietaryPreferenceEnum,
-  directFlightPreferenceEnum,
-  experienceStyleEnum,
-  fineDiningPreferenceEnum,
-  preferenceKindEnum,
-  preferencePolarityEnum,
-  travelFrequencyEnum,
-  travellingPartyEnum,
-} from "./enums";
+import { customers, type Customer } from "./core";
+import { preferenceKindEnum, preferencePolarityEnum } from "./enums";
 
 /* ------------------------------------------------------------------ */
 /* Preference catalogue                                                */
@@ -122,67 +110,6 @@ export const customerPreferences = pgTable(
 /* Scalar preference profile                                           */
 /* ------------------------------------------------------------------ */
 
-/**
- * One row per client holding every genuinely single-valued preference plus the
- * per-section free-text notes from the requirements document.
- *
- * Kept out of the customer table so identity stays narrow, and kept as one
- * table rather than five so Client 360 needs one join, not five.
- */
-export const customerPreferenceProfile = pgTable(
-  "customer_preference_profile",
-  {
-    customerId: uuid("customer_id")
-      .primaryKey()
-      .references(() => customers.id, { onDelete: "cascade" }),
-
-    /* travel behaviour */
-    travelTypicalTripNights: integer("travel_typical_trip_nights"),
-    travelParty: travellingPartyEnum("travel_party"),
-    travelFrequency: travelFrequencyEnum("travel_frequency"),
-    travelBudgetRange: budgetRangeEnum("travel_budget_range"),
-    travelBookingLeadTime: bookingLeadTimeEnum("travel_booking_lead_time"),
-    travelNotes: text("travel_notes"),
-
-    /* hotels */
-    hotelNotes: text("hotel_notes"),
-
-    /* flights */
-    flightCabin: cabinClassEnum("flight_cabin"),
-    flightDirectPreference: directFlightPreferenceEnum(
-      "flight_direct_preference",
-    ),
-    flightNotes: text("flight_notes"),
-
-    /* dining */
-    diningDietary: dietaryPreferenceEnum("dining_dietary"),
-    diningFineDining: fineDiningPreferenceEnum("dining_fine_dining"),
-    diningNotes: text("dining_notes"),
-
-    /* lifestyle */
-    lifestyleExperienceStyle: experienceStyleEnum("lifestyle_experience_style"),
-    lifestyleNotes: text("lifestyle_notes"),
-
-    updatedAt: timestamp("updated_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
-    updatedBy: text("updated_by").references(() => users.id, {
-      onDelete: "set null",
-    }),
-  },
-);
-
-/* ------------------------------------------------------------------ */
-/* Relations                                                           */
-/* ------------------------------------------------------------------ */
-
-export const preferenceOptionRelations = relations(
-  preferenceOptions,
-  ({ many }) => ({
-    customerPreferences: many(customerPreferences),
-  }),
-);
-
 export const customerPreferenceRelations = relations(
   customerPreferences,
   ({ one }) => ({
@@ -197,17 +124,36 @@ export const customerPreferenceRelations = relations(
   }),
 );
 
-export const customerPreferenceProfileRelations = relations(
-  customerPreferenceProfile,
-  ({ one }) => ({
-    customer: one(customers, {
-      fields: [customerPreferenceProfile.customerId],
-      references: [customers.id],
-    }),
-  }),
-);
-
 export type PreferenceOption = typeof preferenceOptions.$inferSelect;
 export type CustomerPreference = typeof customerPreferences.$inferSelect;
-export type CustomerPreferenceProfile =
-  typeof customerPreferenceProfile.$inferSelect;
+/**
+ * The single-valued preferences, now columns on `customer`.
+ *
+ * Named separately because the editor and the Client 360 sections are built
+ * around this grouping: the storage moved onto the client row, the shape the
+ * screens read did not.
+ */
+export const PREFERENCE_PROFILE_FIELDS = [
+  "travelTypicalTripNights",
+  "travelParty",
+  "travelFrequency",
+  "travelBudgetRange",
+  "travelBookingLeadTime",
+  "travelNotes",
+  "hotelNotes",
+  "flightCabin",
+  "flightDirectPreference",
+  "flightNotes",
+  "diningDietary",
+  "diningFineDining",
+  "diningNotes",
+  "lifestyleExperienceStyle",
+  "lifestyleNotes",
+  "preferencesUpdatedAt",
+  "preferencesUpdatedBy",
+] as const satisfies readonly (keyof Customer)[];
+
+export type CustomerPreferenceProfile = Pick<
+  Customer,
+  (typeof PREFERENCE_PROFILE_FIELDS)[number]
+>;

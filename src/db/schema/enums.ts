@@ -81,8 +81,6 @@ export const interactionTypeEnum = pgEnum("interaction_type", [
   "other",
 ]);
 
-export const directiveKindEnum = pgEnum("directive_kind", ["do", "dont"]);
-
 export const taskStatusEnum = pgEnum("task_status", [
   "open",
   "in_progress",

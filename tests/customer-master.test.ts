@@ -3,7 +3,7 @@ import { ZodError } from "zod";
 import { beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { db } from "@/db";
 import { uuidv7 } from "@/domain/shared";
-import { activityLog, customerPreferenceProfile, customers } from "@/db/schema";
+import { activityLog, customers } from "@/db/schema";
 import {
   CLIENT_SORT_DEFAULT_DIRECTION,
   executiveAssistantFor,
@@ -264,15 +264,22 @@ describe("customer master", () => {
       expect(created.dateOfBirth).toBeNull();
     });
 
-    it("opens a preference profile row with the client", async () => {
+    /**
+     * There is no profile row to open any more: the single-valued preferences
+     * are columns on the client, so a new client has an empty profile by
+     * existing. The test still asserts the thing that mattered, which is that
+     * the Client 360 read gives the screens a profile without one being made.
+     */
+    it("gives a new client an empty preference profile, with no row to create", async () => {
       const created = await createCustomer({
         firstName: "Profiled",
         customerSince: "2026-01-01",
       });
-      const profile = await db.query.customerPreferenceProfile.findFirst({
-        where: eq(customerPreferenceProfile.customerId, created.id),
-      });
-      expect(profile).toBeDefined();
+
+      const record = await getClient360(created.id);
+      expect(record?.profile).toBeDefined();
+      expect(record?.profile.flightCabin).toBeNull();
+      expect(record?.profile.travelNotes).toBeNull();
     });
   });
 

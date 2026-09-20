@@ -8,7 +8,6 @@ import { Section } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import type { ClientDirective } from "@/db/schema";
 
 /**
  * The "Know Me" section. Given the most visual weight on the screen because it
@@ -18,23 +17,18 @@ import type { ClientDirective } from "@/db/schema";
 export function ClientDnaPanel({
   customerId,
   clientDna,
-  directives,
+  dos: initialDos,
+  donts: initialDonts,
   canEdit,
 }: {
   customerId: string;
   clientDna: string | null;
-  directives: ClientDirective[];
+  dos: string[];
+  donts: string[];
   canEdit: boolean;
 }) {
   const [editing, setEditing] = useState(false);
   const [pending, startTransition] = useTransition();
-
-  const initialDos = directives
-    .filter((directive) => directive.kind === "do")
-    .map((directive) => directive.body);
-  const initialDonts = directives
-    .filter((directive) => directive.kind === "dont")
-    .map((directive) => directive.body);
 
   const [dna, setDna] = useState(clientDna ?? "");
   const [dos, setDos] = useState<string[]>(initialDos);

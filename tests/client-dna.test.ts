@@ -36,10 +36,9 @@ describe("client DNA", () => {
   }
 
   function directives(record: Awaited<ReturnType<typeof getClient360>>) {
-    const rows = record?.directives ?? [];
     return {
-      dos: rows.filter((d) => d.kind === "do").map((d) => d.body),
-      donts: rows.filter((d) => d.kind === "dont").map((d) => d.body),
+      dos: record?.customer.dos ?? [],
+      donts: record?.customer.donts ?? [],
     };
   }
 

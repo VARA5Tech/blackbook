@@ -180,7 +180,8 @@ export function Client360View({
               <ClientDnaPanel
                 customerId={customer.id}
                 clientDna={customer.clientDna}
-                directives={record.directives}
+                dos={record.customer.dos}
+                donts={record.customer.donts}
                 canEdit={permissions.canEdit}
               />
 

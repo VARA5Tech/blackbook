@@ -4,9 +4,7 @@ import { z } from "zod";
 import { db } from "@/db";
 import {
   activityLog,
-  clientDirectives,
   clientInterests,
-  customerPreferenceProfile,
   customers,
   households,
   users,
@@ -384,13 +382,6 @@ export async function createCustomer(input: CreateCustomerInput) {
       })
       .returning();
 
-    // Every client gets a preference profile row so later edits are updates,
-    // never "insert or update" branching in the UI.
-    await tx
-      .insert(customerPreferenceProfile)
-      .values({ customerId: created.id, updatedBy: actor.id })
-      .onConflictDoNothing();
-
     await logActivity(
       {
         actor,
@@ -474,33 +465,15 @@ export async function updateClientDna(input: ClientDnaInput) {
       .update(customers)
       .set({
         clientDna: data.clientDna,
+        // The editor re-sends both lists whole, so they are written whole and
+        // the position in the array is the running order on screen.
+        dos: data.dos,
+        donts: data.donts,
         updatedAt: new Date(),
         updatedBy: actor.id,
         profileUpdatedAt: new Date(),
       })
       .where(eq(customers.id, data.customerId));
-
-    // The lists are small and fully re-sent by the editor, so replacing them
-    // is simpler and more predictable than diffing individual rows.
-    await tx
-      .delete(clientDirectives)
-      .where(eq(clientDirectives.customerId, data.customerId));
-
-    const rows = [
-      ...data.dos.map((body, index) => ({
-        customerId: data.customerId,
-        kind: "do" as const,
-        body,
-        sortOrder: index,
-      })),
-      ...data.donts.map((body, index) => ({
-        customerId: data.customerId,
-        kind: "dont" as const,
-        body,
-        sortOrder: index,
-      })),
-    ];
-    if (rows.length > 0) await tx.insert(clientDirectives).values(rows);
 
     await logActivity(
       {
