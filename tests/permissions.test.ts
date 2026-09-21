@@ -632,15 +632,40 @@ describe("role-based access", () => {
 describe("shut out of the Supabase API", () => {
   it("has row-level security switched on for every table", async () => {
     const unprotected = await sql<{ name: string }[]>`
-      select c.relname as name
+      select n.nspname || '.' || c.relname as name
       from pg_class c
       join pg_namespace n on n.oid = c.relnamespace
-      where n.nspname = 'public'
+      where n.nspname in ('public', 'identity')
         and c.relkind = 'r'
         and not c.relrowsecurity
       order by 1
     `;
     expect(unprotected.map((row) => row.name)).toEqual([]);
+  });
+
+  /**
+   * Better Auth's tables sit in their own schema so that public holds business
+   * tables only, and that schema is closed to everyone but the owner.
+   */
+  it("keeps the sign-in tables out of public, in a schema nobody else can enter", async () => {
+    const tables = await sql<{ schema: string; name: string }[]>`
+      select n.nspname as schema, c.relname as name
+      from pg_class c
+      join pg_namespace n on n.oid = c.relnamespace
+      where c.relkind = 'r' and left(c.relname, 4) = 'app_'
+      order by 2
+    `;
+    expect(tables).toEqual([
+      { schema: "identity", name: "app_account" },
+      { schema: "identity", name: "app_session" },
+      { schema: "identity", name: "app_user" },
+      { schema: "identity", name: "app_verification" },
+    ]);
+
+    const [grant] = await sql<{ usable: boolean }[]>`
+      select has_schema_privilege('public', 'identity', 'usage') as usable
+    `;
+    expect(grant.usable).toBe(false);
   });
 
   it("does not let PUBLIC call any of Blackbook's database functions", async () => {

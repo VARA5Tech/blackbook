@@ -113,6 +113,13 @@
       "when": 1789928091850,
       "tag": "0015_preference_profile_onto_customer",
       "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "7",
+      "when": 1790013228338,
+      "tag": "0016_auth_into_identity_schema",
+      "breakpoints": true
     }
   ]
 }

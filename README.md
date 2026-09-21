@@ -154,7 +154,7 @@ Asking for a code says the same thing whether or not the address has an account
 the form cannot be used to find out who works here.
 
 **First administrator.** A new instance has no account to create others from,
-so the first row is inserted by hand: an `app_user` with the address, a role of
+so the first row is inserted by hand: an `identity.app_user` with the address, a role of
 `admin`, and `email_verified` true. Nothing else is needed, because there is no
 password to set.
 
@@ -350,6 +350,11 @@ which bypasses RLS, so none of it is visible to the app.
 Verified against the live database: every table is owned by `postgres`, which
 holds `BYPASSRLS`, and the anon key gets `42501 permission denied`. A new table
 must do the same in its own migration.
+
+Better Auth's four tables are not in `public` at all. Migration 0016 moved them
+into their own `identity` schema, which grants nothing to `PUBLIC`, `anon` or
+`authenticated`, so the API cannot even see them, and `public` is left holding
+business tables only.
 
 Functions need the same care. A function in `public` is executable by `PUBLIC`,
 which makes it callable at `/rest/v1/rpc` with the anon key, and revoking from

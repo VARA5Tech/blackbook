@@ -1,7 +1,7 @@
 import {
   boolean,
   index,
-  pgTable,
+  pgSchema,
   text,
   timestamp,
 } from "drizzle-orm/pg-core";
@@ -12,9 +12,17 @@ import { userRoleEnum } from "./enums";
  *
  * The TypeScript property names must match Better Auth's field names exactly
  * (the Drizzle adapter looks them up by key); the SQL column names are ours.
+ *
+ * They live in their own `identity` schema, not `public`, so the business
+ * tables are all that `public` holds — the same separation Supabase keeps for
+ * its own `auth` schema, whose name is why this one is not called that. Every
+ * query names the schema, so nothing depends on the search path. `anon` and
+ * `authenticated` hold no usage on it, so PostgREST cannot reach it even if it
+ * were ever listed.
  */
+export const identity = pgSchema("identity");
 
-export const users = pgTable(
+export const users = identity.table(
   "app_user",
   {
     id: text("id").primaryKey(),
@@ -39,7 +47,7 @@ export const users = pgTable(
   (t) => [index("app_user_role_idx").on(t.role)],
 );
 
-export const sessions = pgTable(
+export const sessions = identity.table(
   "app_session",
   {
     id: text("id").primaryKey(),
@@ -61,7 +69,7 @@ export const sessions = pgTable(
   (t) => [index("app_session_user_idx").on(t.userId)],
 );
 
-export const accounts = pgTable(
+export const accounts = identity.table(
   "app_account",
   {
     id: text("id").primaryKey(),
@@ -96,7 +104,7 @@ export const accounts = pgTable(
   (t) => [index("app_account_user_idx").on(t.userId)],
 );
 
-export const verifications = pgTable(
+export const verifications = identity.table(
   "app_verification",
   {
     id: text("id").primaryKey(),

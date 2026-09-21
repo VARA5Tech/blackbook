@@ -221,7 +221,7 @@ async function removeInvitedUser(userId: string) {
         and(
           eq(users.id, userId),
           eq(users.emailVerified, false),
-          sql`not exists (select 1 from app_account a where a.user_id = ${userId} and a.provider_id = 'credential')`,
+          sql`not exists (select 1 from ${accounts} a where a.user_id = ${userId} and a.provider_id = 'credential')`,
         ),
       );
   });
@@ -254,20 +254,22 @@ async function findInvitedUser(userId: string) {
  * scheduler. Safe to run any number of times.
  */
 export async function purgeExpiredInvitations(): Promise<number> {
+  // The table objects render schema-qualified, so these never depend on the
+  // connection's search path finding the identity schema.
   const removed = await db.execute(sql`
-    delete from app_user u
+    delete from ${users} u
     where u.email_verified = false
       and u.created_at < now() - make_interval(days => ${INVITATION_DAYS}::int)
       and not exists (
-        select 1 from app_account a
+        select 1 from ${accounts} a
         where a.user_id = u.id and a.provider_id = 'credential'
       )
     returning u.id
   `);
   await db.execute(sql`
-    delete from app_verification v
+    delete from ${verifications} v
     where v.identifier like ${`${INVITE_PREFIX}%`}
-      and (v.expires_at < now() or not exists (select 1 from app_user u where u.id = v.value))
+      and (v.expires_at < now() or not exists (select 1 from ${users} u where u.id = v.value))
   `);
 
   if (removed.length > 0) {

@@ -1,10 +1,10 @@
-import { createHmac, randomUUID } from "node:crypto";
+import { createHash, createHmac, randomUUID } from "node:crypto";
 import { eq, sql } from "drizzle-orm";
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { POST as privateAccessLookup } from "@/app/api/private-access/lookup/route";
 import { auth } from "@/auth";
 import { db } from "@/db";
-import { accounts, customers, users } from "@/db/schema";
+import { accounts, customers, users, verifications } from "@/db/schema";
 import {
   EMAIL_CODE_MINUTES,
   STAFF_DOMAIN_MESSAGE,
@@ -176,6 +176,76 @@ describe("who can hold an account", () => {
         { method: "admin" },
       ),
     ).rejects.toThrow(STAFF_DOMAIN_MESSAGE);
+  });
+});
+
+/**
+ * A live sign-in code is a credential for ten minutes. Whoever can read
+ * `app_verification` — a backup, the Supabase service key, a psql session —
+ * must not be able to read one back out of it.
+ */
+describe("signing in by emailed code", () => {
+  const email = "code.test@vara5.com";
+  let staff: StaffFixtures;
+
+  beforeAll(async () => {
+    staff = await seedStaff();
+  });
+
+  beforeEach(async () => {
+    await resetData();
+    actingAs(staff.admin);
+    // Accounts outlive resetData, so the first test's one is still here.
+    const existing = await db.query.users.findFirst({ where: eq(users.email, email) });
+    if (!existing) await createStaffUser({ name: "Code Test", email, role: "rm" });
+    await db.delete(verifications);
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  /** Asks for a code and reads it back out of the printed email. */
+  async function requestCode(): Promise<string> {
+    const printed = vi.spyOn(console, "info").mockImplementation(() => {});
+    vi.spyOn(console, "warn").mockImplementation(() => {});
+    vi.spyOn(console, "log").mockImplementation(() => {});
+    await auth.api.sendVerificationOTP({ body: { email, type: "sign-in" } });
+    const output = printed.mock.calls.map((call) => call.map(String).join(" ")).join("\n");
+    vi.restoreAllMocks();
+    const code = /\b(\d{6})\b/.exec(output)?.[1];
+    if (!code) throw new Error("No sign-in code was printed");
+    return code;
+  }
+
+  async function storedValue(): Promise<string> {
+    const rows = await db.select().from(verifications);
+    const row = rows.find((r) => r.identifier.endsWith(email));
+    if (!row) throw new Error("No verification row for the address");
+    // Better Auth keeps "<stored code>:<attempts>".
+    return row.value.slice(0, row.value.lastIndexOf(":"));
+  }
+
+  it("never keeps the code itself, nor a bare hash anyone could reverse", async () => {
+    const code = await requestCode();
+    const stored = await storedValue();
+
+    expect(stored).not.toContain(code);
+    // A plain SHA-256 of six digits is a million-entry lookup table away.
+    const bare = createHash("sha256").update(code).digest("base64url");
+    expect(stored).not.toBe(bare);
+  });
+
+  it("still signs someone in with the right code, and refuses a wrong one", async () => {
+    const code = await requestCode();
+    const wrong = code === "000000" ? "111111" : "000000";
+
+    await expect(
+      auth.api.signInEmailOTP({ body: { email, otp: wrong } }),
+    ).rejects.toThrow();
+
+    const signedIn = await auth.api.signInEmailOTP({ body: { email, otp: code } });
+    expect(signedIn.user.email).toBe(email);
   });
 });
 
