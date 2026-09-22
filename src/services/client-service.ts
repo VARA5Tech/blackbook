@@ -11,6 +11,9 @@ import {
 } from "@/db/schema";
 import { requireCapability } from "@/auth/session";
 import {
+  CLIENT_STATUS_LABELS,
+  GENDER_LABELS,
+  HOUSEHOLD_ROLE_LABELS,
   clientDnaSchema,
   clientSearchSchema,
   countsAsClient,
@@ -23,6 +26,7 @@ import {
   type CreateCustomerInput,
   type UpdateCustomerInput,
 } from "@/domain/customers";
+import { SCALAR_LABELS } from "@/domain/preferences";
 import {
   onlyProvided,
   optionalEmail,
@@ -30,6 +34,12 @@ import {
   requiredText,
   uuidSchema,
 } from "@/domain/shared";
+import {
+  formatDate,
+  formatDateTime,
+  humanise,
+  readingTime,
+} from "@/lib/format";
 import { logger } from "@/lib/logger";
 import {
   clientSignals,
@@ -129,14 +139,26 @@ const EXPORT_LABELS: Record<string, string> = {
 };
 
 /**
- * The two generated columns, which are the numbers above with the punctuation
- * taken out. They exist so the database can match on them; in a spreadsheet
- * they are the same fact twice.
+ * Columns that carry nothing a reader wants.
+ *
+ * The three `*Normalized` ones are the numbers above with the punctuation
+ * taken out, so the database can match on them; in a spreadsheet they are the
+ * same fact twice, and the second copy is the one somebody pastes by mistake.
+ * The id columns are answered by name further along the row.
  */
-const EXPORT_SKIP = new Set(["mobileNormalized", "whatsappNormalized", "householdId", "primaryRmId", "createdBy", "updatedBy", "preferencesUpdatedBy"]);
+const EXPORT_SKIP = new Set([
+  "mobileNormalized",
+  "whatsappNormalized",
+  "eaPhoneNormalized",
+  "householdId",
+  "primaryRmId",
+  "createdBy",
+  "updatedBy",
+  "preferencesUpdatedBy",
+]);
 
 /** "travelBudgetRange" reads as "Travel budget range" when nothing names it. */
-function labelFor(key: string): string {
+function exportLabelFor(key: string): string {
   return (
     EXPORT_LABELS[key] ??
     key
@@ -145,7 +167,14 @@ function labelFor(key: string): string {
   );
 }
 
-function exportValue(value: unknown): string | number | null {
+/** Enums whose words belong to the client record, not to the preference vocabulary. */
+const FIELD_VALUE_LABELS: Record<string, Record<string, string>> = {
+  status: CLIENT_STATUS_LABELS,
+  gender: GENDER_LABELS,
+  householdRole: HOUSEHOLD_ROLE_LABELS,
+};
+
+function exportValue(key: string, value: unknown): string | number | null {
   if (value === null || value === undefined) return null;
   if (Array.isArray(value)) return value.join("; ");
   if (value instanceof Date) return formatDateTime(value);
@@ -154,7 +183,17 @@ function exportValue(value: unknown): string | number | null {
   const text = String(value);
   // A `date` column, which has no time to show.
   if (/^\d{4}-\d{2}-\d{2}$/.test(text)) return formatDate(text);
-  // An enum value, which reads as words rather than as a key.
+  /*
+   * An enum value, which reads as words rather than as a key.
+   *
+   * The words are the ones the screen already uses. Humanising the key instead
+   * turns the budget `25l_50l` into "25l 50l", which is wrong for money, and
+   * leaves a single-word key like `business` in lower case beside a humanised
+   * neighbour. Only a value with an explicit label is translated, so free text
+   * a curator typed is written out exactly as they typed it.
+   */
+  const named = FIELD_VALUE_LABELS[key]?.[text] ?? SCALAR_LABELS[text];
+  if (named) return named;
   if (/^[a-z]+(_[a-z0-9]+)+$/.test(text)) return humanise(text);
   return text;
 }
@@ -218,7 +257,7 @@ export async function exportClients(input: ClientSearchInput) {
     "Preferences updated by",
   ];
 
-  const columns = [...ordered.map(labelFor), ...related];
+  const columns = [...ordered.map(exportLabelFor), ...related];
 
   const rows = data.rows.map((row) => {
     const client = row.customer as Record<string, unknown>;
@@ -238,7 +277,7 @@ export async function exportClients(input: ClientSearchInput) {
     const logged = interactionsFor.get(client.id as string);
 
     return [
-      ...ordered.map((key) => exportValue(client[key])),
+      ...ordered.map((key) => exportValue(key, client[key])),
       row.householdName,
       row.householdRef,
       row.managerName,

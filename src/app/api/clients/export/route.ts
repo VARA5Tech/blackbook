@@ -1,9 +1,7 @@
 import type { NextRequest } from "next/server";
 import { ForbiddenError, UnauthenticatedError } from "@/auth/session";
-import { CLIENT_STATUS_LABELS, HOUSEHOLD_ROLE_LABELS, type ClientStatus } from "@/domain/customers";
-import { GENDER_LABELS } from "@/domain/customers";
+import type { ClientStatus } from "@/domain/customers";
 import { toCsv } from "@/domain/shared";
-import { formatDate } from "@/lib/format";
 import { logger } from "@/lib/logger";
 import { exportClients } from "@/services/client-service";
 
@@ -30,7 +28,7 @@ export async function GET(request: NextRequest) {
   const params = request.nextUrl.searchParams;
 
   try {
-    const rows = await exportClients({
+    const { columns, rows } = await exportClients({
       q: one(params, "q"),
       status: one(params, "status") as ClientStatus | undefined,
       rmId: one(params, "rm"),
@@ -39,63 +37,15 @@ export async function GET(request: NextRequest) {
       avoids: params.getAll("avoids"),
       notContactedInDays: params.get("stale") ? Number(params.get("stale")) : undefined,
       includeArchived: params.get("archived") === "1",
+      // The repository caps the export itself; these satisfy the shared
+      // search schema and are not what decides how much comes back.
       limit: 1,
       offset: 0,
     });
 
-    const csv = toCsv(
-      [
-        "Client ID",
-        "First name",
-        "Last name",
-        "Known as",
-        "Status",
-        "Mobile",
-        "WhatsApp",
-        "Email",
-        "Date of birth",
-        "Gender",
-        "Nationality",
-        "City",
-        "Address",
-        "Household",
-        "Household ID",
-        "Role in household",
-        "Relationship manager",
-        "Assistant",
-        "Assistant phone",
-        "Assistant email",
-        "Client since",
-        "Last contacted",
-        "Archived",
-      ],
-      rows.map((row) => [
-        row.ref,
-        row.firstName,
-        row.lastName,
-        row.preferredName,
-        CLIENT_STATUS_LABELS[row.status],
-        row.mobile,
-        row.whatsapp,
-        row.email,
-        row.dateOfBirth ? formatDate(row.dateOfBirth) : "",
-        row.gender ? GENDER_LABELS[row.gender] : "",
-        row.nationality,
-        row.city,
-        row.address,
-        row.householdName,
-        row.householdRef,
-        row.householdRole ? HOUSEHOLD_ROLE_LABELS[row.householdRole] : "",
-        row.managerName,
-        row.eaName,
-        row.eaPhone,
-        row.eaEmail,
-        formatDate(row.customerSince),
-        // Blank rather than "never": a spreadsheet sorts and filters on blanks.
-        row.lastInteractionAt ? formatDate(row.lastInteractionAt) : "",
-        row.archivedAt ? "Yes" : "",
-      ]),
-    );
+    // The service decides the columns, because it is the only place that knows
+    // every field a client carries. The route's job is the file, not the shape.
+    const csv = toCsv(columns, rows);
 
     const stamp = new Date().toISOString().slice(0, 10);
     return new Response(csv, {

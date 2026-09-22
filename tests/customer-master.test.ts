@@ -18,9 +18,11 @@ import {
   restoreCustomer,
   reassignClients,
   searchClients,
+  updateClientDna,
   updateCustomer,
 } from "@/services/client-service";
 import { createHousehold } from "@/services/household-service";
+import { updatePreferenceProfile } from "@/services/preference-service";
 import {
   actingAs,
   resetData,
@@ -1021,6 +1023,17 @@ describe("handing several clients to a colleague", () => {
 describe("exporting the client list", () => {
   let staff: StaffFixtures;
 
+  /*
+   * The export builds its own column list from the client record, so a test
+   * reads a cell by its heading rather than by a position that shifts the
+   * moment a field is added to the schema.
+   */
+  type Export = Awaited<ReturnType<typeof exportClients>>;
+  const column = (result: Export, heading: string) =>
+    result.rows.map((row) => row[result.columns.indexOf(heading)]);
+  const cell = (result: Export, row: number, heading: string) =>
+    result.rows[row]?.[result.columns.indexOf(heading)];
+
   beforeAll(async () => {
     staff = await seedStaff();
   });
@@ -1047,23 +1060,109 @@ describe("exporting the client list", () => {
     });
 
     const everyone = await exportClients({});
-    expect(everyone.map((row) => row.firstName)).toEqual(["Priya"]);
+    expect(column(everyone, "First name")).toEqual(["Priya"]);
 
     // Both numbers travel, which is the reason it is not the list query.
-    expect(everyone[0]).toMatchObject({
-      mobile: "+91 98100 11223",
-      whatsapp: "+91 98100 11224",
-      city: "Delhi",
-    });
+    expect(cell(everyone, 0, "Mobile")).toBe("+91 98100 11223");
+    expect(cell(everyone, 0, "WhatsApp")).toBe("+91 98100 11224");
+    expect(cell(everyone, 0, "City")).toBe("Delhi");
 
     // Asked for by name, a staff record still comes back.
     const testers = await exportClients({ status: "staff" });
-    expect(testers.map((row) => row.firstName)).toEqual(["Desk"]);
+    expect(column(testers, "First name")).toEqual(["Desk"]);
 
     const searched = await exportClients({ q: "Priya" });
-    expect(searched).toHaveLength(1);
+    expect(searched.rows).toHaveLength(1);
     const missed = await exportClients({ q: "Nobody" });
-    expect(missed).toHaveLength(0);
+    expect(missed.rows).toHaveLength(0);
+  });
+
+  /**
+   * The point of the export is that nothing has to be looked up afterwards:
+   * one row carries the whole record, including the fields that have no room
+   * on the screen. A curated column list would drift the moment the schema
+   * grew, so the columns are built from the record itself.
+   */
+  it("carries every field of the record, not a chosen few", async () => {
+    const client = await createCustomer({
+      firstName: "Meera",
+      lastName: "Iyer",
+      mobile: "+91 98100 33445",
+      customerSince: "2026-01-01",
+    });
+
+    await updateClientDna({
+      customerId: client.id,
+      clientDna: "Reads on every flight.",
+      dos: ["Aisle seat", "Late checkout"],
+      donts: ["Early departures"],
+    });
+    await updatePreferenceProfile({
+      customerId: client.id,
+      flightCabin: "business",
+      travelBudgetRange: "25l_50l",
+      travelFrequency: "three_to_four_per_year",
+      diningNotes: "Allergic to shellfish.",
+    });
+
+    const sheet = await exportClients({});
+    expect(sheet.rows).toHaveLength(1);
+
+    // The narrative and the two ordered lists.
+    expect(cell(sheet, 0, "Client DNA")).toBe("Reads on every flight.");
+    expect(cell(sheet, 0, "Dos")).toBe("Aisle seat; Late checkout");
+    expect(cell(sheet, 0, "Don'ts")).toBe("Early departures");
+
+    /*
+     * An enum reads the way the screen reads it, not as its key. The budget is
+     * the case that matters: humanising `25l_50l` gives "25l 50l", which is
+     * wrong for money, so the explicit label has to win.
+     */
+    expect(cell(sheet, 0, "Status")).toBe("Active");
+    expect(cell(sheet, 0, "Cabin")).toBe("Business");
+    expect(cell(sheet, 0, "Budget range")).toBe("₹25 to ₹50 lakh");
+    expect(cell(sheet, 0, "Travel frequency")).toBe("3 to 4 trips a year");
+
+    // Free text is written out exactly as it was typed.
+    expect(cell(sheet, 0, "Dining notes")).toBe("Allergic to shellfish.");
+
+    // The related tables, flattened onto the same row.
+    for (const heading of [
+      "Prefers",
+      "Avoids",
+      "Memberships",
+      "Milestones",
+      "Journeys opened",
+      "Relationship manager",
+      "Household",
+    ]) {
+      expect(sheet.columns).toContain(heading);
+    }
+
+    // Every heading is filled in: a blank one would be a column nobody can read.
+    expect(sheet.columns.filter((heading) => !heading)).toEqual([]);
+    expect(sheet.rows[0]).toHaveLength(sheet.columns.length);
+  });
+
+  /**
+   * The normalised columns are the same numbers with the punctuation removed.
+   * In a spreadsheet they are the same fact twice, and the second copy is the
+   * one somebody would paste into a message by mistake.
+   */
+  it("leaves out the columns that only exist for the database to match on", async () => {
+    await createCustomer({
+      firstName: "Solo",
+      mobile: "+91 98100 55667",
+      customerSince: "2026-01-01",
+    });
+
+    const sheet = await exportClients({});
+    for (const heading of sheet.columns) {
+      expect(heading).not.toMatch(/normalized/i);
+    }
+    for (const heading of ["Household id", "Primary rm id"]) {
+      expect(sheet.columns).not.toContain(heading);
+    }
   });
 
   it("is refused to a request with nobody signed in", async () => {
