@@ -203,7 +203,7 @@ export function ClientTable({
         <Table>
           {/* Sticks while the list scrolls: at forty rows the header is off
               screen exactly when somebody needs to know what a column is. */}
-          <TableHeader className="sticky top-0 z-10 bg-card">
+          <TableHeader className="sticky top-0 z-10">
             <TableRow className="hover:bg-transparent">
               <TableHead className="w-10">
                 <Checkbox

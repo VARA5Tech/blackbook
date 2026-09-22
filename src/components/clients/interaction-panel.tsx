@@ -1,6 +1,6 @@
 "use client";
 
-import { Plus } from "lucide-react";
+import { MessagesSquare, Plus } from "lucide-react";
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
 import { recordInteractionAction } from "@/actions/crm-actions";
@@ -50,7 +50,7 @@ export function InteractionPanel({
 }) {
   return (
     <Section
-      title="Interactions"
+      title="Interactions" icon={MessagesSquare}
       action={canLog ? <LogInteractionDialog customerId={customerId} /> : null}
     >
       {interactions.length === 0 ? (

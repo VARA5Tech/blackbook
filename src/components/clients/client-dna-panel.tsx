@@ -1,6 +1,6 @@
 "use client";
 
-import { Check, Pencil, Plus, X } from "lucide-react";
+import { Check, Fingerprint, Pencil, Plus, X } from "lucide-react";
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
 import { updateClientDnaAction } from "@/actions/client-actions";
@@ -62,7 +62,7 @@ export function ClientDnaPanel({
   if (editing) {
     return (
       <Section
-        title="Client DNA"
+        title="Client DNA" icon={Fingerprint}
         action={
           <div className="flex gap-2">
             <Button variant="ghost" size="sm" onClick={cancel} disabled={pending}>
@@ -101,7 +101,7 @@ export function ClientDnaPanel({
 
   return (
     <Section
-      title="Client DNA"
+      title="Client DNA" icon={Fingerprint}
       action={
         canEdit ? (
           <Button variant="ghost" size="sm" onClick={() => setEditing(true)}>

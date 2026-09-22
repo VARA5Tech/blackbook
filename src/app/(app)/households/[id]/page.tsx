@@ -1,15 +1,15 @@
 import type { Metadata } from "next";
+import { CalendarHeart, History as HistoryIcon } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { can, getActor } from "@/auth/session";
-import { HouseholdMembers } from "@/components/households/household-members";
-import { Field, PageHeader, Section } from "@/components/page-header";
+import { HouseholdDetails, HouseholdMembers } from "@/components/households/household-members";
+import { PageHeader, Section } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
 import { listHouseholdActivity } from "@/services/activity-service";
 import { getHousehold } from "@/services/household-service";
 import { searchClients } from "@/services/client-service";
 import { displayName } from "@/domain/customers";
-import { TRAVEL_PATTERN_LABELS } from "@/domain/households";
 import { formatDate, formatDateTime } from "@/lib/format";
 
 export async function generateMetadata({
@@ -62,8 +62,8 @@ export default async function HouseholdPage({
         }
       />
 
-      <div className="grid gap-10 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
-        <div className="space-y-10">
+      <div className="grid gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
+        <div className="space-y-6">
           <HouseholdMembers
             householdId={household.id}
             primaryCustomerId={household.primaryCustomerId}
@@ -76,50 +76,11 @@ export default async function HouseholdPage({
             canManage={canManage}
           />
 
-          <Section title="Household detail">
-            <dl className="grid gap-x-6 gap-y-5 sm:grid-cols-2">
-              <Field label="Family travel pattern">
-                {household.travelPattern
-                  ? TRAVEL_PATTERN_LABELS[household.travelPattern]
-                  : "—"}
-              </Field>
-              <Field label="City">{household.city ?? "—"}</Field>
-              <Field label="Notes" className="sm:col-span-2">
-                {household.notes ?? "—"}
-              </Field>
-            </dl>
-          </Section>
-
-          <Section title="Executive assistant">
-            <dl className="grid gap-x-6 gap-y-5 sm:grid-cols-2">
-              <Field label="Name">{household.eaName ?? "—"}</Field>
-              <Field label="Phone">
-                {household.eaPhone ? (
-                  <a href={`tel:${household.eaPhone}`} className="tabular hover:underline">
-                    {household.eaPhone}
-                  </a>
-                ) : (
-                  "—"
-                )}
-              </Field>
-              <Field label="Email" className="sm:col-span-2">
-                {household.eaEmail ? (
-                  <a href={`mailto:${household.eaEmail}`} className="hover:underline">
-                    {household.eaEmail}
-                  </a>
-                ) : (
-                  "—"
-                )}
-              </Field>
-              <Field label="Notes" className="sm:col-span-2">
-                {household.eaNotes ?? "—"}
-              </Field>
-            </dl>
-          </Section>
+          <HouseholdDetails household={household} canEdit={canManage} />
         </div>
 
-        <div className="space-y-10">
-          <Section title="Household milestones">
+        <div className="space-y-6">
+          <Section title="Household milestones" icon={CalendarHeart}>
             {record.milestones.length === 0 ? (
               <p className="text-sm text-muted-foreground">
                 No shared dates recorded. Anniversaries that belong to the
@@ -145,7 +106,7 @@ export default async function HouseholdPage({
             )}
           </Section>
 
-          <Section title="History">
+          <Section title="History" icon={HistoryIcon}>
             {activity.length === 0 ? (
               <p className="text-sm text-muted-foreground">
                 No activity recorded.

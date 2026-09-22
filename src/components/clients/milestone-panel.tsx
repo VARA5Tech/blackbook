@@ -1,6 +1,6 @@
 "use client";
 
-import { Plus, Trash2 } from "lucide-react";
+import { CalendarHeart, Plus, Trash2 } from "lucide-react";
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
 import {
@@ -64,7 +64,7 @@ export function MilestonePanel({
 
   return (
     <Section
-      title="Milestones"
+      title="Milestones" icon={CalendarHeart}
       action={
         canManage ? (
           <AddMilestoneDialog customerId={customerId} />

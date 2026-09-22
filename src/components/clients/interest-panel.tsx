@@ -1,8 +1,10 @@
 "use client";
 
 import {
+  ArrowRight,
   Clock,
   Eye,
+  Globe,
   Film,
   Image as ImageIcon,
   MousePointerClick,
@@ -12,7 +14,6 @@ import { useState } from "react";
 import type { ClientSignals, SessionReplay } from "@/lib/posthog";
 import type { InterestSummaryRow } from "@/repositories/customer-repository";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
@@ -68,44 +69,67 @@ export function InterestStrip({ customerId, interest, replays, signals }: Props)
   const taps = signals?.clicks.reduce((total, click) => total + click.count, 0) ?? 0;
   const seconds = interest.reduce((total, row) => total + row.seconds, 0);
   const lastSeen = interest[0]?.lastSeenAt ?? replays[0]?.startedAt ?? null;
+  const asked = interest.find((row) => row.askedAt);
 
   return (
-    <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm">
-      <span className="text-xs tracking-[0.08em] text-muted-foreground uppercase">
-        On vara5.com
-      </span>
-
-      {interest.length > 0 ? (
-        <span>
-          Opened <Plain items={interest.map((row) => row.title)} />
+    <div className="overflow-hidden rounded-lg border border-border bg-card">
+      <div className="flex items-center justify-between gap-3 border-b border-border bg-muted px-3 py-2">
+        <span className="flex items-center gap-2 text-sm font-semibold">
+          <Globe className="size-4 text-muted-foreground" />
+          On vara5.com
         </span>
-      ) : null}
+        {lastSeen ? (
+          <span className="text-xs text-muted-foreground">{timeAgo(lastSeen)}</span>
+        ) : null}
+      </div>
 
-      {seconds > 0 ? (
-        <span className="text-muted-foreground">
-          {readingTime(seconds)} reading
-        </span>
-      ) : null}
+      <div className="flex gap-3 p-3">
+        <div className="min-w-0 flex-1 space-y-1.5 text-sm">
+          {interest.length > 0 ? (
+            <p className="leading-snug">
+              Opened <Plain items={interest.map((row) => row.title)} />
+            </p>
+          ) : null}
 
-      {taps > 0 ? (
-        <span className="text-muted-foreground">
-          <span className="tabular">{taps}</span> {taps === 1 ? "tap" : "taps"}
-        </span>
-      ) : null}
+          <p className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
+            {seconds > 0 ? (
+              <span className="flex items-center gap-1">
+                <Clock className="size-3" />
+                {readingTime(seconds)} reading
+              </span>
+            ) : null}
+            {taps > 0 ? (
+              <span className="flex items-center gap-1">
+                <MousePointerClick className="size-3" />
+                <span className="tabular">{taps}</span> {taps === 1 ? "tap" : "taps"}
+              </span>
+            ) : null}
+          </p>
 
-      {lastSeen ? (
-        <span className="text-muted-foreground">
-          Last seen {timeAgo(lastSeen)}
-        </span>
-      ) : null}
+          {asked ? (
+            <p className="flex items-center gap-1.5 text-xs text-foreground">
+              <Sparkles className="size-3 shrink-0" />
+              Asked the Curator
+            </p>
+          ) : null}
+        </div>
 
-      <ReplayPlayer customerId={customerId} replays={replays} compact />
+        {replays.length > 0 ? (
+          <div className="w-36 shrink-0">
+            <ReplayPlayer customerId={customerId} replays={replays} tile />
+          </div>
+        ) : null}
+      </div>
 
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogTrigger asChild>
-          <Button type="button" variant="ghost" size="sm" className="h-7">
+          <button
+            type="button"
+            className="flex w-full items-center justify-between border-t border-border px-3 py-2 text-xs text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+          >
             See everything
-          </Button>
+            <ArrowRight className="size-3" />
+          </button>
         </DialogTrigger>
 
         <DialogContent className="max-h-[88vh] overflow-y-auto sm:max-w-4xl">

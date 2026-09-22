@@ -172,3 +172,18 @@ export function onlyProvided<T extends Record<string, unknown>>(
   }
   return result;
 }
+
+/**
+ * Rows as a spreadsheet, the way Falcon exports: comma separated, every value
+ * quoted, quotes doubled, and a byte-order mark in front.
+ *
+ * The mark is what makes Excel open it as UTF-8 without being asked, so a name
+ * like Sebastián arrives intact rather than as mojibake. Quoting everything is
+ * what keeps a household with a comma in its name inside one cell.
+ */
+export function toCsv(header: string[], rows: (string | number | null | undefined)[][]): string {
+  const cell = (value: string | number | null | undefined) =>
+    `"${String(value ?? "").replace(/"/g, '""')}"`;
+  const lines = [header, ...rows].map((row) => row.map(cell).join(","));
+  return "﻿" + lines.join("\r\n");
+}

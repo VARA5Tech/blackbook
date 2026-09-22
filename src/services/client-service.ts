@@ -69,6 +69,200 @@ export async function searchClientGroups(input: ClientSearchInput) {
   return repo.searchClientGroups(query);
 }
 
+/**
+ * Labels for the export, in the order the columns appear.
+ *
+ * Every column on the client is in here: a spreadsheet is somebody reading the
+ * whole record away from the screen, and a field left out is a question they
+ * cannot answer. A column added to the table and forgotten here still exports,
+ * under a title derived from its name, so the file is never short of the truth.
+ */
+const EXPORT_LABELS: Record<string, string> = {
+  ref: "Client ID",
+  firstName: "First name",
+  lastName: "Last name",
+  preferredName: "Known as",
+  status: "Status",
+  mobile: "Mobile",
+  whatsapp: "WhatsApp",
+  email: "Email",
+  dateOfBirth: "Date of birth",
+  gender: "Gender",
+  nationality: "Nationality",
+  city: "City",
+  address: "Address",
+  locationUrl: "Location pin",
+  locationLat: "Latitude",
+  locationLng: "Longitude",
+  householdRole: "Role in household",
+  customerSince: "Client since",
+  clientDna: "Client DNA",
+  dos: "Dos",
+  donts: "Don'ts",
+  remarks: "Remarks",
+  eaName: "Assistant",
+  eaPhone: "Assistant phone",
+  eaEmail: "Assistant email",
+  eaNotes: "Assistant notes",
+  travelTypicalTripNights: "Typical trip nights",
+  travelParty: "Travels as",
+  travelFrequency: "Travel frequency",
+  travelBudgetRange: "Budget range",
+  travelBookingLeadTime: "Booking lead time",
+  travelNotes: "Travel notes",
+  hotelNotes: "Hotel notes",
+  flightCabin: "Cabin",
+  flightDirectPreference: "Direct flights",
+  flightNotes: "Flight notes",
+  diningDietary: "Dietary",
+  diningFineDining: "Fine dining",
+  diningNotes: "Dining notes",
+  lifestyleExperienceStyle: "Experience style",
+  lifestyleNotes: "Lifestyle notes",
+  lastInteractionAt: "Last contacted",
+  profileUpdatedAt: "Profile updated",
+  preferencesUpdatedAt: "Preferences updated",
+  createdAt: "Created",
+  updatedAt: "Updated",
+  archivedAt: "Archived",
+  id: "Record ID",
+};
+
+/**
+ * The two generated columns, which are the numbers above with the punctuation
+ * taken out. They exist so the database can match on them; in a spreadsheet
+ * they are the same fact twice.
+ */
+const EXPORT_SKIP = new Set(["mobileNormalized", "whatsappNormalized", "householdId", "primaryRmId", "createdBy", "updatedBy", "preferencesUpdatedBy"]);
+
+/** "travelBudgetRange" reads as "Travel budget range" when nothing names it. */
+function labelFor(key: string): string {
+  return (
+    EXPORT_LABELS[key] ??
+    key
+      .replace(/([a-z0-9])([A-Z])/g, "$1 $2")
+      .replace(/^./, (character) => character.toUpperCase())
+  );
+}
+
+function exportValue(value: unknown): string | number | null {
+  if (value === null || value === undefined) return null;
+  if (Array.isArray(value)) return value.join("; ");
+  if (value instanceof Date) return formatDateTime(value);
+  if (typeof value === "boolean") return value ? "Yes" : "No";
+  if (typeof value === "number") return value;
+  const text = String(value);
+  // A `date` column, which has no time to show.
+  if (/^\d{4}-\d{2}-\d{2}$/.test(text)) return formatDate(text);
+  // An enum value, which reads as words rather than as a key.
+  if (/^[a-z]+(_[a-z0-9]+)+$/.test(text)) return humanise(text);
+  return text;
+}
+
+/**
+ * The clients the filters match, as a spreadsheet: one row per client, every
+ * field Blackbook holds.
+ *
+ * Same filters as the screen, so what somebody exports is what they were
+ * looking at, and the same capability: a spreadsheet is a read of the book and
+ * it leaves the building, so it is worth being exact about who may ask for one.
+ */
+export async function exportClients(input: ClientSearchInput) {
+  await requireCapability("client.read");
+  const query = clientSearchSchema.parse(input);
+  const data = await repo.exportCustomers(query);
+
+  const preferencesFor = new Map<string, typeof data.preferences>();
+  for (const row of data.preferences) {
+    const list = preferencesFor.get(row.customerId) ?? [];
+    list.push(row);
+    preferencesFor.set(row.customerId, list);
+  }
+  const milestonesFor = new Map<string, string[]>();
+  for (const row of data.milestones) {
+    if (!row.customerId) continue;
+    const list = milestonesFor.get(row.customerId) ?? [];
+    list.push(`${row.title} (${formatDate(row.date)})`);
+    milestonesFor.set(row.customerId, list);
+  }
+  const interestFor = new Map(data.interest.map((row) => [row.customerId, row]));
+  const interactionsFor = new Map(data.interactions.map((row) => [row.customerId, row]));
+
+  // Every column the client row carries, in schema order, minus the duplicates.
+  const clientKeys = data.rows.length
+    ? Object.keys(data.rows[0].customer).filter((key) => !EXPORT_SKIP.has(key))
+    : [];
+  // Ordered by the labels first, so a spreadsheet opens on the useful columns.
+  const ordered = [
+    ...Object.keys(EXPORT_LABELS).filter((key) => clientKeys.includes(key)),
+    ...clientKeys.filter((key) => !(key in EXPORT_LABELS)),
+  ];
+
+  const related = [
+    "Household",
+    "Household ID",
+    "Relationship manager",
+    "Prefers",
+    "Wishlist",
+    "Avoids",
+    "Memberships",
+    "Milestones",
+    "Journeys opened",
+    "Reading time",
+    "Asked the Curator",
+    "Last seen on vara5.com",
+    "Interactions logged",
+    "Last interaction",
+    "Created by",
+    "Updated by",
+    "Preferences updated by",
+  ];
+
+  const columns = [...ordered.map(labelFor), ...related];
+
+  const rows = data.rows.map((row) => {
+    const client = row.customer as Record<string, unknown>;
+    const preferences = preferencesFor.get(client.id as string) ?? [];
+    const taste = (polarity: string) =>
+      preferences
+        .filter((entry) => entry.polarity === polarity && entry.kind !== "loyalty_programme")
+        .map((entry) => (entry.note ? `${entry.label} (${entry.note})` : entry.label))
+        .join("; ");
+    const memberships = preferences
+      .filter((entry) => entry.kind === "loyalty_programme")
+      .map((entry) =>
+        [entry.label, entry.membershipNumber, entry.membershipTier].filter(Boolean).join(" · "),
+      )
+      .join("; ");
+    const interest = interestFor.get(client.id as string);
+    const logged = interactionsFor.get(client.id as string);
+
+    return [
+      ...ordered.map((key) => exportValue(client[key])),
+      row.householdName,
+      row.householdRef,
+      row.managerName,
+      taste("prefer"),
+      taste("wishlist"),
+      taste("avoid"),
+      memberships,
+      (milestonesFor.get(client.id as string) ?? []).join("; "),
+      interest?.journeys ?? 0,
+      interest?.seconds ? readingTime(interest.seconds) : "",
+      interest?.asked ?? 0,
+      interest?.lastSeenAt ? formatDateTime(interest.lastSeenAt) : "",
+      logged?.logged ?? 0,
+      logged?.lastSummary ?? "",
+      row.createdByName,
+      row.updatedByName,
+      row.preferencesUpdatedByName,
+    ];
+  });
+
+  logger.info("client.export", { rows: rows.length, columns: columns.length });
+  return { columns, rows };
+}
+
 export async function getClient360(customerId: string) {
   await requireCapability("client.read");
   return repo.loadClient360(customerId);

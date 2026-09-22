@@ -3,7 +3,7 @@
 import { Loader2 } from "lucide-react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { useState, type FormEvent, type ReactNode } from "react";
+import { useEffect, useRef, useState, type FormEvent, type ReactNode } from "react";
 import { authClient, signIn } from "@/auth/client";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -128,6 +128,9 @@ const SIGN_IN_NOTICES = {
 /** Ask for a code, then type it. There is no other way in. */
 type SignInStep = { stage: "request" } | { stage: "enter"; email: string };
 
+/** How long before another code may be asked for. */
+const RESEND_SECONDS = 30;
+
 export function SignInForm({
   next,
   notice,
@@ -141,6 +144,21 @@ export function SignInForm({
   const [error, setError] = useState<string | null>(null);
   const [sent, setSent] = useState<string | null>(null);
   const [step, setStep] = useState<SignInStep>({ stage: "request" });
+  /**
+   * Seconds until another code may be asked for.
+   *
+   * Only a guard against a leaning finger — the server decides what is allowed
+   * — but without it the button invites a queue of codes, each one cancelling
+   * the last.
+   */
+  const [cooldown, setCooldown] = useState(0);
+  const formRef = useRef<HTMLFormElement>(null);
+
+  useEffect(() => {
+    if (cooldown <= 0) return;
+    const timer = setTimeout(() => setCooldown((left) => left - 1), 1000);
+    return () => clearTimeout(timer);
+  }, [cooldown]);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -168,6 +186,7 @@ export function SignInForm({
       await authClient.emailOtp.sendVerificationOtp({ email, type: "sign-in" });
       setStep({ stage: "enter", email });
       setSent(`If ${email} has an account, a code is on its way.`);
+      setCooldown(RESEND_SECONDS);
       setPending(false);
       return;
     }
@@ -188,7 +207,7 @@ export function SignInForm({
   }
 
   return (
-    <form onSubmit={handleSubmit} className="mt-8 space-y-5">
+    <form ref={formRef} onSubmit={handleSubmit} className="mt-8 space-y-5">
       {notice && !error ? (
         <Alert>
           <AlertDescription>{SIGN_IN_NOTICES[notice]}</AlertDescription>
@@ -219,19 +238,57 @@ export function SignInForm({
             maxLength={6}
             required
             autoFocus
+            /*
+             * Six digits is the whole answer, so typing or pasting the last one
+             * submits: nobody needs to be told to press a button once there is
+             * nothing left to enter. Guarded on `pending` so the paste event
+             * and a hurried Enter cannot send the same code twice.
+             */
+            onChange={(event) => {
+              const code = event.target.value.replace(/\D/g, "").slice(0, 6);
+              if (code.length === 6 && !pending) formRef.current?.requestSubmit();
+            }}
             className="tabular text-center text-lg tracking-[0.4em]"
           />
-          <button
-            type="button"
-            onClick={() => {
-              setStep({ stage: "request" });
-              setSent(null);
-              setError(null);
-            }}
-            className="text-xs text-muted-foreground hover:underline"
-          >
-            Use a different address
-          </button>
+          <div className="flex items-center justify-between gap-3 pt-0.5">
+            <button
+              type="button"
+              onClick={() => {
+                setStep({ stage: "request" });
+                setSent(null);
+                setError(null);
+                setCooldown(0);
+              }}
+              className="text-xs text-muted-foreground hover:underline"
+            >
+              Use a different address
+            </button>
+
+            <button
+              type="button"
+              disabled={cooldown > 0 || pending}
+              onClick={async () => {
+                setError(null);
+                setPending(true);
+                await authClient.emailOtp.sendVerificationOtp({
+                  email: step.email,
+                  type: "sign-in",
+                });
+                /*
+                 * A code is kept as a keyed hash, so it cannot be read back and
+                 * sent again: asking for another mints a new one and retires
+                 * the old. Saying so stops somebody typing the first code from
+                 * a mail client that was slow to deliver it.
+                 */
+                setSent("A new code is on its way. The earlier one no longer works.");
+                setCooldown(RESEND_SECONDS);
+                setPending(false);
+              }}
+              className="text-xs text-muted-foreground hover:underline disabled:cursor-not-allowed disabled:no-underline disabled:opacity-60"
+            >
+              {cooldown > 0 ? `Resend in ${cooldown}s` : "Resend code"}
+            </button>
+          </div>
         </div>
       ) : (
         <div className="space-y-2">

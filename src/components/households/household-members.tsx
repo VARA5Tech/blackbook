@@ -1,6 +1,18 @@
 "use client";
 
-import { Crown, Plus, Unlink } from "lucide-react";
+import {
+  AtSign,
+  Crown,
+  MapPin,
+  NotebookPen,
+  Phone,
+  Plane,
+  Plus,
+  Unlink,
+  UserRound,
+  Users,
+  Home,
+} from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
@@ -10,6 +22,7 @@ import {
   removeHouseholdMemberAction,
   updateHouseholdAction,
 } from "@/actions/crm-actions";
+import { InlineField } from "@/components/inline-field";
 import { Section } from "@/components/page-header";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -42,6 +55,7 @@ import {
   type ClientStatus,
   CLIENT_STATUS_LABELS,
 } from "@/domain/customers";
+import { TRAVEL_PATTERNS, TRAVEL_PATTERN_LABELS } from "@/domain/households";
 import { age, timeAgo } from "@/lib/format";
 
 type Member = {
@@ -114,6 +128,7 @@ export function HouseholdMembers({
   return (
     <Section
       title="Members"
+      icon={Users}
       action={
         canManage ? (
           <AddMemberPopover
@@ -296,3 +311,74 @@ function AddMemberPopover({
     </Popover>
   );
 }
+
+/* ------------------------------------------------------------------ */
+/* The household's own facts                                           */
+/* ------------------------------------------------------------------ */
+
+const TRAVEL_PATTERN_OPTIONS = [
+  { value: "", label: "Not set" },
+  ...TRAVEL_PATTERNS.map((value) => ({ value, label: TRAVEL_PATTERN_LABELS[value] })),
+];
+
+/**
+ * The family's details and its shared assistant, each editable where it sits,
+ * saved through `updateHouseholdAction` exactly as the edit form saves them.
+ */
+export function HouseholdDetails({
+  household,
+  canEdit,
+}: {
+  household: {
+    id: string;
+    city: string | null;
+    travelPattern: string | null;
+    notes: string | null;
+    eaName: string | null;
+    eaPhone: string | null;
+    eaEmail: string | null;
+    eaNotes: string | null;
+  };
+  canEdit: boolean;
+}) {
+  const common = {
+    canEdit,
+    save: (field: string, value: string) =>
+      updateHouseholdAction({ id: household.id, [field]: value }),
+  };
+  const phone = "+91 98100 11223";
+
+  return (
+    <div className="space-y-6">
+      <Section title="Household details" icon={Home} flush>
+        <dl className="divide-y divide-border">
+          <InlineField {...common} field="travelPattern" label="Travel pattern" icon={Plane}
+            value={household.travelPattern}
+            display={(v) => TRAVEL_PATTERN_LABELS[v as keyof typeof TRAVEL_PATTERN_LABELS] ?? v}
+            editor={{ kind: "select", options: TRAVEL_PATTERN_OPTIONS }} />
+          <InlineField {...common} field="city" label="City" icon={MapPin}
+            value={household.city} editor={{ kind: "text", placeholder: "New Delhi" }} />
+          <InlineField {...common} field="notes" label="Notes" icon={NotebookPen}
+            value={household.notes} editor={{ kind: "textarea", placeholder: "How the family travels together" }} multiline />
+        </dl>
+      </Section>
+
+      <Section title="Executive assistant" icon={Users} flush>
+        <p className="border-b border-border bg-muted/40 px-4 py-2 text-xs text-muted-foreground">
+          Shared by every member who has no assistant of their own.
+        </p>
+        <dl className="divide-y divide-border">
+          <InlineField {...common} field="eaName" label="Name" icon={UserRound}
+            value={household.eaName} editor={{ kind: "text", placeholder: "Full name" }} />
+          <InlineField {...common} field="eaPhone" label="Phone" icon={Phone}
+            value={household.eaPhone} editor={{ kind: "text", inputMode: "tel", placeholder: phone }} tabular />
+          <InlineField {...common} field="eaEmail" label="Email" icon={AtSign}
+            value={household.eaEmail} editor={{ kind: "text", inputMode: "email", placeholder: "name@example.com" }} />
+          <InlineField {...common} field="eaNotes" label="Notes" icon={NotebookPen}
+            value={household.eaNotes} editor={{ kind: "textarea", placeholder: "How and when to reach them" }} multiline />
+        </dl>
+      </Section>
+    </div>
+  );
+}
+

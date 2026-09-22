@@ -1,3 +1,4 @@
+import { History as HistoryIcon } from "lucide-react";
 import { Section } from "@/components/page-header";
 import { FIELD_LABELS } from "@/domain/engagement";
 import { formatDateTime, humanise } from "@/lib/format";
@@ -18,7 +19,7 @@ type Entry = {
  */
 export function ActivityTimeline({ entries }: { entries: Entry[] }) {
   return (
-    <Section title="History">
+    <Section title="History" icon={HistoryIcon}>
       {entries.length === 0 ? (
         <p className="text-sm text-muted-foreground">No activity recorded.</p>
       ) : (

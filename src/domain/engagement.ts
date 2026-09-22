@@ -115,8 +115,124 @@ export const FIELD_LABELS: Record<string, string> = {
   title: "Title",
   date: "Date",
   celebrationStyle: "Celebration style",
+  remarks: "Remarks",
+  eaName: "Assistant's name",
+  eaEmail: "Assistant's email",
+  eaPhone: "Assistant's phone",
+  eaNotes: "Assistant notes",
+  dos: "Dos",
+  donts: "Don'ts",
+  assigneeId: "Assigned to",
+  dueDate: "Due date",
 };
 
+
+/* ---------------- the activity log, read by people ---------------- */
+
+export const ACTIVITY_ACTIONS = [
+  "created",
+  "updated",
+  "archived",
+  "restored",
+  "linked",
+  "unlinked",
+  "interaction_logged",
+  "preference_updated",
+] as const;
+export type ActivityAction = (typeof ACTIVITY_ACTIONS)[number];
+
+export const ACTIVITY_ACTION_LABELS: Record<ActivityAction, string> = {
+  created: "Created",
+  updated: "Updated",
+  archived: "Archived",
+  restored: "Restored",
+  linked: "Linked",
+  unlinked: "Unlinked",
+  interaction_logged: "Interaction",
+  preference_updated: "Preferences",
+};
+
+export const ACTIVITY_RECORDS = [
+  "customer",
+  "household",
+  "milestone",
+  "interaction",
+  "task",
+  "preference",
+] as const;
+export type ActivityRecord = (typeof ACTIVITY_RECORDS)[number];
+
+export const ACTIVITY_RECORD_LABELS: Record<ActivityRecord, string> = {
+  customer: "Client",
+  household: "Household",
+  milestone: "Milestone",
+  interaction: "Interaction",
+  task: "Task",
+  preference: "Preferences",
+};
+
+export const ACTIVITY_PERIODS = ["today", "7d", "30d", "all"] as const;
+export type ActivityPeriod = (typeof ACTIVITY_PERIODS)[number];
+export const ACTIVITY_PERIOD_LABELS: Record<ActivityPeriod, string> = {
+  today: "Today",
+  "7d": "Last 7 days",
+  "30d": "Last 30 days",
+  all: "All time",
+};
+
+export const ACTIVITY_PAGE_SIZE = 50;
+
+/** Names for the ids a change can carry, looked up once per page. */
+export type ChangeLookups = {
+  users: Record<string, string>;
+  households: Record<string, string>;
+};
+
+const VALUE_LABELS: Record<string, Record<string, string>> = {
+  status: { active: "Active", inactive: "Inactive", staff: "Staff" },
+  gender: { male: "Male", female: "Female", other: "Other", prefer_not_to_say: "Prefer not to say" },
+  householdRole: {
+    primary: "Primary", spouse: "Spouse", partner: "Partner", child: "Child",
+    parent: "Parent", sibling: "Sibling", other: "Other",
+  },
+};
+
+/**
+ * One field's change as words: "Relationship manager", "Aryan", "Sudhansu".
+ *
+ * The log keeps ids and raw values on purpose; this is where they become what
+ * a person would say. An id nobody can resolve any more is shown as "someone
+ * since removed" rather than a UUID.
+ */
+export function describeChange(
+  field: string,
+  change: { from: unknown; to: unknown },
+  lookups: ChangeLookups,
+): { label: string; from: string; to: string } {
+  const label = FIELD_LABELS[field] ?? humaniseKey(field);
+  const show = (value: unknown): string => {
+    if (value === null || value === undefined || value === "") return "—";
+    if (Array.isArray(value)) return value.length ? value.join("; ") : "—";
+    if (typeof value === "boolean") return value ? "Yes" : "No";
+    const text = String(value);
+    if (field === "primaryRmId" || field.endsWith("By") || field === "assigneeId") {
+      return lookups.users[text] ?? "someone since removed";
+    }
+    if (field === "householdId") return lookups.households[text] ?? "a household since removed";
+    const named = VALUE_LABELS[field]?.[text];
+    if (named) return named;
+    const iso = /^(\d{4})-(\d{2})-(\d{2})/.exec(text);
+    if (iso) return `${iso[3]}-${iso[2]}-${iso[1].slice(2)}`;
+    return text;
+  };
+  return { label, from: show(change.from), to: show(change.to) };
+}
+
+/** "preferencesUpdatedBy" reads as "Preferences updated by". */
+function humaniseKey(key: string): string {
+  const spaced = key.replace(/([a-z])([A-Z])/g, "$1 $2").replace(/_/g, " ").toLowerCase();
+  return spaced.charAt(0).toUpperCase() + spaced.slice(1);
+}
 
 /* ---------------- what the members' site reports ---------------- */
 

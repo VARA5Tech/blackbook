@@ -209,6 +209,110 @@ function searchConditions(query: ClientSearchQuery) {
   return conditions.length > 0 ? and(...conditions) : undefined;
 }
 
+/** How many rows one export may carry, so a slipped filter cannot pull the book. */
+export const EXPORT_LIMIT = 5000;
+
+/**
+ * Everything Blackbook holds about the clients the filters match.
+ *
+ * Its own read rather than the list query, because a spreadsheet wants the
+ * whole record: every column on the client, the names behind the ids, and the
+ * rows that hang off it — preferences, memberships, milestones and what the
+ * members' site has seen — folded into one line each, so one client is one row.
+ */
+export async function exportCustomers(query: ClientSearchQuery) {
+  const manager = alias(users, "manager");
+  const creator = alias(users, "creator");
+  const editor = alias(users, "editor");
+  const preferenceEditor = alias(users, "preference_editor");
+
+  const rows = await db
+    .select({
+      customer: customers,
+      householdName: households.name,
+      householdRef: households.ref,
+      managerName: manager.name,
+      createdByName: creator.name,
+      updatedByName: editor.name,
+      preferencesUpdatedByName: preferenceEditor.name,
+    })
+    .from(customers)
+    .leftJoin(households, eq(customers.householdId, households.id))
+    .leftJoin(manager, eq(manager.id, customers.primaryRmId))
+    .leftJoin(creator, eq(creator.id, customers.createdBy))
+    .leftJoin(editor, eq(editor.id, customers.updatedBy))
+    .leftJoin(preferenceEditor, eq(preferenceEditor.id, customers.preferencesUpdatedBy))
+    .where(searchConditions(query))
+    .orderBy(asc(customers.firstName), asc(customers.lastName))
+    .limit(EXPORT_LIMIT);
+
+  const ids = rows.map((row) => row.customer.id);
+  if (ids.length === 0) {
+    return { rows, preferences: [], milestones: [], interest: [], interactions: [] };
+  }
+
+  // Four reads for the whole page rather than four per client.
+  const [preferenceRows, milestoneRows, interestRows, interactionRows] = await Promise.all([
+    db
+      .select({
+        customerId: customerPreferences.customerId,
+        polarity: customerPreferences.polarity,
+        kind: preferenceOptions.kind,
+        label: preferenceOptions.label,
+        note: customerPreferences.note,
+        membershipNumber: customerPreferences.membershipNumber,
+        membershipTier: customerPreferences.membershipTier,
+      })
+      .from(customerPreferences)
+      .innerJoin(preferenceOptions, eq(preferenceOptions.id, customerPreferences.optionId))
+      .where(inArray(customerPreferences.customerId, ids))
+      .orderBy(asc(customerPreferences.rank), asc(preferenceOptions.label)),
+
+    db
+      .select({
+        customerId: milestones.customerId,
+        title: milestones.title,
+        date: milestones.date,
+        type: milestones.type,
+      })
+      .from(milestones)
+      .where(and(inArray(milestones.customerId, ids), eq(milestones.status, "active")))
+      .orderBy(asc(milestones.date)),
+
+    db
+      .select({
+        customerId: clientInterests.customerId,
+        journeys: sql<number>`count(distinct ${clientInterests.destination})::int`,
+        seconds: sql<number>`coalesce(sum(${clientInterests.seconds}) filter (where ${clientInterests.kind} = 'read'), 0)::int`,
+        asked: sql<number>`count(*) filter (where ${clientInterests.kind} = 'cta_clicked')::int`,
+        lastSeenAt: sql<Date | null>`max(${clientInterests.occurredAt})`.mapWith(
+          clientInterests.occurredAt,
+        ),
+      })
+      .from(clientInterests)
+      .where(inArray(clientInterests.customerId, ids))
+      .groupBy(clientInterests.customerId),
+
+    db
+      .select({
+        customerId: interactions.customerId,
+        logged: sql<number>`count(*)::int`,
+        lastSummary: sql<string | null>`(array_agg(${interactions.summary} order by ${interactions.occurredAt} desc))[1]`,
+      })
+      .from(interactions)
+      .where(inArray(interactions.customerId, ids))
+      .groupBy(interactions.customerId),
+  ]);
+
+  return {
+    rows,
+    preferences: preferenceRows,
+    milestones: milestoneRows,
+    interest: interestRows,
+    interactions: interactionRows,
+  };
+}
+
 export async function searchCustomers(query: ClientSearchQuery): Promise<{
   rows: ClientSearchRow[];
   total: number;

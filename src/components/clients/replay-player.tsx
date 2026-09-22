@@ -5,6 +5,13 @@ import { ExternalLink, Loader2, PlayCircle, X } from "lucide-react";
 import { openReplayAction } from "@/actions/client-actions";
 import type { SessionReplay } from "@/lib/posthog";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { formatDateTime, readingTime } from "@/lib/format";
 
 /**
@@ -26,15 +33,69 @@ export function ReplayPlayer({
   customerId,
   replays,
   compact = false,
+  tile = false,
 }: {
   customerId: string;
   replays: SessionReplay[];
   /** One button for the latest visit, for the strip at the top of a record. */
   compact?: boolean;
+  /** A screen to press, for the panel at the top of a record. */
+  tile?: boolean;
 }) {
   const [watching, setWatching] = useState<SessionReplay | null>(null);
 
   if (replays.length === 0) return null;
+
+  /*
+   * The recording is the thing worth pressing, so it looks like something to
+   * press. It opens in a dialog rather than in place: the panel is a column
+   * wide and a replay of a phone visit needs the room.
+   */
+  if (tile) {
+    const latest = replays[0];
+    return (
+      <>
+        <button
+          type="button"
+          onClick={() => setWatching(latest)}
+          aria-label={`Watch the last visit, ${formatDateTime(latest.startedAt)}`}
+          className="group relative block w-full overflow-hidden rounded-md border border-border bg-muted transition-colors hover:border-ring"
+        >
+          <span className="flex aspect-video items-center justify-center">
+            <span className="flex size-11 items-center justify-center rounded-full bg-background/90 shadow-sm transition-transform group-hover:scale-110">
+              <PlayCircle className="size-6 text-foreground" />
+            </span>
+          </span>
+          <span className="tabular block border-t border-border bg-card px-2 py-1 text-left text-[11px] text-muted-foreground">
+            Last visit · {readingTime(latest.seconds)}
+          </span>
+        </button>
+
+        <Dialog
+          open={Boolean(watching)}
+          onOpenChange={(open) => {
+            if (!open) setWatching(null);
+          }}
+        >
+          <DialogContent className="sm:max-w-5xl">
+            <DialogHeader>
+              <DialogTitle>Last visit</DialogTitle>
+              <DialogDescription>
+                {formatDateTime(latest.startedAt)} · {readingTime(latest.seconds)}
+              </DialogDescription>
+            </DialogHeader>
+            {watching ? (
+              <Stage
+                customerId={customerId}
+                replay={watching}
+                onClose={() => setWatching(null)}
+              />
+            ) : null}
+          </DialogContent>
+        </Dialog>
+      </>
+    );
+  }
 
   if (compact) {
     const latest = replays[0];

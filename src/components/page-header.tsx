@@ -1,3 +1,4 @@
+import type { LucideIcon } from "lucide-react";
 import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
 
@@ -36,13 +37,21 @@ export function EmptyState({
   title,
   description,
   action,
+  plain = false,
 }: {
   title: string;
   description?: string;
   action?: ReactNode;
+  /** Inside a Section, whose card already draws the edge. */
+  plain?: boolean;
 }) {
   return (
-    <div className="rounded-lg border border-dashed border-border px-6 py-12 text-center">
+    <div
+      className={cn(
+        "px-6 text-center",
+        plain ? "py-8" : "rounded-lg border border-dashed border-border py-12",
+      )}
+    >
       <p className="text-sm font-medium">{title}</p>
       {description ? (
         <p className="mx-auto mt-1 max-w-sm text-sm text-muted-foreground">
@@ -74,27 +83,53 @@ export function Field({
   );
 }
 
-/** Section wrapper with a quiet rule rather than a heavy card. */
+/**
+ * A titled block of the record: a bordered card with a filled header bar.
+ *
+ * It used to be a bare hairline under a small-caps label, which left every
+ * screen reading as one undifferentiated column. A card gives each block an
+ * edge, and the header band says where one ends and the next begins.
+ *
+ * `flush` drops the body padding, for content that brings its own edges, such
+ * as a table or a list of rows that should run to the border.
+ */
 export function Section({
   title,
+  icon: Icon,
+  count,
   action,
   children,
   className,
+  flush = false,
 }: {
   title: string;
+  icon?: LucideIcon;
+  count?: number;
   action?: ReactNode;
   children: ReactNode;
   className?: string;
+  flush?: boolean;
 }) {
   return (
-    <section className={cn("space-y-4", className)}>
-      <div className="flex items-center justify-between gap-4 border-b border-border pb-2">
-        <h2 className="text-xs font-semibold tracking-[0.08em] text-muted-foreground uppercase">
-          {title}
+    <section
+      className={cn(
+        "overflow-hidden rounded-lg border border-border bg-card shadow-xs",
+        className,
+      )}
+    >
+      <div className="flex min-h-11 items-center justify-between gap-4 border-b border-border bg-muted px-4 py-2">
+        <h2 className="flex min-w-0 items-center gap-2 text-sm font-semibold text-foreground">
+          {Icon ? <Icon className="size-4 shrink-0 text-muted-foreground" /> : null}
+          <span className="truncate">{title}</span>
+          {count !== undefined ? (
+            <span className="tabular rounded-full bg-background px-1.5 text-xs font-medium text-muted-foreground">
+              {count}
+            </span>
+          ) : null}
         </h2>
-        {action}
+        {action ? <div className="flex shrink-0 items-center gap-1">{action}</div> : null}
       </div>
-      {children}
+      <div className={flush ? undefined : "p-4"}>{children}</div>
     </section>
   );
 }

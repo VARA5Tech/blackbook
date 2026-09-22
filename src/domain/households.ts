@@ -55,3 +55,13 @@ export const householdMemberSchema = z.object({
 export type CreateHouseholdInput = z.input<typeof createHouseholdSchema>;
 export type UpdateHouseholdInput = z.input<typeof updateHouseholdSchema>;
 export type HouseholdMemberInput = z.input<typeof householdMemberSchema>;
+
+/** How the households list can be ordered, and which way each starts. */
+export const HOUSEHOLD_SORTS = ["name", "members", "city", "updated"] as const;
+export type HouseholdSort = (typeof HOUSEHOLD_SORTS)[number];
+export const HOUSEHOLD_SORT_DEFAULT_DIRECTION: Record<HouseholdSort, "asc" | "desc"> = {
+  name: "asc",
+  members: "desc",
+  city: "asc",
+  updated: "desc",
+};

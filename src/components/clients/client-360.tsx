@@ -7,6 +7,7 @@ import {
   Mail,
   MapPin,
   MessageCircle,
+  MessageSquare,
   Pencil,
   Phone,
   Plane,
@@ -18,6 +19,7 @@ import Link from "next/link";
 import { useSyncExternalStore } from "react";
 import { ActivityTimeline } from "@/components/clients/activity-timeline";
 import { BriefMeDialog } from "@/components/clients/brief-me-dialog";
+import { ClientDetails } from "@/components/clients/client-details";
 import { ClientDnaPanel } from "@/components/clients/client-dna-panel";
 import { HouseholdPanel } from "@/components/clients/household-panel";
 import { InteractionPanel } from "@/components/clients/interaction-panel";
@@ -34,7 +36,6 @@ import type { Client360, InterestSummaryRow } from "@/repositories/customer-repo
 import type { ClientSignals, SessionReplay } from "@/lib/posthog";
 import type { CatalogueOption } from "@/domain/preferences";
 import {
-  GENDER_LABELS,
   displayName,
   executiveAssistantFor,
   fullName,
@@ -176,7 +177,7 @@ export function Client360View({
       label: <>Overview</>,
       content: (
           <div className="grid gap-8 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
-            <div className="space-y-8">
+            <div className="space-y-6">
               <ClientDnaPanel
                 customerId={customer.id}
                 clientDna={customer.clientDna}
@@ -185,43 +186,11 @@ export function Client360View({
                 canEdit={permissions.canEdit}
               />
 
-              <Section title="Details">
-                <dl className="grid gap-x-6 gap-y-5 sm:grid-cols-2 lg:grid-cols-3">
-                  <Field label="Mobile">
-                    <span className="tabular">{customer.mobile ?? "—"}</span>
-                  </Field>
-                  <Field label="WhatsApp">
-                    <span className="tabular">{customer.whatsapp ?? "—"}</span>
-                  </Field>
-                  <Field label="Email">{customer.email ?? "—"}</Field>
-                  <Field label="Date of birth">
-                    {formatDate(customer.dateOfBirth)}
-                  </Field>
-                  <Field label="Gender">
-                    {customer.gender ? GENDER_LABELS[customer.gender] : "—"}
-                  </Field>
-                  <Field label="Nationality">
-                    {customer.nationality ?? "—"}
-                  </Field>
-                  <Field label="City">{customer.city ?? "—"}</Field>
-                  <Field label="Address" className="sm:col-span-2">
-                    {customer.address ?? "—"}
-                  </Field>
-                  {assistant?.notes ? (
-                    <Field label="Assistant notes" className="sm:col-span-2">
-                      {assistant.notes}
-                    </Field>
-                  ) : null}
-                  {customer.remarks ? (
-                    <Field label="Remarks" className="sm:col-span-2 lg:col-span-3">
-                      <span className="whitespace-pre-line">{customer.remarks}</span>
-                    </Field>
-                  ) : null}
-                  <Field label="Profile last updated">
-                    {formatDate(customer.profileUpdatedAt)}
-                  </Field>
-                </dl>
-              </Section>
+              <ClientDetails
+                customer={customer}
+                household={household}
+                canEdit={permissions.canEdit}
+              />
             </div>
 
             <div className="space-y-8">
@@ -510,6 +479,13 @@ export function Client360View({
           </div>
         </div>
 
+        {/*
+          The facts on the left, what they have been doing on the members' site
+          on the right, where the recording is a screen to press rather than a
+          line of text.
+        */}
+        <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
+          <div className="min-w-0 flex-1 space-y-5">
         <div className="flex flex-wrap items-center gap-x-5 gap-y-2 text-sm">
           {customer.mobile ? (
             <a
@@ -559,8 +535,23 @@ export function Client360View({
             </a>
           ) : null}
 
-          <span className="flex items-center gap-1.5 text-muted-foreground">
-            Last contacted {timeAgo(customer.lastInteractionAt)}
+          {/*
+            Comes from logged interactions and nothing else: it is the date of
+            the most recent one, so an empty one says so rather than implying
+            the client has been ignored.
+          */}
+          <span
+            className="flex items-center gap-1.5 text-muted-foreground"
+            title={
+              customer.lastInteractionAt
+                ? "The most recent interaction logged for this client"
+                : "Set automatically when someone logs a call, meeting or message in Interactions"
+            }
+          >
+            <MessageSquare className="size-3.5" />
+            {customer.lastInteractionAt
+              ? `Last contacted ${timeAgo(customer.lastInteractionAt)}`
+              : "No interaction logged yet"}
           </span>
         </div>
 
@@ -594,12 +585,7 @@ export function Client360View({
           </div>
         ) : null}
 
-        <InterestStrip
-          customerId={customer.id}
-          interest={interest}
-          replays={replays}
-          signals={signals}
-        />
+
 
         {nextMilestone ? (
           <div className="flex items-center gap-2 rounded-md border border-accent bg-accent/40 px-3 py-2 text-sm text-accent-foreground">
@@ -620,6 +606,18 @@ export function Client360View({
             </span>
           </div>
         ) : null}
+          </div>
+
+          <div className="shrink-0 lg:w-80">
+        <InterestStrip
+          customerId={customer.id}
+          interest={interest}
+          replays={replays}
+          signals={signals}
+        />
+          </div>
+        </div>
+
       </header>
 
       <div className="flex justify-end">

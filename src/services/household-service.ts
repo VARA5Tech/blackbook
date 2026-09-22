@@ -10,6 +10,7 @@ import {
   updateHouseholdSchema,
   type CreateHouseholdInput,
   type HouseholdMemberInput,
+  type HouseholdSort,
   type UpdateHouseholdInput,
 } from "@/domain/households";
 import { digitsOnly, onlyProvided } from "@/domain/shared";
@@ -20,7 +21,11 @@ import { DomainError } from "./client-service";
 /* Reads                                                               */
 /* ------------------------------------------------------------------ */
 
-export async function listHouseholds(search?: string) {
+export async function listHouseholds(
+  search?: string,
+  sort: HouseholdSort = "name",
+  dir: "asc" | "desc" = "asc",
+) {
   await requireCapability("client.read");
 
   const conditions = [isNull(households.archivedAt)];
@@ -48,6 +53,15 @@ export async function listHouseholds(search?: string) {
    */
   const member = alias(customers, "member");
   const primaryClient = alias(customers, "primary_client");
+  const manager = alias(users, "manager");
+
+  const memberCount = sql<number>`count(distinct ${member.id})::int`;
+  const order = {
+    name: sql`lower(${households.name})`,
+    members: memberCount,
+    city: sql`lower(${households.city})`,
+    updated: households.updatedAt,
+  }[sort];
 
   return db
     .select({
@@ -56,10 +70,23 @@ export async function listHouseholds(search?: string) {
       name: households.name,
       city: households.city,
       travelPattern: households.travelPattern,
-      memberCount: sql<number>`count(distinct ${member.id})::int`,
+      updatedAt: households.updatedAt,
+      memberCount,
+      // First names in household order, so "Samrath, Karishma" reads as the family.
+      memberNames: sql<string[]>`coalesce(
+        array_agg(coalesce(${member.preferredName}, ${member.firstName})
+          order by (${member.householdRole} = 'primary') desc, ${member.dateOfBirth} nulls last, ${member.firstName})
+          filter (where ${member.id} is not null),
+        '{}'
+      )`,
+      primaryCustomerId: primaryClient.id,
       primaryCustomerName: sql<string | null>`coalesce(
         ${primaryClient.preferredName},
         nullif(trim(${primaryClient.firstName} || ' ' || coalesce(${primaryClient.lastName}, '')), '')
+      )`,
+      managerNames: sql<string[]>`coalesce(
+        array_agg(distinct ${manager.name}) filter (where ${manager.name} is not null),
+        '{}'
       )`,
     })
     .from(households)
@@ -68,12 +95,18 @@ export async function listHouseholds(search?: string) {
       and(eq(member.householdId, households.id), isNull(member.archivedAt)),
     )
     .leftJoin(primaryClient, eq(primaryClient.id, households.primaryCustomerId))
+    // Whoever manages any member: a family is usually one curator's, and a
+    // household with no primary client set still has people looking after it.
+    .leftJoin(manager, eq(manager.id, member.primaryRmId))
     .where(and(...conditions))
     // households.id and primaryClient.id are primary keys, so every other
     // selected column is functionally dependent on them.
     .groupBy(households.id, primaryClient.id)
-    .orderBy(asc(households.name))
-    .limit(100);
+    .orderBy(
+      dir === "desc" ? sql`${order} desc nulls last` : sql`${order} asc nulls last`,
+      asc(households.name),
+    )
+    .limit(200);
 }
 
 export async function getHousehold(householdId: string) {

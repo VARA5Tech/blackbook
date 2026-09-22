@@ -4,7 +4,7 @@ import { MemberAnalyticsView } from "@/components/analytics/member-analytics";
 import { getMemberAnalytics } from "@/services/dashboard-service";
 import { ANALYTICS_RANGES, type AnalyticsRange } from "@/domain/engagement";
 
-export const metadata: Metadata = { title: "Members" };
+export const metadata: Metadata = { title: "Analytics" };
 
 /** Live figures, never cached at the edge. */
 export const dynamic = "force-dynamic";
@@ -34,7 +34,7 @@ export default async function AnalyticsPage({
   return (
     <div className="space-y-8">
       <PageHeader
-        title="Members"
+        title="Analytics"
         description="What clients are reading on vara5.com, and how far it gets them."
       />
 

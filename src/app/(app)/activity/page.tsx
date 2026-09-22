@@ -1,52 +1,47 @@
 import type { Metadata } from "next";
-import Link from "next/link";
-import { EmptyState, PageHeader } from "@/components/page-header";
-import { listRecentActivity } from "@/services/activity-service";
-import { requireCapability } from "@/auth/session";
-import { formatDateTime } from "@/lib/format";
+import { ActivityTable } from "@/components/activity/activity-table";
+import { PageHeader } from "@/components/page-header";
+import { listActivity, listActivityAuthors } from "@/services/activity-service";
 
 export const metadata: Metadata = { title: "Activity" };
 
-export default async function ActivityPage() {
-  await requireCapability("client.read");
-  const entries = await listRecentActivity(150);
+const one = (value: string | string[] | undefined) =>
+  Array.isArray(value) ? value[0] : value;
+
+export default async function ActivityPage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
+  const params = await searchParams;
+  const page = Number.parseInt(one(params.page) ?? "1", 10);
+
+  const [result, authors] = await Promise.all([
+    listActivity({
+      q: one(params.q),
+      action: one(params.action),
+      record: one(params.record),
+      by: one(params.by),
+      period: one(params.period),
+      page: Number.isFinite(page) ? page : 1,
+    }),
+    listActivityAuthors(),
+  ]);
 
   return (
     <>
       <PageHeader
         title="Activity"
-        description="Everything recorded across clients and households, newest first."
+        description="Every change to a client or household: who made it, when, and exactly what changed."
       />
-
-      {entries.length === 0 ? (
-        <EmptyState title="No activity yet" />
-      ) : (
-        <ol className="divide-y divide-border">
-          {entries.map((entry) => {
-            const href = entry.customerId
-              ? `/clients/${entry.customerId}`
-              : entry.householdId
-                ? `/households/${entry.householdId}`
-                : null;
-
-            return (
-              <li key={entry.id} className="py-3">
-                {href ? (
-                  <Link href={href} className="text-sm hover:underline">
-                    {entry.summary}
-                  </Link>
-                ) : (
-                  <span className="text-sm">{entry.summary}</span>
-                )}
-                <p className="tabular text-xs text-muted-foreground">
-                  {formatDateTime(entry.createdAt)}
-                  {entry.actorName ? ` · ${entry.actorName}` : ""}
-                </p>
-              </li>
-            );
-          })}
-        </ol>
-      )}
+      <ActivityTable
+        rows={result.rows}
+        total={result.total}
+        page={result.page}
+        pageSize={result.pageSize}
+        lookups={result.lookups}
+        authors={authors}
+      />
     </>
   );
 }

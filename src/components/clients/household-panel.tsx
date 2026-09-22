@@ -1,8 +1,9 @@
+import { ArrowUpRight, Home } from "lucide-react";
 import Link from "next/link";
 import { Section } from "@/components/page-header";
 import { Badge } from "@/components/ui/badge";
 import type { Household } from "@/db/schema";
-import { HOUSEHOLD_ROLE_LABELS, displayName,
+import { HOUSEHOLD_ROLE_LABELS, displayName, initials,
   type ClientStatus,
   CLIENT_STATUS_LABELS,
 } from "@/domain/customers";
@@ -44,79 +45,111 @@ export function HouseholdPanel({
 }) {
   if (!household) {
     return (
-      <Section title="Household">
-        <p className="text-sm text-muted-foreground">Not linked to a household.</p>
+      <Section title="Household" icon={Home}>
+        <p className="text-sm text-muted-foreground">
+          Not part of a household yet. Link one from Edit.
+        </p>
       </Section>
     );
   }
 
+  const others = members.filter((member) => member.id !== currentCustomerId).length;
+
   return (
     <Section
       title="Household"
+      icon={Home}
+      count={members.length}
+      flush
       action={
         !expanded ? (
           <Link
             href={`/households/${household.id}`}
-            className="text-xs text-muted-foreground hover:underline"
+            className="flex items-center gap-1 rounded px-1.5 py-0.5 text-xs text-muted-foreground transition-colors hover:bg-background hover:text-foreground"
           >
-            {household.ref}
+            Open
+            <ArrowUpRight className="size-3" />
           </Link>
         ) : null
       }
     >
-      <div className="space-y-3">
-        <p className="font-display text-lg tracking-tight">{household.name}</p>
-
-        <ul className="space-y-1">
-          {members.map((member, index) => {
-            const isLast = index === members.length - 1;
-            const years = age(member.dateOfBirth);
-            const isCurrent = member.id === currentCustomerId;
-
-            return (
-              <li key={member.id} className="flex items-baseline gap-2 text-sm">
-                <span
-                  aria-hidden
-                  className="tabular shrink-0 text-muted-foreground"
-                >
-                  {isLast ? "└──" : "├──"}
-                </span>
-
-                {isCurrent ? (
-                  <span className="font-medium">{displayName(member)}</span>
-                ) : (
-                  <Link
-                    href={`/clients/${member.id}`}
-                    className="hover:underline"
-                  >
-                    {displayName(member)}
-                  </Link>
-                )}
-
-                <span className="truncate text-xs text-muted-foreground">
-                  {[
-                    member.householdRole
-                      ? HOUSEHOLD_ROLE_LABELS[member.householdRole]
-                      : null,
-                    years !== null ? `${years}` : null,
-                    expanded && member.dateOfBirth
-                      ? formatDayMonth(member.dateOfBirth)
-                      : null,
-                  ]
-                    .filter(Boolean)
-                    .join(" · ")}
-                </span>
-
-                {member.status !== "active" ? (
-                  <Badge variant="outline" className="text-[10px]">
-                    {CLIENT_STATUS_LABELS[member.status]}
-                  </Badge>
-                ) : null}
-              </li>
-            );
-          })}
-        </ul>
+      <div className="border-b border-border px-4 py-3">
+        <Link
+          href={`/households/${household.id}`}
+          className="font-display text-lg tracking-tight hover:underline"
+        >
+          {household.name}
+        </Link>
+        <p className="tabular text-xs text-muted-foreground">
+          {[household.ref, household.city, others > 0 ? `${others} other ${others === 1 ? "member" : "members"}` : null]
+            .filter(Boolean)
+            .join(" · ")}
+        </p>
       </div>
+
+      <ul className="divide-y divide-border">
+        {members.map((member) => {
+          const years = age(member.dateOfBirth);
+          const isCurrent = member.id === currentCustomerId;
+          const detail = [
+            member.householdRole ? HOUSEHOLD_ROLE_LABELS[member.householdRole] : null,
+            years !== null ? `${years} yrs` : null,
+            expanded && member.dateOfBirth ? formatDayMonth(member.dateOfBirth) : null,
+          ]
+            .filter(Boolean)
+            .join(" · ");
+
+          const row = (
+            <>
+              <span
+                aria-hidden
+                className={`flex size-8 shrink-0 items-center justify-center rounded-full text-xs font-medium ${
+                  isCurrent
+                    ? "bg-primary text-primary-foreground"
+                    : "bg-muted text-muted-foreground"
+                }`}
+              >
+                {initials(member)}
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="flex items-center gap-2 text-sm">
+                  <span className={`truncate ${isCurrent ? "font-medium" : ""}`}>
+                    {displayName(member)}
+                  </span>
+                  {isCurrent ? (
+                    <Badge variant="secondary" className="text-[10px]">
+                      This client
+                    </Badge>
+                  ) : null}
+                  {member.status !== "active" ? (
+                    <Badge variant="outline" className="text-[10px]">
+                      {CLIENT_STATUS_LABELS[member.status]}
+                    </Badge>
+                  ) : null}
+                </span>
+                {detail ? (
+                  <span className="block truncate text-xs text-muted-foreground">{detail}</span>
+                ) : null}
+              </span>
+            </>
+          );
+
+          return (
+            <li key={member.id}>
+              {isCurrent ? (
+                <div className="flex items-center gap-3 bg-muted/40 px-4 py-2.5">{row}</div>
+              ) : (
+                <Link
+                  href={`/clients/${member.id}`}
+                  className="flex items-center gap-3 px-4 py-2.5 transition-colors hover:bg-muted/60"
+                >
+                  {row}
+                </Link>
+              )}
+            </li>
+          );
+        })}
+      </ul>
     </Section>
   );
 }

@@ -46,7 +46,7 @@ const NAV: NavItem[] = [
   { href: "/activity", label: "Activity", icon: Activity },
   {
     href: "/analytics",
-    label: "Members",
+    label: "Analytics",
     icon: ChartLine,
     capability: "analytics.read",
   },

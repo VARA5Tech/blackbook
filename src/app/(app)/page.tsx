@@ -68,7 +68,7 @@ export default async function HomePage() {
   ];
 
   return (
-    <div className="space-y-10">
+    <div className="space-y-6">
       <header>
         <h1 className="font-display text-3xl tracking-tight">
           {greeting()}
@@ -98,6 +98,7 @@ export default async function HomePage() {
       {members?.configured && members.analytics.funnel.visits > 0 ? (
         <Section
           title="On vara5.com · last 30 days"
+          flush
           action={
             <Link
               href="/analytics"
@@ -108,7 +109,9 @@ export default async function HomePage() {
             </Link>
           }
         >
-          <div className="grid gap-px overflow-hidden rounded-md border border-border bg-border sm:grid-cols-4">
+          {/* Runs to the card's own edges: a second border inside the card
+              read as a box within a box. */}
+          <div className="grid gap-px bg-border sm:grid-cols-4">
             {[
               { value: members.analytics.funnel.clients, label: "clients browsing" },
               { value: members.analytics.funnel.opened, label: "journeys opened" },
@@ -126,8 +129,8 @@ export default async function HomePage() {
         </Section>
       ) : null}
 
-      <div className="grid gap-10 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
-        <div className="space-y-10">
+      <div className="grid gap-6 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
+        <div className="space-y-6">
           <Suspense fallback={<VisitsPlaceholder />}>
             <Visits />
           </Suspense>
@@ -146,6 +149,7 @@ export default async function HomePage() {
           >
             {dashboard.upcoming.length === 0 ? (
               <EmptyState
+                plain
                 title="Nothing in the next 45 days"
                 description="Birthdays and anniversaries appear here as they approach."
               />
@@ -155,7 +159,7 @@ export default async function HomePage() {
           </Section>
         </div>
 
-        <div className="space-y-10">
+        <div className="space-y-6">
           {dashboard.wanted.length > 0 ? (
             <Section title={`Most wanted · last ${dashboard.wantedDays} days`}>
               <ul className="space-y-3">

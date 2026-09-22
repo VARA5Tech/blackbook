@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Plus } from "lucide-react";
+import { Download, Plus } from "lucide-react";
 import { getActor } from "@/auth/session";
 import type { ClientStatus } from "@/domain/customers";
 import { can } from "@/auth/session";
@@ -89,14 +89,31 @@ export default async function ClientsPage({
         title="Clients"
         description={listSummary(results.totalClients, results.totalHouseholds)}
         actions={
-          canCreate ? (
-            <Button asChild>
-              <Link href="/clients/new">
-                <Plus />
-                New client
-              </Link>
+          <>
+            {/*
+              Carries the filters that are on screen, so the spreadsheet is the
+              list somebody is looking at. A plain link, not an action: the file
+              is produced by the server and the browser saves it.
+            */}
+            <Button asChild variant="outline">
+              <a
+                href={`/api/clients/export${baseQuery.toString() ? `?${baseQuery}` : ""}`}
+                download
+              >
+                <Download />
+                Export
+              </a>
             </Button>
-          ) : null
+
+            {canCreate ? (
+              <Button asChild>
+                <Link href="/clients/new">
+                  <Plus />
+                  New client
+                </Link>
+              </Button>
+            ) : null}
+          </>
         }
       />
 

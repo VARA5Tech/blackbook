@@ -13,6 +13,7 @@ import {
   createCustomer,
   DomainError,
   eraseCustomer,
+  exportClients,
   getClient360,
   restoreCustomer,
   reassignClients,
@@ -1010,5 +1011,65 @@ describe("handing several clients to a colleague", () => {
       .from(customers);
 
     expect(after).toEqual(before);
+  });
+});
+
+/**
+ * The clients list as a spreadsheet. Founders read the book in Excel, so the
+ * export has to answer the same question the screen does — and no other.
+ */
+describe("exporting the client list", () => {
+  let staff: StaffFixtures;
+
+  beforeAll(async () => {
+    staff = await seedStaff();
+  });
+
+  beforeEach(async () => {
+    await resetData();
+    actingAs(staff.admin);
+  });
+
+  it("carries the filters, and leaves staff records out of the book", async () => {
+    await createCustomer({
+      firstName: "Priya",
+      lastName: "Nair",
+      mobile: "+91 98100 11223",
+      whatsapp: "+91 98100 11224",
+      city: "Delhi",
+      customerSince: "2026-01-01",
+    });
+    await createCustomer({
+      firstName: "Desk",
+      lastName: "Tester",
+      status: "staff",
+      customerSince: "2026-01-01",
+    });
+
+    const everyone = await exportClients({});
+    expect(everyone.map((row) => row.firstName)).toEqual(["Priya"]);
+
+    // Both numbers travel, which is the reason it is not the list query.
+    expect(everyone[0]).toMatchObject({
+      mobile: "+91 98100 11223",
+      whatsapp: "+91 98100 11224",
+      city: "Delhi",
+    });
+
+    // Asked for by name, a staff record still comes back.
+    const testers = await exportClients({ status: "staff" });
+    expect(testers.map((row) => row.firstName)).toEqual(["Desk"]);
+
+    const searched = await exportClients({ q: "Priya" });
+    expect(searched).toHaveLength(1);
+    const missed = await exportClients({ q: "Nobody" });
+    expect(missed).toHaveLength(0);
+  });
+
+  it("is refused to a request with nobody signed in", async () => {
+    // The route hands this straight to the service, so the capability check is
+    // the only thing standing between a signed-out request and the whole book.
+    actingAs(null);
+    await expect(exportClients({})).rejects.toThrow();
   });
 });

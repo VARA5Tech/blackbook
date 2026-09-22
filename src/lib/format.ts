@@ -82,6 +82,14 @@ export function formatDateTime(value: Date | string | null | undefined): string 
   return `${dashed(istDate.format(date))}, ${istTime.format(date)}`;
 }
 
+/** `4:53 pm`, in Indian Standard Time, for a column that already shows the date. */
+export function formatTime(value: Date | string | null | undefined): string {
+  if (!value) return "—";
+  const date = typeof value === "string" ? new Date(value) : value;
+  if (Number.isNaN(date.getTime())) return "—";
+  return istTime.format(date);
+}
+
 /** Midnight in Delhi today, for the counts that mean "as of now, here". */
 function todayInIst(): Date {
   const [year, month, day] = istYmd.format(new Date()).split("-").map(Number);
