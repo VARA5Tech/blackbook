@@ -1,0 +1,3708 @@
+{
+  "id": "a41dde70-3db2-49b8-b2d7-9a4d067218c9",
+  "prevId": "f899bcc0-4fd6-4f00-b838-dfe50772a4ad",
+  "version": "7",
+  "dialect": "postgresql",
+  "tables": {
+    "identity.app_account": {
+      "name": "app_account",
+      "schema": "identity",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "user_id": {
+          "name": "user_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "account_id": {
+          "name": "account_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "provider_id": {
+          "name": "provider_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "access_token": {
+          "name": "access_token",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "refresh_token": {
+          "name": "refresh_token",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "access_token_expires_at": {
+          "name": "access_token_expires_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "refresh_token_expires_at": {
+          "name": "refresh_token_expires_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "scope": {
+          "name": "scope",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "id_token": {
+          "name": "id_token",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "password": {
+          "name": "password",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "app_account_user_idx": {
+          "name": "app_account_user_idx",
+          "columns": [
+            {
+              "expression": "user_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "app_account_user_id_app_user_id_fk": {
+          "name": "app_account_user_id_app_user_id_fk",
+          "tableFrom": "app_account",
+          "tableTo": "app_user",
+          "schemaTo": "identity",
+          "columnsFrom": [
+            "user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "identity.app_session": {
+      "name": "app_session",
+      "schema": "identity",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "token": {
+          "name": "token",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "user_id": {
+          "name": "user_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "expires_at": {
+          "name": "expires_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "ip_address": {
+          "name": "ip_address",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "user_agent": {
+          "name": "user_agent",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "impersonated_by": {
+          "name": "impersonated_by",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "app_session_user_idx": {
+          "name": "app_session_user_idx",
+          "columns": [
+            {
+              "expression": "user_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "app_session_user_id_app_user_id_fk": {
+          "name": "app_session_user_id_app_user_id_fk",
+          "tableFrom": "app_session",
+          "tableTo": "app_user",
+          "schemaTo": "identity",
+          "columnsFrom": [
+            "user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "app_session_token_unique": {
+          "name": "app_session_token_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "token"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "identity.app_user": {
+      "name": "app_user",
+      "schema": "identity",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "email": {
+          "name": "email",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "email_verified": {
+          "name": "email_verified",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "image": {
+          "name": "image",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "role": {
+          "name": "role",
+          "type": "user_role",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'viewer'"
+        },
+        "banned": {
+          "name": "banned",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": false,
+          "default": false
+        },
+        "ban_reason": {
+          "name": "ban_reason",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "ban_expires": {
+          "name": "ban_expires",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "app_user_role_idx": {
+          "name": "app_user_role_idx",
+          "columns": [
+            {
+              "expression": "role",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "app_user_email_unique": {
+          "name": "app_user_email_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "email"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "identity.app_verification": {
+      "name": "app_verification",
+      "schema": "identity",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "identifier": {
+          "name": "identifier",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "value": {
+          "name": "value",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "expires_at": {
+          "name": "expires_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "app_verification_identifier_idx": {
+          "name": "app_verification_identifier_idx",
+          "columns": [
+            {
+              "expression": "identifier",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.customer": {
+      "name": "customer",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "vara5_uuid_v7()"
+        },
+        "ref": {
+          "name": "ref",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "vara5_member_ref()"
+        },
+        "household_id": {
+          "name": "household_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "household_role": {
+          "name": "household_role",
+          "type": "household_role",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "prefix": {
+          "name": "prefix",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "first_name": {
+          "name": "first_name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "middle_name": {
+          "name": "middle_name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "last_name": {
+          "name": "last_name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "suffix": {
+          "name": "suffix",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "preferred_name": {
+          "name": "preferred_name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "mobile": {
+          "name": "mobile",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "mobile_normalized": {
+          "name": "mobile_normalized",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "generated": {
+            "as": "nullif(regexp_replace(coalesce(mobile, ''), '[^0-9]', '', 'g'), '')",
+            "type": "stored"
+          }
+        },
+        "whatsapp": {
+          "name": "whatsapp",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "whatsapp_normalized": {
+          "name": "whatsapp_normalized",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "generated": {
+            "as": "nullif(regexp_replace(coalesce(whatsapp, ''), '[^0-9]', '', 'g'), '')",
+            "type": "stored"
+          }
+        },
+        "email": {
+          "name": "email",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "date_of_birth": {
+          "name": "date_of_birth",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "gender": {
+          "name": "gender",
+          "type": "gender",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "nationality": {
+          "name": "nationality",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "city": {
+          "name": "city",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "address": {
+          "name": "address",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "location_url": {
+          "name": "location_url",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "location_lat": {
+          "name": "location_lat",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "location_lng": {
+          "name": "location_lng",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "ea_name": {
+          "name": "ea_name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "ea_email": {
+          "name": "ea_email",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "ea_phone": {
+          "name": "ea_phone",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "ea_phone_normalized": {
+          "name": "ea_phone_normalized",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "generated": {
+            "as": "nullif(regexp_replace(coalesce(ea_phone, ''), '[^0-9]', '', 'g'), '')",
+            "type": "stored"
+          }
+        },
+        "ea_notes": {
+          "name": "ea_notes",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "primary_rm_id": {
+          "name": "primary_rm_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "customer_since": {
+          "name": "customer_since",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "status": {
+          "name": "status",
+          "type": "client_status",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'active'"
+        },
+        "client_dna": {
+          "name": "client_dna",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "dos": {
+          "name": "dos",
+          "type": "text[]",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'{}'"
+        },
+        "donts": {
+          "name": "donts",
+          "type": "text[]",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'{}'"
+        },
+        "remarks": {
+          "name": "remarks",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "travel_documents": {
+          "name": "travel_documents",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'[]'::jsonb"
+        },
+        "tern_id": {
+          "name": "tern_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "tern_raw": {
+          "name": "tern_raw",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "tern_synced_at": {
+          "name": "tern_synced_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "last_interaction_at": {
+          "name": "last_interaction_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "profile_updated_at": {
+          "name": "profile_updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "travel_typical_trip_nights": {
+          "name": "travel_typical_trip_nights",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "travel_party": {
+          "name": "travel_party",
+          "type": "travelling_party",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "travel_frequency": {
+          "name": "travel_frequency",
+          "type": "travel_frequency",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "travel_budget_range": {
+          "name": "travel_budget_range",
+          "type": "budget_range",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "travel_booking_lead_time": {
+          "name": "travel_booking_lead_time",
+          "type": "booking_lead_time",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "travel_notes": {
+          "name": "travel_notes",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "hotel_notes": {
+          "name": "hotel_notes",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "flight_cabin": {
+          "name": "flight_cabin",
+          "type": "cabin_class",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "flight_direct_preference": {
+          "name": "flight_direct_preference",
+          "type": "direct_flight_preference",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "flight_notes": {
+          "name": "flight_notes",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "flight_seat": {
+          "name": "flight_seat",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "flight_bulkhead": {
+          "name": "flight_bulkhead",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "hotel_room_floor": {
+          "name": "hotel_room_floor",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "hotel_room_elevator": {
+          "name": "hotel_room_elevator",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "cruise_deck": {
+          "name": "cruise_deck",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "cruise_cabin_position": {
+          "name": "cruise_cabin_position",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "dining_dietary": {
+          "name": "dining_dietary",
+          "type": "dietary_preference",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "dining_fine_dining": {
+          "name": "dining_fine_dining",
+          "type": "fine_dining_preference",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "dining_notes": {
+          "name": "dining_notes",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "lifestyle_experience_style": {
+          "name": "lifestyle_experience_style",
+          "type": "experience_style",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "lifestyle_notes": {
+          "name": "lifestyle_notes",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "preferences_updated_at": {
+          "name": "preferences_updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "preferences_updated_by": {
+          "name": "preferences_updated_by",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "created_by": {
+          "name": "created_by",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "updated_by": {
+          "name": "updated_by",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "archived_at": {
+          "name": "archived_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {
+        "customer_household_idx": {
+          "name": "customer_household_idx",
+          "columns": [
+            {
+              "expression": "household_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "customer_rm_idx": {
+          "name": "customer_rm_idx",
+          "columns": [
+            {
+              "expression": "primary_rm_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "customer_status_idx": {
+          "name": "customer_status_idx",
+          "columns": [
+            {
+              "expression": "status",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "customer_archived_idx": {
+          "name": "customer_archived_idx",
+          "columns": [
+            {
+              "expression": "archived_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "customer_last_interaction_idx": {
+          "name": "customer_last_interaction_idx",
+          "columns": [
+            {
+              "expression": "last_interaction_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "customer_mobile_normalized_idx": {
+          "name": "customer_mobile_normalized_idx",
+          "columns": [
+            {
+              "expression": "mobile_normalized",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "customer_whatsapp_normalized_idx": {
+          "name": "customer_whatsapp_normalized_idx",
+          "columns": [
+            {
+              "expression": "whatsapp_normalized",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "customer_mobile_unique_active": {
+          "name": "customer_mobile_unique_active",
+          "columns": [
+            {
+              "expression": "mobile_normalized",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "where": "archived_at is null and mobile_normalized is not null",
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "customer_tern_id_unique": {
+          "name": "customer_tern_id_unique",
+          "columns": [
+            {
+              "expression": "tern_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "where": "tern_id is not null",
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "customer_household_id_household_id_fk": {
+          "name": "customer_household_id_household_id_fk",
+          "tableFrom": "customer",
+          "tableTo": "household",
+          "columnsFrom": [
+            "household_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        },
+        "customer_primary_rm_id_app_user_id_fk": {
+          "name": "customer_primary_rm_id_app_user_id_fk",
+          "tableFrom": "customer",
+          "tableTo": "app_user",
+          "schemaTo": "identity",
+          "columnsFrom": [
+            "primary_rm_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        },
+        "customer_preferences_updated_by_app_user_id_fk": {
+          "name": "customer_preferences_updated_by_app_user_id_fk",
+          "tableFrom": "customer",
+          "tableTo": "app_user",
+          "schemaTo": "identity",
+          "columnsFrom": [
+            "preferences_updated_by"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        },
+        "customer_created_by_app_user_id_fk": {
+          "name": "customer_created_by_app_user_id_fk",
+          "tableFrom": "customer",
+          "tableTo": "app_user",
+          "schemaTo": "identity",
+          "columnsFrom": [
+            "created_by"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        },
+        "customer_updated_by_app_user_id_fk": {
+          "name": "customer_updated_by_app_user_id_fk",
+          "tableFrom": "customer",
+          "tableTo": "app_user",
+          "schemaTo": "identity",
+          "columnsFrom": [
+            "updated_by"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "customer_ref_unique": {
+          "name": "customer_ref_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "ref"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.household": {
+      "name": "household",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "vara5_uuid_v7()"
+        },
+        "ref": {
+          "name": "ref",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "vara5_ref('HH-', nextval('household_ref_seq'))"
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "city": {
+          "name": "city",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "primary_customer_id": {
+          "name": "primary_customer_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "travel_pattern": {
+          "name": "travel_pattern",
+          "type": "household_travel_pattern",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "notes": {
+          "name": "notes",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "ea_name": {
+          "name": "ea_name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "ea_email": {
+          "name": "ea_email",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "ea_phone": {
+          "name": "ea_phone",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "ea_phone_normalized": {
+          "name": "ea_phone_normalized",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "generated": {
+            "as": "nullif(regexp_replace(coalesce(ea_phone, ''), '[^0-9]', '', 'g'), '')",
+            "type": "stored"
+          }
+        },
+        "ea_notes": {
+          "name": "ea_notes",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "created_by": {
+          "name": "created_by",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "updated_by": {
+          "name": "updated_by",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "archived_at": {
+          "name": "archived_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {
+        "household_name_idx": {
+          "name": "household_name_idx",
+          "columns": [
+            {
+              "expression": "name",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "household_city_idx": {
+          "name": "household_city_idx",
+          "columns": [
+            {
+              "expression": "city",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "household_archived_idx": {
+          "name": "household_archived_idx",
+          "columns": [
+            {
+              "expression": "archived_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "household_primary_customer_id_customer_id_fk": {
+          "name": "household_primary_customer_id_customer_id_fk",
+          "tableFrom": "household",
+          "tableTo": "customer",
+          "columnsFrom": [
+            "primary_customer_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        },
+        "household_created_by_app_user_id_fk": {
+          "name": "household_created_by_app_user_id_fk",
+          "tableFrom": "household",
+          "tableTo": "app_user",
+          "schemaTo": "identity",
+          "columnsFrom": [
+            "created_by"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        },
+        "household_updated_by_app_user_id_fk": {
+          "name": "household_updated_by_app_user_id_fk",
+          "tableFrom": "household",
+          "tableTo": "app_user",
+          "schemaTo": "identity",
+          "columnsFrom": [
+            "updated_by"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "household_ref_unique": {
+          "name": "household_ref_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "ref"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.customer_preference": {
+      "name": "customer_preference",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "vara5_uuid_v7()"
+        },
+        "customer_id": {
+          "name": "customer_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "option_id": {
+          "name": "option_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "polarity": {
+          "name": "polarity",
+          "type": "preference_polarity",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'prefer'"
+        },
+        "note": {
+          "name": "note",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "membership_number": {
+          "name": "membership_number",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "membership_tier": {
+          "name": "membership_tier",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "rank": {
+          "name": "rank",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "created_by": {
+          "name": "created_by",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {
+        "customer_preference_unique": {
+          "name": "customer_preference_unique",
+          "columns": [
+            {
+              "expression": "customer_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "option_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "polarity",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "customer_preference_customer_idx": {
+          "name": "customer_preference_customer_idx",
+          "columns": [
+            {
+              "expression": "customer_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "customer_preference_membership_idx": {
+          "name": "customer_preference_membership_idx",
+          "columns": [
+            {
+              "expression": "membership_number",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "customer_preference_option_idx": {
+          "name": "customer_preference_option_idx",
+          "columns": [
+            {
+              "expression": "option_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "polarity",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "customer_preference_customer_id_customer_id_fk": {
+          "name": "customer_preference_customer_id_customer_id_fk",
+          "tableFrom": "customer_preference",
+          "tableTo": "customer",
+          "columnsFrom": [
+            "customer_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "customer_preference_option_id_preference_option_id_fk": {
+          "name": "customer_preference_option_id_preference_option_id_fk",
+          "tableFrom": "customer_preference",
+          "tableTo": "preference_option",
+          "columnsFrom": [
+            "option_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "customer_preference_created_by_app_user_id_fk": {
+          "name": "customer_preference_created_by_app_user_id_fk",
+          "tableFrom": "customer_preference",
+          "tableTo": "app_user",
+          "schemaTo": "identity",
+          "columnsFrom": [
+            "created_by"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.preference_option": {
+      "name": "preference_option",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "vara5_uuid_v7()"
+        },
+        "kind": {
+          "name": "kind",
+          "type": "preference_kind",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "slug": {
+          "name": "slug",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "label": {
+          "name": "label",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "grouping": {
+          "name": "grouping",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "tiers": {
+          "name": "tiers",
+          "type": "text[]",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'{}'"
+        },
+        "is_custom": {
+          "name": "is_custom",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "sort_order": {
+          "name": "sort_order",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "created_by": {
+          "name": "created_by",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {
+        "preference_option_kind_slug_unique": {
+          "name": "preference_option_kind_slug_unique",
+          "columns": [
+            {
+              "expression": "kind",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "slug",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "preference_option_kind_idx": {
+          "name": "preference_option_kind_idx",
+          "columns": [
+            {
+              "expression": "kind",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "sort_order",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "preference_option_label_idx": {
+          "name": "preference_option_label_idx",
+          "columns": [
+            {
+              "expression": "label",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "preference_option_created_by_app_user_id_fk": {
+          "name": "preference_option_created_by_app_user_id_fk",
+          "tableFrom": "preference_option",
+          "tableTo": "app_user",
+          "schemaTo": "identity",
+          "columnsFrom": [
+            "created_by"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.activity_log": {
+      "name": "activity_log",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "vara5_uuid_v7()"
+        },
+        "entity_type": {
+          "name": "entity_type",
+          "type": "activity_entity",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "entity_id": {
+          "name": "entity_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "action": {
+          "name": "action",
+          "type": "activity_action",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "customer_id": {
+          "name": "customer_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "household_id": {
+          "name": "household_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "summary": {
+          "name": "summary",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "changes": {
+          "name": "changes",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "actor_id": {
+          "name": "actor_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "activity_log_customer_idx": {
+          "name": "activity_log_customer_idx",
+          "columns": [
+            {
+              "expression": "customer_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "created_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "activity_log_household_idx": {
+          "name": "activity_log_household_idx",
+          "columns": [
+            {
+              "expression": "household_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "created_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "activity_log_entity_idx": {
+          "name": "activity_log_entity_idx",
+          "columns": [
+            {
+              "expression": "entity_type",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "entity_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "activity_log_created_idx": {
+          "name": "activity_log_created_idx",
+          "columns": [
+            {
+              "expression": "created_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "activity_log_customer_id_customer_id_fk": {
+          "name": "activity_log_customer_id_customer_id_fk",
+          "tableFrom": "activity_log",
+          "tableTo": "customer",
+          "columnsFrom": [
+            "customer_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        },
+        "activity_log_household_id_household_id_fk": {
+          "name": "activity_log_household_id_household_id_fk",
+          "tableFrom": "activity_log",
+          "tableTo": "household",
+          "columnsFrom": [
+            "household_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        },
+        "activity_log_actor_id_app_user_id_fk": {
+          "name": "activity_log_actor_id_app_user_id_fk",
+          "tableFrom": "activity_log",
+          "tableTo": "app_user",
+          "schemaTo": "identity",
+          "columnsFrom": [
+            "actor_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.client_interest": {
+      "name": "client_interest",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "vara5_uuid_v7()"
+        },
+        "customer_id": {
+          "name": "customer_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "destination": {
+          "name": "destination",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "title": {
+          "name": "title",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "kind": {
+          "name": "kind",
+          "type": "interest_kind",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "seconds": {
+          "name": "seconds",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "occurred_at": {
+          "name": "occurred_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "client_interest_customer_idx": {
+          "name": "client_interest_customer_idx",
+          "columns": [
+            {
+              "expression": "customer_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "occurred_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "client_interest_destination_idx": {
+          "name": "client_interest_destination_idx",
+          "columns": [
+            {
+              "expression": "destination",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "occurred_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "client_interest_customer_id_customer_id_fk": {
+          "name": "client_interest_customer_id_customer_id_fk",
+          "tableFrom": "client_interest",
+          "tableTo": "customer",
+          "columnsFrom": [
+            "customer_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "client_interest_seconds_sane": {
+          "name": "client_interest_seconds_sane",
+          "value": "seconds >= 0 and seconds <= 86400"
+        }
+      },
+      "isRLSEnabled": true
+    },
+    "public.document": {
+      "name": "document",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "vara5_uuid_v7()"
+        },
+        "customer_id": {
+          "name": "customer_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "trip_id": {
+          "name": "trip_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "storage_key": {
+          "name": "storage_key",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "filename": {
+          "name": "filename",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "content_type": {
+          "name": "content_type",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "size_bytes": {
+          "name": "size_bytes",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "kind": {
+          "name": "kind",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "source": {
+          "name": "source",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'upload'"
+        },
+        "stored_at": {
+          "name": "stored_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "created_by": {
+          "name": "created_by",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {
+        "document_customer_idx": {
+          "name": "document_customer_idx",
+          "columns": [
+            {
+              "expression": "customer_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "created_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "document_trip_idx": {
+          "name": "document_trip_idx",
+          "columns": [
+            {
+              "expression": "trip_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "document_storage_key_unique": {
+          "name": "document_storage_key_unique",
+          "columns": [
+            {
+              "expression": "storage_key",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "document_customer_id_customer_id_fk": {
+          "name": "document_customer_id_customer_id_fk",
+          "tableFrom": "document",
+          "tableTo": "customer",
+          "columnsFrom": [
+            "customer_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "document_trip_id_trip_id_fk": {
+          "name": "document_trip_id_trip_id_fk",
+          "tableFrom": "document",
+          "tableTo": "trip",
+          "columnsFrom": [
+            "trip_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        },
+        "document_created_by_app_user_id_fk": {
+          "name": "document_created_by_app_user_id_fk",
+          "tableFrom": "document",
+          "tableTo": "app_user",
+          "schemaTo": "identity",
+          "columnsFrom": [
+            "created_by"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": true
+    },
+    "public.interaction": {
+      "name": "interaction",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "vara5_uuid_v7()"
+        },
+        "customer_id": {
+          "name": "customer_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "household_id": {
+          "name": "household_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "type": {
+          "name": "type",
+          "type": "interaction_type",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "occurred_at": {
+          "name": "occurred_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "summary": {
+          "name": "summary",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "details": {
+          "name": "details",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "logged_by": {
+          "name": "logged_by",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "interaction_customer_idx": {
+          "name": "interaction_customer_idx",
+          "columns": [
+            {
+              "expression": "customer_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "occurred_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "interaction_household_idx": {
+          "name": "interaction_household_idx",
+          "columns": [
+            {
+              "expression": "household_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "occurred_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "interaction_customer_id_customer_id_fk": {
+          "name": "interaction_customer_id_customer_id_fk",
+          "tableFrom": "interaction",
+          "tableTo": "customer",
+          "columnsFrom": [
+            "customer_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "interaction_household_id_household_id_fk": {
+          "name": "interaction_household_id_household_id_fk",
+          "tableFrom": "interaction",
+          "tableTo": "household",
+          "columnsFrom": [
+            "household_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "interaction_logged_by_app_user_id_fk": {
+          "name": "interaction_logged_by_app_user_id_fk",
+          "tableFrom": "interaction",
+          "tableTo": "app_user",
+          "schemaTo": "identity",
+          "columnsFrom": [
+            "logged_by"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "interaction_owner_check": {
+          "name": "interaction_owner_check",
+          "value": "customer_id is not null or household_id is not null"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.lead": {
+      "name": "lead",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "vara5_uuid_v7()"
+        },
+        "customer_id": {
+          "name": "customer_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "interest_id": {
+          "name": "interest_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "destination": {
+          "name": "destination",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "title": {
+          "name": "title",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "status": {
+          "name": "status",
+          "type": "lead_status",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'new'"
+        },
+        "source": {
+          "name": "source",
+          "type": "lead_source",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'website'"
+        },
+        "assignee_id": {
+          "name": "assignee_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "assigned_at": {
+          "name": "assigned_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "assigned_by": {
+          "name": "assigned_by",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "due_at": {
+          "name": "due_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "acknowledged_at": {
+          "name": "acknowledged_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "acknowledged_by": {
+          "name": "acknowledged_by",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "escalation_level": {
+          "name": "escalation_level",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "escalated_at": {
+          "name": "escalated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "outcome_note": {
+          "name": "outcome_note",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "dropped_reason": {
+          "name": "dropped_reason",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "closed_at": {
+          "name": "closed_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "lead_status_idx": {
+          "name": "lead_status_idx",
+          "columns": [
+            {
+              "expression": "status",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "due_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "lead_assignee_idx": {
+          "name": "lead_assignee_idx",
+          "columns": [
+            {
+              "expression": "assignee_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "status",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "lead_customer_idx": {
+          "name": "lead_customer_idx",
+          "columns": [
+            {
+              "expression": "customer_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "lead_open_per_destination_unique": {
+          "name": "lead_open_per_destination_unique",
+          "columns": [
+            {
+              "expression": "customer_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "destination",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "where": "status not in ('won', 'dropped')",
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "lead_customer_id_customer_id_fk": {
+          "name": "lead_customer_id_customer_id_fk",
+          "tableFrom": "lead",
+          "tableTo": "customer",
+          "columnsFrom": [
+            "customer_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "lead_interest_id_client_interest_id_fk": {
+          "name": "lead_interest_id_client_interest_id_fk",
+          "tableFrom": "lead",
+          "tableTo": "client_interest",
+          "columnsFrom": [
+            "interest_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        },
+        "lead_assignee_id_app_user_id_fk": {
+          "name": "lead_assignee_id_app_user_id_fk",
+          "tableFrom": "lead",
+          "tableTo": "app_user",
+          "schemaTo": "identity",
+          "columnsFrom": [
+            "assignee_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        },
+        "lead_assigned_by_app_user_id_fk": {
+          "name": "lead_assigned_by_app_user_id_fk",
+          "tableFrom": "lead",
+          "tableTo": "app_user",
+          "schemaTo": "identity",
+          "columnsFrom": [
+            "assigned_by"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        },
+        "lead_acknowledged_by_app_user_id_fk": {
+          "name": "lead_acknowledged_by_app_user_id_fk",
+          "tableFrom": "lead",
+          "tableTo": "app_user",
+          "schemaTo": "identity",
+          "columnsFrom": [
+            "acknowledged_by"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": true
+    },
+    "public.milestone": {
+      "name": "milestone",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "vara5_uuid_v7()"
+        },
+        "customer_id": {
+          "name": "customer_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "household_id": {
+          "name": "household_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "type": {
+          "name": "type",
+          "type": "milestone_type",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "title": {
+          "name": "title",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "date": {
+          "name": "date",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "recurs_annually": {
+          "name": "recurs_annually",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": true
+        },
+        "month_of_year": {
+          "name": "month_of_year",
+          "type": "smallint",
+          "primaryKey": false,
+          "notNull": false,
+          "generated": {
+            "as": "extract(month from date)::smallint",
+            "type": "stored"
+          }
+        },
+        "day_of_month": {
+          "name": "day_of_month",
+          "type": "smallint",
+          "primaryKey": false,
+          "notNull": false,
+          "generated": {
+            "as": "extract(day from date)::smallint",
+            "type": "stored"
+          }
+        },
+        "celebration_style": {
+          "name": "celebration_style",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "notes": {
+          "name": "notes",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "reminder_days_before": {
+          "name": "reminder_days_before",
+          "type": "integer[]",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'{30,7,1}'"
+        },
+        "status": {
+          "name": "status",
+          "type": "milestone_status",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'active'"
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "created_by": {
+          "name": "created_by",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {
+        "milestone_customer_idx": {
+          "name": "milestone_customer_idx",
+          "columns": [
+            {
+              "expression": "customer_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "milestone_household_idx": {
+          "name": "milestone_household_idx",
+          "columns": [
+            {
+              "expression": "household_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "milestone_upcoming_idx": {
+          "name": "milestone_upcoming_idx",
+          "columns": [
+            {
+              "expression": "month_of_year",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "day_of_month",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "status",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "milestone_type_idx": {
+          "name": "milestone_type_idx",
+          "columns": [
+            {
+              "expression": "type",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "milestone_customer_id_customer_id_fk": {
+          "name": "milestone_customer_id_customer_id_fk",
+          "tableFrom": "milestone",
+          "tableTo": "customer",
+          "columnsFrom": [
+            "customer_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "milestone_household_id_household_id_fk": {
+          "name": "milestone_household_id_household_id_fk",
+          "tableFrom": "milestone",
+          "tableTo": "household",
+          "columnsFrom": [
+            "household_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "milestone_created_by_app_user_id_fk": {
+          "name": "milestone_created_by_app_user_id_fk",
+          "tableFrom": "milestone",
+          "tableTo": "app_user",
+          "schemaTo": "identity",
+          "columnsFrom": [
+            "created_by"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "milestone_owner_check": {
+          "name": "milestone_owner_check",
+          "value": "(customer_id is not null) <> (household_id is not null)"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.task": {
+      "name": "task",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "vara5_uuid_v7()"
+        },
+        "title": {
+          "name": "title",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "details": {
+          "name": "details",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "customer_id": {
+          "name": "customer_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "household_id": {
+          "name": "household_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "assignee_id": {
+          "name": "assignee_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "lead_id": {
+          "name": "lead_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "due_date": {
+          "name": "due_date",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "status": {
+          "name": "status",
+          "type": "task_status",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'open'"
+        },
+        "priority": {
+          "name": "priority",
+          "type": "task_priority",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'normal'"
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "created_by": {
+          "name": "created_by",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "completed_at": {
+          "name": "completed_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {
+        "task_assignee_idx": {
+          "name": "task_assignee_idx",
+          "columns": [
+            {
+              "expression": "assignee_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "status",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "task_lead_idx": {
+          "name": "task_lead_idx",
+          "columns": [
+            {
+              "expression": "lead_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "task_customer_idx": {
+          "name": "task_customer_idx",
+          "columns": [
+            {
+              "expression": "customer_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "task_due_idx": {
+          "name": "task_due_idx",
+          "columns": [
+            {
+              "expression": "due_date",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "status",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "task_customer_id_customer_id_fk": {
+          "name": "task_customer_id_customer_id_fk",
+          "tableFrom": "task",
+          "tableTo": "customer",
+          "columnsFrom": [
+            "customer_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "task_household_id_household_id_fk": {
+          "name": "task_household_id_household_id_fk",
+          "tableFrom": "task",
+          "tableTo": "household",
+          "columnsFrom": [
+            "household_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "task_assignee_id_app_user_id_fk": {
+          "name": "task_assignee_id_app_user_id_fk",
+          "tableFrom": "task",
+          "tableTo": "app_user",
+          "schemaTo": "identity",
+          "columnsFrom": [
+            "assignee_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        },
+        "task_lead_id_lead_id_fk": {
+          "name": "task_lead_id_lead_id_fk",
+          "tableFrom": "task",
+          "tableTo": "lead",
+          "columnsFrom": [
+            "lead_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "task_created_by_app_user_id_fk": {
+          "name": "task_created_by_app_user_id_fk",
+          "tableFrom": "task",
+          "tableTo": "app_user",
+          "schemaTo": "identity",
+          "columnsFrom": [
+            "created_by"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.trip": {
+      "name": "trip",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "vara5_uuid_v7()"
+        },
+        "customer_id": {
+          "name": "customer_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "household_id": {
+          "name": "household_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "title": {
+          "name": "title",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "status": {
+          "name": "status",
+          "type": "trip_status",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'planning'"
+        },
+        "starts_on": {
+          "name": "starts_on",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "ends_on": {
+          "name": "ends_on",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "dates_text": {
+          "name": "dates_text",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "party_size": {
+          "name": "party_size",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "currency": {
+          "name": "currency",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "curator_name": {
+          "name": "curator_name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "travelers": {
+          "name": "travelers",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'[]'::jsonb"
+        },
+        "itinerary": {
+          "name": "itinerary",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'[]'::jsonb"
+        },
+        "flags": {
+          "name": "flags",
+          "type": "text[]",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'{}'"
+        },
+        "tern_id": {
+          "name": "tern_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "tern_raw": {
+          "name": "tern_raw",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "tern_synced_at": {
+          "name": "tern_synced_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "created_by": {
+          "name": "created_by",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {
+        "trip_customer_idx": {
+          "name": "trip_customer_idx",
+          "columns": [
+            {
+              "expression": "customer_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "starts_on",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "trip_status_idx": {
+          "name": "trip_status_idx",
+          "columns": [
+            {
+              "expression": "status",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "starts_on",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "trip_travelers_idx": {
+          "name": "trip_travelers_idx",
+          "columns": [
+            {
+              "expression": "\"travelers\" jsonb_path_ops",
+              "asc": true,
+              "isExpression": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "gin",
+          "with": {}
+        },
+        "trip_tern_id_unique": {
+          "name": "trip_tern_id_unique",
+          "columns": [
+            {
+              "expression": "tern_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "where": "tern_id is not null",
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "trip_customer_id_customer_id_fk": {
+          "name": "trip_customer_id_customer_id_fk",
+          "tableFrom": "trip",
+          "tableTo": "customer",
+          "columnsFrom": [
+            "customer_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "trip_household_id_household_id_fk": {
+          "name": "trip_household_id_household_id_fk",
+          "tableFrom": "trip",
+          "tableTo": "household",
+          "columnsFrom": [
+            "household_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        },
+        "trip_created_by_app_user_id_fk": {
+          "name": "trip_created_by_app_user_id_fk",
+          "tableFrom": "trip",
+          "tableTo": "app_user",
+          "schemaTo": "identity",
+          "columnsFrom": [
+            "created_by"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": true
+    }
+  },
+  "enums": {
+    "public.activity_action": {
+      "name": "activity_action",
+      "schema": "public",
+      "values": [
+        "created",
+        "updated",
+        "archived",
+        "restored",
+        "linked",
+        "unlinked",
+        "interaction_logged",
+        "preference_updated"
+      ]
+    },
+    "public.activity_entity": {
+      "name": "activity_entity",
+      "schema": "public",
+      "values": [
+        "customer",
+        "household",
+        "milestone",
+        "interaction",
+        "task",
+        "preference"
+      ]
+    },
+    "public.booking_lead_time": {
+      "name": "booking_lead_time",
+      "schema": "public",
+      "values": [
+        "last_minute",
+        "under_1_month",
+        "one_to_three_months",
+        "three_to_six_months",
+        "six_months_plus"
+      ]
+    },
+    "public.budget_range": {
+      "name": "budget_range",
+      "schema": "public",
+      "values": [
+        "upto_5l",
+        "5l_10l",
+        "10l_25l",
+        "25l_50l",
+        "50l_plus",
+        "no_ceiling"
+      ]
+    },
+    "public.cabin_class": {
+      "name": "cabin_class",
+      "schema": "public",
+      "values": [
+        "economy",
+        "premium_economy",
+        "business",
+        "first",
+        "private"
+      ]
+    },
+    "public.client_status": {
+      "name": "client_status",
+      "schema": "public",
+      "values": [
+        "active",
+        "inactive",
+        "staff"
+      ]
+    },
+    "public.dietary_preference": {
+      "name": "dietary_preference",
+      "schema": "public",
+      "values": [
+        "no_restriction",
+        "vegetarian",
+        "vegan",
+        "jain",
+        "halal",
+        "kosher",
+        "pescatarian",
+        "gluten_free",
+        "other"
+      ]
+    },
+    "public.direct_flight_preference": {
+      "name": "direct_flight_preference",
+      "schema": "public",
+      "values": [
+        "always_direct",
+        "prefer_direct",
+        "no_preference"
+      ]
+    },
+    "public.experience_style": {
+      "name": "experience_style",
+      "schema": "public",
+      "values": [
+        "private_bespoke",
+        "small_group",
+        "exclusive_access",
+        "off_the_beaten_path",
+        "classic_highlights",
+        "relaxed_unstructured"
+      ]
+    },
+    "public.fine_dining_preference": {
+      "name": "fine_dining_preference",
+      "schema": "public",
+      "values": [
+        "essential",
+        "enjoys",
+        "occasional",
+        "prefers_casual"
+      ]
+    },
+    "public.gender": {
+      "name": "gender",
+      "schema": "public",
+      "values": [
+        "male",
+        "female",
+        "other",
+        "prefer_not_to_say"
+      ]
+    },
+    "public.household_role": {
+      "name": "household_role",
+      "schema": "public",
+      "values": [
+        "primary",
+        "spouse",
+        "partner",
+        "child",
+        "parent",
+        "sibling",
+        "other"
+      ]
+    },
+    "public.household_travel_pattern": {
+      "name": "household_travel_pattern",
+      "schema": "public",
+      "values": [
+        "couple",
+        "family",
+        "multi_generational"
+      ]
+    },
+    "public.interaction_type": {
+      "name": "interaction_type",
+      "schema": "public",
+      "values": [
+        "call",
+        "whatsapp",
+        "email",
+        "meeting",
+        "trip",
+        "note",
+        "other"
+      ]
+    },
+    "public.interest_kind": {
+      "name": "interest_kind",
+      "schema": "public",
+      "values": [
+        "opened",
+        "read",
+        "photos",
+        "video",
+        "cta_clicked"
+      ]
+    },
+    "public.lead_source": {
+      "name": "lead_source",
+      "schema": "public",
+      "values": [
+        "website",
+        "phone",
+        "email",
+        "whatsapp",
+        "referral",
+        "in_person",
+        "other"
+      ]
+    },
+    "public.lead_status": {
+      "name": "lead_status",
+      "schema": "public",
+      "values": [
+        "new",
+        "acknowledged",
+        "planning",
+        "booking",
+        "won",
+        "dropped"
+      ]
+    },
+    "public.milestone_status": {
+      "name": "milestone_status",
+      "schema": "public",
+      "values": [
+        "active",
+        "archived"
+      ]
+    },
+    "public.milestone_type": {
+      "name": "milestone_type",
+      "schema": "public",
+      "values": [
+        "birthday",
+        "wedding_anniversary",
+        "work_anniversary",
+        "religious",
+        "memorial",
+        "other"
+      ]
+    },
+    "public.preference_kind": {
+      "name": "preference_kind",
+      "schema": "public",
+      "values": [
+        "destination",
+        "travel_style",
+        "travel_season",
+        "hotel_brand",
+        "hotel_property",
+        "room_type",
+        "bed_preference",
+        "view_preference",
+        "airline",
+        "loyalty_programme",
+        "seat_preference",
+        "flight_timing",
+        "cuisine",
+        "restaurant",
+        "allergy",
+        "beverage_preference",
+        "interest",
+        "activity",
+        "luxury_brand"
+      ]
+    },
+    "public.preference_polarity": {
+      "name": "preference_polarity",
+      "schema": "public",
+      "values": [
+        "prefer",
+        "wishlist",
+        "avoid"
+      ]
+    },
+    "public.task_priority": {
+      "name": "task_priority",
+      "schema": "public",
+      "values": [
+        "low",
+        "normal",
+        "high"
+      ]
+    },
+    "public.task_status": {
+      "name": "task_status",
+      "schema": "public",
+      "values": [
+        "open",
+        "in_progress",
+        "done",
+        "cancelled"
+      ]
+    },
+    "public.travel_frequency": {
+      "name": "travel_frequency",
+      "schema": "public",
+      "values": [
+        "less_than_once_a_year",
+        "one_to_two_per_year",
+        "three_to_four_per_year",
+        "five_plus_per_year"
+      ]
+    },
+    "public.travelling_party": {
+      "name": "travelling_party",
+      "schema": "public",
+      "values": [
+        "solo",
+        "couple",
+        "family_young_children",
+        "family_teens",
+        "multi_generational",
+        "friends",
+        "business"
+      ]
+    },
+    "public.trip_status": {
+      "name": "trip_status",
+      "schema": "public",
+      "values": [
+        "inbound",
+        "planning",
+        "booked",
+        "traveling",
+        "traveled",
+        "cancelled",
+        "archived"
+      ]
+    },
+    "public.user_role": {
+      "name": "user_role",
+      "schema": "public",
+      "values": [
+        "admin",
+        "manager",
+        "rm",
+        "viewer",
+        "founder"
+      ]
+    }
+  },
+  "schemas": {
+    "identity": "identity"
+  },
+  "sequences": {
+    "public.customer_ref_seq": {
+      "name": "customer_ref_seq",
+      "schema": "public",
+      "increment": "1",
+      "startWith": "100",
+      "minValue": "1",
+      "maxValue": "9223372036854775807",
+      "cache": "1",
+      "cycle": false
+    },
+    "public.household_ref_seq": {
+      "name": "household_ref_seq",
+      "schema": "public",
+      "increment": "1",
+      "startWith": "100",
+      "minValue": "1",
+      "maxValue": "9223372036854775807",
+      "cache": "1",
+      "cycle": false
+    }
+  },
+  "roles": {},
+  "policies": {},
+  "views": {},
+  "_meta": {
+    "columns": {},
+    "schemas": {},
+    "tables": {}
+  }
+}

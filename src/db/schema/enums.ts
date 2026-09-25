@@ -14,6 +14,15 @@ export const userRoleEnum = pgEnum("user_role", [
   "manager", // full client access, no user management
   "rm", // relationship manager: full access to own clients, read others
   "viewer", // read-only
+  /*
+   * An owner of the firm rather than a member of the desk.
+   *
+   * Reaches everything an administrator does, and is deliberately outside the
+   * working rota: no client, lead or task is ever assigned to one, and none of
+   * the chasing mail goes to them. The only mail a founder gets is about their
+   * own account — the note saying it exists, and the code that signs them in.
+   */
+  "founder",
 ]);
 
 /**
@@ -79,6 +88,53 @@ export const interactionTypeEnum = pgEnum("interaction_type", [
   "trip",
   "note",
   "other",
+]);
+
+/**
+ * Where a lead stands commercially, which is not the same question as whether
+ * a piece of work is finished. A lead sits in `planning` for weeks while tasks
+ * open and close underneath it.
+ */
+/**
+ * Where the ask came from.
+ *
+ * The members' site reports itself; everything else is somebody at the desk
+ * writing down a client who telephoned, wrote, or said something over lunch.
+ * Worth recording rather than assuming: "which of these actually brings work
+ * in" is the question the site was built to answer.
+ */
+export const leadSourceEnum = pgEnum("lead_source", [
+  "website",
+  "phone",
+  "email",
+  "whatsapp",
+  "referral",
+  "in_person",
+  "other",
+]);
+
+/**
+ * Where a trip stands, in the order the desk moves it: an enquiry, being
+ * planned, booked, under way, done. Tern's seven, word for word, so a trip
+ * brought over from Tern arrives in the column it left.
+ */
+export const tripStatusEnum = pgEnum("trip_status", [
+  "inbound",
+  "planning",
+  "booked",
+  "traveling",
+  "traveled",
+  "cancelled",
+  "archived",
+]);
+
+export const leadStatusEnum = pgEnum("lead_status", [
+  "new",
+  "acknowledged",
+  "planning",
+  "booking",
+  "won",
+  "dropped",
 ]);
 
 export const taskStatusEnum = pgEnum("task_status", [

@@ -89,8 +89,11 @@ export async function searchClientGroups(input: ClientSearchInput) {
  */
 const EXPORT_LABELS: Record<string, string> = {
   ref: "Client ID",
+  prefix: "Prefix",
   firstName: "First name",
+  middleName: "Middle name",
   lastName: "Last name",
+  suffix: "Suffix",
   preferredName: "Known as",
   status: "Status",
   mobile: "Mobile",
@@ -123,6 +126,12 @@ const EXPORT_LABELS: Record<string, string> = {
   hotelNotes: "Hotel notes",
   flightCabin: "Cabin",
   flightDirectPreference: "Direct flights",
+  flightSeat: "Seat",
+  flightBulkhead: "Bulkhead",
+  hotelRoomFloor: "Room floor",
+  hotelRoomElevator: "Lift",
+  cruiseDeck: "Cruise deck",
+  cruiseCabinPosition: "Cruise cabin",
   flightNotes: "Flight notes",
   diningDietary: "Dietary",
   diningFineDining: "Fine dining",
@@ -135,6 +144,8 @@ const EXPORT_LABELS: Record<string, string> = {
   createdAt: "Created",
   updatedAt: "Updated",
   archivedAt: "Archived",
+  ternId: "Tern contact",
+  ternSyncedAt: "Last read from Tern",
   id: "Record ID",
 };
 
@@ -155,6 +166,14 @@ const EXPORT_SKIP = new Set([
   "createdBy",
   "updatedBy",
   "preferencesUpdatedBy",
+  /*
+   * Never exported. Travel documents are sealed passport numbers: ciphertext
+   * in a spreadsheet is useless to a reader and a spreadsheet is exactly the
+   * kind of copy that ends up somewhere it should not. The Tern copy is the
+   * whole raw dossier, which belongs in Blackbook, not in a file.
+   */
+  "travelDocuments",
+  "ternRaw",
 ]);
 
 /** "travelBudgetRange" reads as "Travel budget range" when nothing names it. */
@@ -506,14 +525,22 @@ export async function recordPrivateAccessInterest(
     return false;
   }
 
-  await db.transaction(async (tx) => {
-    await tx.insert(clientInterests).values({
-      customerId: data.customerId,
-      destination: data.destination,
-      title: data.title,
-      kind: data.kind,
-      seconds: data.seconds,
-    });
+  // Returned from the transaction rather than assigned into a variable around
+  // it, so the type survives: a closure written to inside a callback narrows to
+  // never once the callback has been awaited.
+  const raised = await db.transaction(async (tx) => {
+    let lead: { leadId: string } | null = null;
+
+    const [interest] = await tx
+      .insert(clientInterests)
+      .values({
+        customerId: data.customerId,
+        destination: data.destination,
+        title: data.title,
+        kind: data.kind,
+        seconds: data.seconds,
+      })
+      .returning({ id: clientInterests.id });
 
     if (data.kind === "cta_clicked") {
       await tx.insert(activityLog).values({
@@ -521,17 +548,46 @@ export async function recordPrivateAccessInterest(
         entityId: data.customerId,
         customerId: data.customerId,
         action: "interaction_logged",
-        summary: `Asked the Curator about ${data.title} on vara5.com`,
+        // Said the way the desk would say it. The trail already records that
+        // nobody signed in wrote this, which is what marks it as the site.
+        summary: `Texted the Curator about ${data.title}`,
         // Nobody signed in as staff did this, so the trail records no actor.
         actorId: null,
       });
+
+      /*
+       * An ask is a lead, and a lead is owed an answer. Raised in the same
+       * transaction as the ask so the two cannot come apart, and announced
+       * after it commits: a client's ask must be recorded whether or not
+       * Resend is reachable.
+       */
+      const { openLeadForAsk } = await import("./lead-service");
+      lead = await openLeadForAsk(tx, {
+        customerId: data.customerId,
+        interestId: interest.id,
+        destination: data.destination,
+        title: data.title,
+      });
     }
+
+    return lead;
   });
+
+  /*
+   * Outside the transaction, and deliberately not awaited for the website's
+   * benefit: the guest is waiting on this request, and telling the desk is not
+   * their business. `announceLead` swallows its own failures.
+   */
+  if (raised) {
+    const { announceLead } = await import("./lead-service");
+    void announceLead(raised.leadId);
+  }
 
   logger.info("private_access.interest", {
     outcome: "recorded",
     customerId: data.customerId,
     kind: data.kind,
+    lead: Boolean(raised),
   });
   return true;
 }
@@ -955,7 +1011,19 @@ export async function getRecentVisits(limit = 12, includeTesters = false) {
     ? []
     : (await repo.testers()).map((tester) => tester.id);
 
-  const visits = await recentVisits(limit, skip);
+  /*
+   * PostHog answers one row per session, so a client who came back twice in an
+   * afternoon appeared twice in the list. This is a list of clients, not of
+   * sessions: the same name twice tells the desk nothing it did not already
+   * know from the first line, and pushes a client it has not seen off the
+   * bottom. Every recording is still reachable — the client's own panel shows
+   * them all.
+   *
+   * Asked for wider than it answers, because the collapsing happens here and
+   * not in the query: without the margin, twelve sessions from four clients
+   * would leave four rows.
+   */
+  const visits = await recentVisits(Math.min(limit * 4, 50), skip);
   if (visits.length === 0) return [];
 
   const clients = await repo.customersByIds([
@@ -963,7 +1031,20 @@ export async function getRecentVisits(limit = 12, includeTesters = false) {
   ]);
   const byId = new Map(clients.map((client) => [client.id, client]));
 
-  return visits.flatMap((visit) => {
+  const collapsed = new Map<string, (typeof visits)[number] & { visits: number }>();
+  // The rows arrive newest first, so the first one seen is the one to keep.
+  for (const visit of visits) {
+    const seen = collapsed.get(visit.customerId);
+    if (seen) {
+      seen.visits += 1;
+      seen.seconds += visit.seconds;
+      seen.clicks += visit.clicks;
+      continue;
+    }
+    collapsed.set(visit.customerId, { ...visit, visits: 1 });
+  }
+
+  return [...collapsed.values()].slice(0, limit).flatMap((visit) => {
     const client = byId.get(visit.customerId);
     if (!client) return [];
 

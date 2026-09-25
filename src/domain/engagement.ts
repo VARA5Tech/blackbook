@@ -68,6 +68,11 @@ export const TASK_STATUS_LABELS: Record<TaskStatus, string> = {
 export const createTaskSchema = z.object({
   title: requiredText("Title", 200),
   details: optionalText,
+  /** The lead this follows up on, when it is one. */
+  leadId: uuidSchema
+    .nullable()
+    .optional()
+    .transform((v) => v ?? null),
   customerId: uuidSchema
     .nullable()
     .optional()

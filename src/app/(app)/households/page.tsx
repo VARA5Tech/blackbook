@@ -96,9 +96,8 @@ export default async function HouseholdsPage({
         />
       ) : (
         <div className="overflow-hidden rounded-lg border border-border bg-card">
-          <div className="max-h-[72vh] overflow-auto">
-            <Table>
-              <TableHeader className="sticky top-0 z-10">
+          <Table containerClassName="max-h-[72vh]">
+              <TableHeader>
                 <TableRow className="hover:bg-transparent">
                   <SortHead sort="name" current={sort} dir={dir} query={query}>Household</SortHead>
                   <TableHead>Primary client</TableHead>
@@ -180,7 +179,6 @@ export default async function HouseholdsPage({
                 })}
               </TableBody>
             </Table>
-          </div>
         </div>
       )}
     </>

@@ -1,0 +1,13 @@
+{
+  "name": "tern-bridge",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Reads Tern for Blackbook, one client at a time, through a signed-in browser on the office machine.",
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "start": "node --env-file-if-exists=.env server.mjs"
+  }
+}

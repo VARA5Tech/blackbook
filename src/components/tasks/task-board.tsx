@@ -1,6 +1,6 @@
 "use client";
 
-import { Plus } from "lucide-react";
+import { ArrowUpRight, Plus, Sparkles } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
@@ -19,6 +19,14 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { Label } from "@/components/ui/label";
 import {
   Select,
@@ -43,7 +51,13 @@ type TaskRow = {
   priority: "low" | "normal" | "high";
   customerId: string | null;
   customerName: string | null;
+  customerRef: string | null;
   assigneeName: string | null;
+  leadId: string | null;
+  leadTitle: string | null;
+  leadStatus: string | null;
+  createdAt: Date | string;
+  completedAt: Date | string | null;
 };
 
 export function TaskBoard({
@@ -58,6 +72,8 @@ export function TaskBoard({
   canManage: boolean;
 }) {
   const router = useRouter();
+  /** The task whose details are open, if any. */
+  const [open, setOpen] = useState<TaskRow | null>(null);
   const [pending, startTransition] = useTransition();
 
   function toggle(task: TaskRow, done: boolean) {
@@ -87,66 +103,113 @@ export function TaskBoard({
           description="Add a follow-up so nothing depends on someone remembering it."
         />
       ) : (
-        <ul className="divide-y divide-border rounded-lg border border-border">
-          {tasks.map((task) => {
-            const done = task.status === "done";
-            const overdue =
-              !done &&
-              task.dueDate !== null &&
-              new Date(task.dueDate) < new Date(new Date().toDateString());
+        <div className="overflow-hidden rounded-lg border border-border">
+          <Table>
+            <TableHeader className="sticky top-0 z-10 bg-card">
+              <TableRow className="hover:bg-transparent">
+                <TableHead className="w-10" />
+                <TableHead>Task</TableHead>
+                <TableHead>Client</TableHead>
+                <TableHead>Raised for</TableHead>
+                <TableHead>Due</TableHead>
+                <TableHead>Assigned</TableHead>
+                <TableHead className="text-right">Status</TableHead>
+              </TableRow>
+            </TableHeader>
 
-            return (
-              <li key={task.id} className="flex items-start gap-3 p-4">
-                <Checkbox
-                  checked={done}
-                  disabled={!canManage || pending}
-                  aria-label={`Mark ${task.title} done`}
-                  onCheckedChange={(value) => toggle(task, value === true)}
-                  className="mt-0.5"
-                />
+            <TableBody>
+              {tasks.map((task) => {
+                const done = task.status === "done";
+                const overdue =
+                  !done &&
+                  task.dueDate !== null &&
+                  new Date(task.dueDate) < new Date(new Date().toDateString());
 
-                <div className="min-w-0 flex-1">
-                  <p className={cn("text-sm", done && "text-muted-foreground line-through")}>
-                    {task.title}
-                  </p>
+                return (
+                  <TableRow
+                    key={task.id}
+                    /* The whole row opens the task: a list somebody has to aim
+                       at a single small link is a list they stop using. */
+                    className="cursor-pointer align-top"
+                    onClick={() => setOpen(task)}
+                  >
+                    <TableCell onClick={(event) => event.stopPropagation()}>
+                      <Checkbox
+                        checked={done}
+                        disabled={!canManage || pending}
+                        aria-label={`Mark ${task.title} done`}
+                        onCheckedChange={(value) => toggle(task, value === true)}
+                      />
+                    </TableCell>
 
-                  {task.details ? (
-                    <p className="mt-0.5 text-xs text-muted-foreground">
-                      {task.details}
-                    </p>
-                  ) : null}
+                    <TableCell className="max-w-72">
+                      <span className={cn("block truncate text-sm", done && "text-muted-foreground line-through")}>
+                        {task.title}
+                      </span>
+                      {task.details ? (
+                        <span className="block truncate text-xs text-muted-foreground">
+                          {task.details}
+                        </span>
+                      ) : null}
+                    </TableCell>
 
-                  <p className="tabular mt-1 text-xs text-muted-foreground">
-                    {[
-                      task.dueDate ? `Due ${formatDate(task.dueDate)}` : null,
-                      task.assigneeName,
-                      TASK_STATUS_LABELS[task.status],
-                    ]
-                      .filter(Boolean)
-                      .join(" · ")}
-                  </p>
+                    <TableCell className="max-w-40">
+                      {task.customerId ? (
+                        <span className="block truncate text-sm">{task.customerName}</span>
+                      ) : (
+                        <span className="text-sm text-muted-foreground">—</span>
+                      )}
+                      {task.customerRef ? (
+                        <span className="tabular block text-xs text-muted-foreground">
+                          {task.customerRef}
+                        </span>
+                      ) : null}
+                    </TableCell>
 
-                  {task.customerId ? (
-                    <Link
-                      href={`/clients/${task.customerId}`}
-                      className="mt-1 inline-block text-xs hover:underline"
-                    >
-                      {task.customerName}
-                    </Link>
-                  ) : null}
-                </div>
+                    <TableCell className="max-w-40">
+                      {task.leadTitle ? (
+                        <span className="flex items-center gap-1.5 text-sm">
+                          <Sparkles
+                            className="size-3.5 shrink-0"
+                            style={{ color: "var(--chart-1)" }}
+                          />
+                          <span className="truncate">{task.leadTitle}</span>
+                        </span>
+                      ) : (
+                        <span className="text-sm text-muted-foreground">—</span>
+                      )}
+                    </TableCell>
 
-                <div className="flex shrink-0 gap-2">
-                  {overdue ? <Badge variant="destructive">Overdue</Badge> : null}
-                  {task.priority === "high" ? (
-                    <Badge variant="secondary">High</Badge>
-                  ) : null}
-                </div>
-              </li>
-            );
-          })}
-        </ul>
+                    <TableCell className="tabular whitespace-nowrap text-sm">
+                      {task.dueDate ? formatDate(task.dueDate) : "—"}
+                    </TableCell>
+
+                    <TableCell className="max-w-32">
+                      <span className="block truncate text-sm">
+                        {task.assigneeName ?? "Nobody"}
+                      </span>
+                    </TableCell>
+
+                    <TableCell className="text-right">
+                      <span className="inline-flex flex-wrap justify-end gap-1.5">
+                        {overdue ? <Badge variant="destructive">Overdue</Badge> : null}
+                        {task.priority === "high" ? (
+                          <Badge variant="secondary">High</Badge>
+                        ) : null}
+                        <span className="text-xs text-muted-foreground">
+                          {TASK_STATUS_LABELS[task.status]}
+                        </span>
+                      </span>
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
+            </TableBody>
+          </Table>
+        </div>
       )}
+
+      <TaskDetail task={open} onClose={() => setOpen(null)} />
     </div>
   );
 }
@@ -279,6 +342,90 @@ function NewTaskDialog({ staff }: { staff: { id: string; name: string }[] }) {
             Add task
           </Button>
         </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+/**
+ * One task in full, opened from the row.
+ *
+ * The list answers "what is outstanding"; this answers "what is this". It
+ * carries the links out to the client and to the lead it was raised for,
+ * because a task that cannot tell you why it exists is a task nobody trusts.
+ */
+function TaskDetail({
+  task,
+  onClose,
+}: {
+  task: TaskRow | null;
+  onClose: () => void;
+}) {
+  return (
+    <Dialog open={task !== null} onOpenChange={(next) => (next ? null : onClose())}>
+      <DialogContent className="sm:max-w-lg">
+        {task ? (
+          <>
+            <DialogHeader>
+              <DialogTitle className="pr-6 text-left">{task.title}</DialogTitle>
+            </DialogHeader>
+
+            <div className="space-y-4 text-sm">
+              {task.details ? (
+                <p className="text-muted-foreground">{task.details}</p>
+              ) : null}
+
+              <dl className="grid grid-cols-[auto_1fr] gap-x-6 gap-y-2">
+                <dt className="text-muted-foreground">Status</dt>
+                <dd>{TASK_STATUS_LABELS[task.status]}</dd>
+
+                <dt className="text-muted-foreground">Priority</dt>
+                <dd className="capitalize">{task.priority}</dd>
+
+                <dt className="text-muted-foreground">Due</dt>
+                <dd className="tabular">
+                  {task.dueDate ? formatDate(task.dueDate) : "No date"}
+                </dd>
+
+                <dt className="text-muted-foreground">Assigned</dt>
+                <dd>{task.assigneeName ?? "Nobody"}</dd>
+
+                <dt className="text-muted-foreground">Raised</dt>
+                <dd className="tabular">{formatDate(task.createdAt)}</dd>
+
+                {task.completedAt ? (
+                  <>
+                    <dt className="text-muted-foreground">Finished</dt>
+                    <dd className="tabular">{formatDate(task.completedAt)}</dd>
+                  </>
+                ) : null}
+              </dl>
+
+              <div className="flex flex-wrap gap-2 border-t border-border pt-4">
+                {task.customerId ? (
+                  <Button asChild variant="outline" size="sm">
+                    <Link href={`/clients/${task.customerId}`}>
+                      {task.customerName}
+                      <ArrowUpRight className="size-3.5" />
+                    </Link>
+                  </Button>
+                ) : null}
+
+                {/* The lead lives on the client's own page, which is where the
+                    rest of the answer is. */}
+                {task.leadId && task.customerId ? (
+                  <Button asChild variant="outline" size="sm">
+                    <Link href={`/clients/${task.customerId}`}>
+                      <Sparkles className="size-3.5" style={{ color: "var(--chart-1)" }} />
+                      {task.leadTitle}
+                      <ArrowUpRight className="size-3.5" />
+                    </Link>
+                  </Button>
+                ) : null}
+              </div>
+            </div>
+          </>
+        ) : null}
       </DialogContent>
     </Dialog>
   );

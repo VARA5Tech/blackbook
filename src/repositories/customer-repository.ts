@@ -242,7 +242,16 @@ export async function exportCustomers(query: ClientSearchQuery) {
     .leftJoin(creator, eq(creator.id, customers.createdBy))
     .leftJoin(editor, eq(editor.id, customers.updatedBy))
     .leftJoin(preferenceEditor, eq(preferenceEditor.id, customers.preferencesUpdatedBy))
-    .where(searchConditions(query))
+    /*
+     * Never a staff record, whatever the filters say.
+     *
+     * The list lets you ask for them, because the desk occasionally needs to
+     * check one. A spreadsheet is different: it leaves the building, it gets
+     * mailed on, and every figure read off it is taken as the book. A staff
+     * row sitting among the clients would make all of them wrong, and nobody
+     * reading the file a month later would know it was there.
+     */
+    .where(and(searchConditions(query), ne(customers.status, "staff")))
     .orderBy(asc(customers.firstName), asc(customers.lastName))
     .limit(EXPORT_LIMIT);
 
@@ -1005,6 +1014,65 @@ export async function topInterestDestinations(since: Date, limit = 5) {
       sql`count(*) desc`,
     )
     .limit(limit);
+}
+
+
+/**
+ * The clients who are waiting on the desk, most urgent first.
+ *
+ * Three reasons a client belongs here, and they are deliberately not weighted
+ * against one another: an unanswered ask is a person who put their hand up and
+ * heard nothing back, and it outranks anything on a calendar. Reading a journey
+ * right through is the next warmest thing the site can tell us. A milestone is
+ * the one that is merely due.
+ *
+ * "Unanswered" means nobody has logged an interaction since the ask. That is
+ * the honest reading of the data: contact is only recorded when somebody
+ * records it, so this is a list of asks with no logged reply, not proof that
+ * nobody rang. Staff records are excluded throughout.
+ */
+export async function followUpQueue(limit = 8) {
+  const asked = alias(clientInterests, "asked");
+
+  const rows = await db
+    .select({
+      id: customers.id,
+      ref: customers.ref,
+      firstName: customers.firstName,
+      lastName: customers.lastName,
+      preferredName: customers.preferredName,
+      rmName: users.name,
+      title: sql<string>`(array_agg(${asked.title} order by ${asked.occurredAt} desc))[1]`,
+      askedAt: sql<Date>`max(${asked.occurredAt})`.mapWith(clientInterests.occurredAt),
+      lastInteractionAt: customers.lastInteractionAt,
+    })
+    .from(asked)
+    .innerJoin(customers, eq(customers.id, asked.customerId))
+    .leftJoin(users, eq(customers.primaryRmId, users.id))
+    .where(
+      and(
+        eq(asked.kind, "cta_clicked"),
+        ne(customers.status, "staff"),
+        isNull(customers.archivedAt),
+      ),
+    )
+    .groupBy(
+      customers.id,
+      customers.ref,
+      customers.firstName,
+      customers.lastName,
+      customers.preferredName,
+      customers.lastInteractionAt,
+      users.name,
+    )
+    // Answered means somebody logged something after they asked.
+    .having(
+      sql`${customers.lastInteractionAt} is null or ${customers.lastInteractionAt} < max(${asked.occurredAt})`,
+    )
+    .orderBy(sql`max(${asked.occurredAt}) desc`)
+    .limit(limit);
+
+  return rows;
 }
 
 /* ------------------------------------------------------------------ */

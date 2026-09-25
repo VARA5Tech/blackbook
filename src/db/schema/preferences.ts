@@ -35,6 +35,18 @@ export const preferenceOptions = pgTable(
     label: text("label").notNull(),
     /** Optional grouping, e.g. destination -> "Asia", airline -> "Star Alliance". */
     grouping: text("grouping"),
+    /**
+     * The tiers this programme actually has, in the order the programme ranks
+     * them: Delta's Silver, Gold, Platinum, Diamond Medallion.
+     *
+     * An array on the option rather than a table of its own, because a tier is
+     * a name and nothing else, it is only ever read for the one programme, and
+     * it is written whole when the catalogue is refreshed. Empty for every
+     * facet other than a loyalty programme, and for a programme with a single
+     * undifferentiated membership.
+     */
+    tiers: text("tiers").array().notNull().default(sql`'{}'`),
+
     /** True when a staff member added it, false for seeded catalogue entries. */
     isCustom: boolean("is_custom").notNull().default(false),
     sortOrder: integer("sort_order").notNull().default(0),
@@ -144,6 +156,12 @@ export const PREFERENCE_PROFILE_FIELDS = [
   "flightCabin",
   "flightDirectPreference",
   "flightNotes",
+  "flightSeat",
+  "flightBulkhead",
+  "hotelRoomFloor",
+  "hotelRoomElevator",
+  "cruiseDeck",
+  "cruiseCabinPosition",
   "diningDietary",
   "diningFineDining",
   "diningNotes",

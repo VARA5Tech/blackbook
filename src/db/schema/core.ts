@@ -4,6 +4,7 @@ import {
   date,
   index,
   integer,
+  jsonb,
   pgSequence,
   pgTable,
   text,
@@ -150,8 +151,12 @@ export const customers = pgTable(
     /** Relationship to the household's primary client. */
     householdRole: householdRoleEnum("household_role"),
 
+    /** "Mr.", "Dr.", "H.E." — how the client is addressed in writing. */
+    prefix: text("prefix"),
     firstName: text("first_name").notNull(),
+    middleName: text("middle_name"),
     lastName: text("last_name"),
+    suffix: text("suffix"),
     preferredName: text("preferred_name"),
 
     mobile: text("mobile"),
@@ -207,6 +212,31 @@ export const customers = pgTable(
      */
     remarks: text("remarks"),
 
+    /**
+     * Passports and the secure travel numbers — Known Traveler, Redress — as
+     * one list, because a client with two nationalities has two passports.
+     *
+     * The numbers are sealed with `PII_ENCRYPTION_KEY` before they reach the
+     * database (`src/lib/sealed.ts`) and only the last four are kept in the
+     * clear, for recognising one on screen. Everything else — names as
+     * printed, nationality, expiry — is clear, because "does this passport
+     * outlive the trip" is the question the desk asks of it every week.
+     * Revealing a number is its own capability and writes to the trail.
+     */
+    travelDocuments: jsonb("travel_documents").notNull().default(sql`'[]'::jsonb`),
+
+    /**
+     * The Tern contact this client was populated from, and what Tern said,
+     * whole, the last time it was asked.
+     *
+     * `tern_raw` is the full dossier minus passports and secure numbers, which
+     * live sealed above: every field and section Tern had, including the ones
+     * Blackbook does not map yet, so mapping one later needs no second visit.
+     */
+    ternId: text("tern_id"),
+    ternRaw: jsonb("tern_raw"),
+    ternSyncedAt: timestamp("tern_synced_at", { withTimezone: true }),
+
     /** Denormalised for dashboard follow-up queries. Maintained by the service layer. */
     lastInteractionAt: timestamp("last_interaction_at", { withTimezone: true }),
     /** Distinct from updatedAt: only bumped by meaningful profile edits. */
@@ -240,6 +270,25 @@ export const customers = pgTable(
       "flight_direct_preference",
     ),
     flightNotes: text("flight_notes"),
+
+    /*
+     * The small preferences that decide whether a trip starts well. Text
+     * rather than enums: each is one of three or four answers, validated in
+     * `src/domain/preferences.ts`, and six enum types for six radio groups is
+     * migration noise with nothing to show for it.
+     */
+    /** window | aisle | no_preference */
+    flightSeat: text("flight_seat"),
+    /** yes | no | no_preference */
+    flightBulkhead: text("flight_bulkhead"),
+    /** higher | lower | no_preference */
+    hotelRoomFloor: text("hotel_room_floor"),
+    /** near | far | no_preference */
+    hotelRoomElevator: text("hotel_room_elevator"),
+    /** higher | lower | no_preference */
+    cruiseDeck: text("cruise_deck"),
+    /** forward | middle | rear | no_preference */
+    cruiseCabinPosition: text("cruise_cabin_position"),
     diningDietary: dietaryPreferenceEnum("dining_dietary"),
     diningFineDining: fineDiningPreferenceEnum("dining_fine_dining"),
     diningNotes: text("dining_notes"),
@@ -291,6 +340,10 @@ export const customers = pgTable(
     uniqueIndex("customer_mobile_unique_active")
       .on(t.mobileNormalized)
       .where(sql`archived_at is null and mobile_normalized is not null`),
+    // One Blackbook client per Tern contact, so populating twice updates.
+    uniqueIndex("customer_tern_id_unique")
+      .on(t.ternId)
+      .where(sql`tern_id is not null`),
   ],
 );
 

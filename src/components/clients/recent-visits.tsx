@@ -22,6 +22,8 @@ export type Visit = {
   startedAt: string;
   seconds: number;
   clicks: number;
+  /** How many separate visits this row stands for, in the window. */
+  visits?: number;
   name: string;
   ref: string;
   archived: boolean;
@@ -48,7 +50,14 @@ export function RecentVisits({ visits }: { visits: Visit[] }) {
 
   return (
     <>
-      <ul className="divide-y divide-border">
+      {/*
+        Bounded and scrolled rather than run to whatever length the day
+        produced. The card sits beside two others, and a busy day made this one
+        three times their height, which pushed everything under it off the
+        screen. Roughly seven rows fit; the rest are a scroll away, and "All
+        members' activity" is where somebody goes to read them properly.
+      */}
+      <ul className="max-h-[22rem] divide-y divide-border overflow-y-auto">
         {visits.map((visit) => (
           <li key={visit.sessionId}>
             <button
@@ -74,6 +83,11 @@ export function RecentVisits({ visits }: { visits: Visit[] }) {
                     <MousePointerClick className="size-3" />
                     <span className="tabular">{visit.clicks}</span>
                   </span>
+                ) : null}
+                {visit.visits && visit.visits > 1 ? (
+                  // One line per client, so the count is what the collapsing
+                  // would otherwise have thrown away.
+                  <span className="tabular">{visit.visits} visits</span>
                 ) : null}
                 <span>{readingTime(visit.seconds)}</span>
                 <span className="tabular">{timeAgo(visit.startedAt)}</span>

@@ -21,6 +21,7 @@ import { usePathname } from "next/navigation";
 import { useSyncExternalStore } from "react";
 import type { Actor } from "@/auth/session";
 import { roleCan, type Capability } from "@/auth/permissions";
+import { DeskHud, type DeskStatus } from "@/components/shell/desk-hud";
 import { UserMenu } from "@/components/shell/user-menu";
 import {
   AnimatedDropdown,
@@ -106,7 +107,19 @@ function useSearchShortcut(): string {
   );
 }
 
-export function AppSidebar({ actor }: { actor: Actor }) {
+/**
+ * One column down the left, always there.
+ *
+ * It does not collapse. The reason is what sits at the top of it: a panel of
+ * everything the desk has not answered yet, which is worth nothing if it can
+ * be folded away, and a menu that hides is a menu somebody hides on the first
+ * busy morning. The width it costs is the width of the thing that must not be
+ * missed.
+ *
+ * Read top to bottom it is: the mark, what is outstanding, what you can start,
+ * where you can go, and last, who you are.
+ */
+export function AppSidebar({ actor, desk }: { actor: Actor; desk: DeskStatus | null }) {
   const pathname = usePathname();
   const shortcut = useSearchShortcut();
   const createItems = CREATE.filter((item) => roleCan(actor.role, item.capability));
@@ -116,35 +129,51 @@ export function AppSidebar({ actor }: { actor: Actor }) {
   }
 
   return (
-    <aside className="sticky top-0 hidden h-dvh w-60 shrink-0 flex-col border-r border-sidebar-border bg-sidebar md:flex">
-      <div className="px-4 pt-6 pb-5">
-        {/*
-          The guide names the compact horizontal lockup for a CRM navbar, and
-          ships it drawn in ink and in champagne. Both are rendered and CSS
-          picks, so the mark is right on the first paint, before hydration.
+    /*
+     * Wider than a menu needs, because it is not only a menu. The desk panel
+     * at the top carries a lead's title beside how long is left, and at the
+     * old width both were cut: "Antarctica — White …" against "1 day left"
+     * says neither thing properly.
+     */
+    <aside className="sticky top-0 hidden h-dvh w-82 shrink-0 flex-col overflow-hidden border-r border-sidebar-border bg-sidebar md:flex">
+      {/*
+        The mark on its own black panel, flush into the corner of the window.
 
-          The SVG carries its own clear space, about a tenth of its width, so it
-          is drawn larger than the mark and pulled left to line up with the nav.
-        */}
-        <Link href="/" aria-label="Blackbook home" className="-ml-1.5 inline-block">
-          <Image
-            src="/brand/blackbook-horizontal-compact-light.svg"
-            alt="Blackbook"
-            width={1100}
-            height={180}
-            priority
-            className="h-9 w-auto dark:hidden"
-          />
-          <Image
-            src="/brand/blackbook-horizontal-compact-dark.svg"
-            alt=""
-            aria-hidden
-            width={1100}
-            height={180}
-            className="hidden h-9 w-auto dark:block"
-          />
-        </Link>
-      </div>
+        On the sidebar's own background it was camouflage: ink on ivory, the
+        same weight as the menu under it. A fixed brand surface is the answer,
+        painted with `--brand-surface` rather than `--primary`, which inverts
+        between themes — this panel is black in both, so one file is rendered
+        rather than a light and dark pair and it is right before hydration.
+
+        White rather than the champagne lockup, which is the guide's default on
+        black: at this size the champagne sat too close to the panel to read
+        cleanly, and the mark is the one thing on the screen that has to.
+
+        Two of the edges are the window's own, so only the inner corner is
+        rounded. The lockup is held to a fixed height rather than stretched to
+        the panel: at full width it outweighed everything under it, and the
+        masthead should announce the product, not compete with the desk.
+      */}
+      <Link
+        href="/"
+        aria-label="Blackbook home"
+        className="block rounded-br-2xl bg-[color:var(--brand-surface)] px-5 py-3.5 transition-opacity hover:opacity-90"
+      >
+        <Image
+          src="/brand/blackbook-horizontal-compact-white.svg"
+          alt="Blackbook"
+          width={1100}
+          height={180}
+          priority
+          className="-ml-1.5 h-9 w-auto"
+        />
+      </Link>
+
+      {desk ? (
+        <div className="p-3">
+          <DeskHud status={desk} />
+        </div>
+      ) : null}
 
       <div className="space-y-2 px-3 pb-3">
         {createItems.length > 0 ? (
@@ -169,7 +198,9 @@ export function AppSidebar({ actor }: { actor: Actor }) {
         </button>
       </div>
 
-      <nav className="flex-1 space-y-0.5 px-3">
+      {/* Scrolls on a short window, so the desk panel above and the user below
+          both keep their place rather than being pushed off the screen. */}
+      <nav className="flex-1 space-y-0.5 overflow-y-auto px-3">
         {NAV.filter(
           (item) => !item.capability || roleCan(actor.role, item.capability),
         ).map((item) => {
@@ -195,7 +226,7 @@ export function AppSidebar({ actor }: { actor: Actor }) {
         })}
       </nav>
 
-      <div className="border-t border-sidebar-border p-3">
+      <div className="mt-2 border-t border-sidebar-border p-3">
         <UserMenu actor={actor} />
       </div>
     </aside>

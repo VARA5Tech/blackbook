@@ -80,7 +80,7 @@ export function ClientDetails({
         }
         flush
       >
-        <dl className="divide-y divide-border">
+        <dl className="grid grid-cols-1 xl:grid-cols-2">
           <InlineField {...common} field="mobile" label="Mobile" icon={Phone}
             value={customer.mobile} editor={{ kind: "text", inputMode: "tel", placeholder: PHONE_HINT }} tabular />
           <InlineField {...common} field="whatsapp" label="WhatsApp" icon={MessageCircle}
@@ -123,7 +123,7 @@ export function ClientDetails({
             . Fill these in to give this client their own.
           </p>
         ) : null}
-        <dl className="divide-y divide-border">
+        <dl className="grid grid-cols-1 xl:grid-cols-2">
           <InlineField {...common} field="eaName" label="Name" icon={UserRound}
             value={customer.eaName} editor={{ kind: "text", placeholder: "Full name" }} />
           <InlineField {...common} field="eaPhone" label="Phone" icon={Phone}

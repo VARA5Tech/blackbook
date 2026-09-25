@@ -6,6 +6,7 @@ import {
   resolveRuntimeDatabaseUrl,
   resolveDevDatabaseUrl,
 } from "@/db/url";
+import { forDevelopment } from "@/lib/email";
 import { logger } from "@/lib/logger";
 
 /**
@@ -168,5 +169,53 @@ describe("error logging", () => {
     logger.error("cycle", second);
 
     expect(spy).toHaveBeenCalledOnce();
+  });
+});
+
+/**
+ * The third guard rail, added for the same reason as the other two: it had
+ * already gone wrong once.
+ *
+ * Development runs against a copy of the live database, so the curator on a
+ * lead, the managers copied on it and the administrators it escalates to are
+ * real colleagues. The lead sweep fires on a timer rather than waiting to be
+ * asked, so a laptop with the dev server running mailed two of them about
+ * clients that do not exist.
+ */
+describe("outbound email outside production", () => {
+  const message = {
+    to: "rishabh@vara5.com",
+    cc: ["aryan@vara5.com", "nikhil@vara5.com"],
+    subject: "Still unanswered: Test Book on A birthday in Kyushu",
+    html: "<p>…</p>",
+    text: "…",
+    category: "lead-overdue",
+  };
+
+  afterEach(() => {
+    delete process.env.DEV_EMAIL_TO;
+  });
+
+  it("re-addresses to the one mailbox and drops the copies", () => {
+    process.env.DEV_EMAIL_TO = "developer@vara5.com";
+
+    const redirected = forDevelopment(message);
+
+    expect(redirected?.to).toBe("developer@vara5.com");
+    expect(redirected?.cc).toBeUndefined();
+    // Still worth reading: the routing is what a test of a lead mail checks.
+    expect(redirected?.subject).toContain("rishabh@vara5.com");
+    expect(redirected?.subject).toContain("cc 2");
+    expect(redirected?.subject).toContain("Still unanswered");
+    expect(redirected?.html).toBe(message.html);
+  });
+
+  it("sends nothing at all when no mailbox is named", () => {
+    expect(forDevelopment(message)).toBeNull();
+  });
+
+  it("does not treat a blank mailbox as a mailbox", () => {
+    process.env.DEV_EMAIL_TO = "   ";
+    expect(forDevelopment(message)).toBeNull();
   });
 });

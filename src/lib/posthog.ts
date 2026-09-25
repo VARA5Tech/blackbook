@@ -415,6 +415,22 @@ export async function revokeRecordingShare(sessionId: string): Promise<void> {
  * worst it can do is close a link somebody just opened, and they press play
  * again.
  */
+/**
+ * What went wrong, in enough detail to tell a blip from a bug.
+ *
+ * `fetch` reports an unreachable host as a bare `TypeError`, so logging only
+ * the name turned "PostHog was briefly unreachable" and "this code is wrong"
+ * into the same line. The message says which; the cause carries the syscall.
+ */
+function describe(error: unknown): Record<string, string> {
+  const named = error as Error & { cause?: { code?: string } };
+  return {
+    reason: named?.name ?? "Error",
+    message: named?.message ?? String(error),
+    ...(named?.cause?.code ? { code: named.cause.code } : {}),
+  };
+}
+
 export async function sweepShares(): Promise<{ checked: number; revoked: number }> {
   const configured = credentials();
   if (!configured) return { checked: 0, revoked: 0 };
@@ -427,6 +443,7 @@ export async function sweepShares(): Promise<{ checked: number; revoked: number 
 
   let checked = 0;
   let revoked = 0;
+  let failed = 0;
 
   try {
     // Recordings are deleted at the retention window, so nothing older can
@@ -447,30 +464,50 @@ export async function sweepShares(): Promise<{ checked: number; revoked: number 
       if (!UUID.test(id) || heldOpen.has(id)) continue;
       checked++;
 
-      const state = await fetch(`${base}/${id}/sharing`, {
-        headers,
-        signal: AbortSignal.timeout(QUERY_TIMEOUT_MS),
-      });
-      if (!state.ok) continue;
+      /*
+       * One recording's failure must not end the sweep.
+       *
+       * These requests are the only thing that takes a public link back, and
+       * a single refused or dropped call used to throw out of the loop and
+       * leave every recording after it shared until the next tick. A blip on
+       * the third of ten left seven links live for a quarter of an hour.
+       */
+      try {
+        const state = await fetch(`${base}/${id}/sharing`, {
+          headers,
+          signal: AbortSignal.timeout(QUERY_TIMEOUT_MS),
+        });
+        if (!state.ok) continue;
 
-      const { enabled } = (await state.json()) as { enabled?: boolean };
-      if (!enabled) continue;
+        const { enabled } = (await state.json()) as { enabled?: boolean };
+        if (!enabled) continue;
 
-      await fetch(`${base}/${id}/sharing`, {
-        method: "PATCH",
-        headers,
-        body: JSON.stringify({ enabled: false }),
-        signal: AbortSignal.timeout(QUERY_TIMEOUT_MS),
-      });
-      revoked++;
+        const closed = await fetch(`${base}/${id}/sharing`, {
+          method: "PATCH",
+          headers,
+          body: JSON.stringify({ enabled: false }),
+          signal: AbortSignal.timeout(QUERY_TIMEOUT_MS),
+        });
+        // Counting the attempt rather than the outcome hid a link that is
+        // still live behind a number that says it was taken back.
+        if (!closed.ok) {
+          logger.warn("posthog.revoke_refused", { status: closed.status });
+          failed++;
+          continue;
+        }
+        revoked++;
+      } catch (error) {
+        failed++;
+        logger.warn("posthog.sweep_recording_failed", describe(error));
+      }
     }
   } catch (error) {
-    logger.warn("posthog.sweep_failed", { reason: (error as Error).name });
+    logger.warn("posthog.sweep_failed", describe(error));
   }
 
   // Worth a line either way: a sweep that keeps finding links means the player
   // is not closing them, which is the thing this exists to compensate for.
-  logger.info("posthog.sweep", { checked, revoked });
+  logger.info("posthog.sweep", { checked, revoked, failed });
   return { checked, revoked };
 }
 

@@ -120,6 +120,76 @@
       "when": 1790013228338,
       "tag": "0016_auth_into_identity_schema",
       "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1790067421438,
+      "tag": "0017_loyalty_tiers",
+      "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1790101362920,
+      "tag": "0018_leads",
+      "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1790102388264,
+      "tag": "0019_lead_tasks",
+      "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "7",
+      "when": 1790136411166,
+      "tag": "0020_lead_source",
+      "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "7",
+      "when": 1790149769923,
+      "tag": "0021_lead_grants",
+      "breakpoints": true
+    },
+    {
+      "idx": 22,
+      "version": "7",
+      "when": 1790149799751,
+      "tag": "0022_loyalty_catalogue",
+      "breakpoints": true
+    },
+    {
+      "idx": 23,
+      "version": "7",
+      "when": 1790154871305,
+      "tag": "0023_founder_role",
+      "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1790228675983,
+      "tag": "0024_trips_and_tern",
+      "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "7",
+      "when": 1790279120777,
+      "tag": "0025_documents",
+      "breakpoints": true
+    },
+    {
+      "idx": 26,
+      "version": "7",
+      "when": 1790312677515,
+      "tag": "0026_activity_log_plain_table",
+      "breakpoints": true
     }
   ]
 }

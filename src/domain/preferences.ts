@@ -91,6 +91,8 @@ export type CatalogueOption = {
   kind: PreferenceKind;
   label: string;
   grouping: string | null;
+  /** The tiers this programme offers, empty for everything that is not one. */
+  tiers: string[];
 };
 
 export function slugify(value: string): string {

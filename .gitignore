@@ -45,3 +45,9 @@ yarn-error.log*
 # Kept out of the repository at the owner's request.
 CLAUDE.md
 AGENTS.md
+start-chrome.bat
+
+
+# Tern bridge: option lists it caches between walks. Tern vocabulary, not client data,
+# but a build artefact all the same.
+/tern-bridge/.catalogue-cache/

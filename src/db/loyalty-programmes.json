@@ -1,0 +1,5430 @@
+{
+  "source": "https://app.tern.travel",
+  "endpoints": {
+    "programs": "/loyalty_programs/autocomplete?q=",
+    "levels": "/contacts/{contact_id}/loyalty_programs/new"
+  },
+  "generated_at": "2026-07-02T11:06:55",
+  "total_programs": 312,
+  "programs_with_levels": 272,
+  "total_levels": 896,
+  "levels_included": true,
+  "programs": [
+    {
+      "id": 280,
+      "name": "AARP Rewards",
+      "levels": []
+    },
+    {
+      "id": 34,
+      "name": "Accor Live Limitless",
+      "levels": [
+        {
+          "id": 125,
+          "name": "Diamond"
+        },
+        {
+          "id": 126,
+          "name": "Platinum"
+        },
+        {
+          "id": 127,
+          "name": "Gold"
+        },
+        {
+          "id": 128,
+          "name": "Silver"
+        },
+        {
+          "id": 129,
+          "name": "Classic"
+        }
+      ]
+    },
+    {
+      "id": 158,
+      "name": "Ace Rent a Car",
+      "levels": [
+        {
+          "id": 548,
+          "name": "Member"
+        }
+      ]
+    },
+    {
+      "id": 151,
+      "name": "Advantage Rent a Car (Instant Rewards)",
+      "levels": [
+        {
+          "id": 531,
+          "name": "Member"
+        }
+      ]
+    },
+    {
+      "id": 56,
+      "name": "Aegean Airlines (Miles & Bonus)",
+      "levels": [
+        {
+          "id": 207,
+          "name": "Gold"
+        },
+        {
+          "id": 208,
+          "name": "Silver"
+        },
+        {
+          "id": 209,
+          "name": "Blue"
+        }
+      ]
+    },
+    {
+      "id": 75,
+      "name": "Aer Lingus (Gold Circle)",
+      "levels": [
+        {
+          "id": 282,
+          "name": "Concierge"
+        },
+        {
+          "id": 283,
+          "name": "Platinum"
+        },
+        {
+          "id": 284,
+          "name": "Silver"
+        },
+        {
+          "id": 285,
+          "name": "Green"
+        }
+      ]
+    },
+    {
+      "id": 114,
+      "name": "Aerolineas Argentinas (Plus)",
+      "levels": [
+        {
+          "id": 417,
+          "name": "Diamond"
+        },
+        {
+          "id": 416,
+          "name": "Platinum"
+        },
+        {
+          "id": 415,
+          "name": "Gold"
+        }
+      ]
+    },
+    {
+      "id": 92,
+      "name": "Aeroloft Bonus",
+      "levels": [
+        {
+          "id": 341,
+          "name": "Gold"
+        },
+        {
+          "id": 342,
+          "name": "Silver"
+        }
+      ]
+    },
+    {
+      "id": 72,
+      "name": "Aeromexico (Club Premier)",
+      "levels": [
+        {
+          "id": 269,
+          "name": "Titanium"
+        },
+        {
+          "id": 270,
+          "name": "Platinum"
+        },
+        {
+          "id": 271,
+          "name": "Gold"
+        }
+      ]
+    },
+    {
+      "id": 22,
+      "name": "Aeroplan Loyalty Program",
+      "levels": [
+        {
+          "id": 76,
+          "name": "Super Elite"
+        },
+        {
+          "id": 77,
+          "name": "Elite 75k"
+        },
+        {
+          "id": 78,
+          "name": "Eilte 50k"
+        },
+        {
+          "id": 79,
+          "name": "Elite 35k"
+        },
+        {
+          "id": 80,
+          "name": "Prestige 25k"
+        }
+      ]
+    },
+    {
+      "id": 200,
+      "name": "Air Algérie (Air Algérie Plus)",
+      "levels": [
+        {
+          "id": 647,
+          "name": "Fly in Card"
+        },
+        {
+          "id": 646,
+          "name": "Tahat"
+        },
+        {
+          "id": 645,
+          "name": "Chelia"
+        },
+        {
+          "id": 644,
+          "name": "Durdjuira"
+        }
+      ]
+    },
+    {
+      "id": 250,
+      "name": "Air Arabia (Airewards)",
+      "levels": [
+        {
+          "id": 769,
+          "name": "Member"
+        }
+      ]
+    },
+    {
+      "id": 185,
+      "name": "Air Astana (Nomad Club)",
+      "levels": [
+        {
+          "id": 609,
+          "name": "Diamond"
+        },
+        {
+          "id": 608,
+          "name": "Gold"
+        },
+        {
+          "id": 607,
+          "name": "Silver"
+        },
+        {
+          "id": 606,
+          "name": "Blue"
+        }
+      ]
+    },
+    {
+      "id": 219,
+      "name": "Air Austral (My Capricorne)",
+      "levels": [
+        {
+          "id": 692,
+          "name": "Subscriber"
+        },
+        {
+          "id": 691,
+          "name": "Exculsive"
+        },
+        {
+          "id": 690,
+          "name": "Premium"
+        },
+        {
+          "id": 689,
+          "name": "Essential"
+        }
+      ]
+    },
+    {
+      "id": 161,
+      "name": "Air Baltic (Pins)",
+      "levels": [
+        {
+          "id": 556,
+          "name": "VIP"
+        },
+        {
+          "id": 555,
+          "name": "Executive"
+        },
+        {
+          "id": 554,
+          "name": "Club"
+        }
+      ]
+    },
+    {
+      "id": 10,
+      "name": "Air Canada Aeroplan",
+      "levels": [
+        {
+          "id": 33,
+          "name": "Super Elite"
+        },
+        {
+          "id": 34,
+          "name": "Elite 75k"
+        },
+        {
+          "id": 35,
+          "name": "Eilte 50k"
+        },
+        {
+          "id": 36,
+          "name": "Elite 35k"
+        },
+        {
+          "id": 37,
+          "name": "Prestige 25k"
+        }
+      ]
+    },
+    {
+      "id": 212,
+      "name": "Air Caraibes (Preference)",
+      "levels": [
+        {
+          "id": 676,
+          "name": "Diamant"
+        },
+        {
+          "id": 675,
+          "name": "Gold"
+        },
+        {
+          "id": 674,
+          "name": "Silver Plus"
+        },
+        {
+          "id": 673,
+          "name": "Silver"
+        }
+      ]
+    },
+    {
+      "id": 82,
+      "name": "Air China (PhoenixMiles)",
+      "levels": [
+        {
+          "id": 308,
+          "name": "Platinum"
+        },
+        {
+          "id": 309,
+          "name": "Gold"
+        },
+        {
+          "id": 310,
+          "name": "Silver"
+        }
+      ]
+    },
+    {
+      "id": 254,
+      "name": "Air Cote D'Ivoire (sMiles)",
+      "levels": [
+        {
+          "id": 780,
+          "name": "Diamond"
+        },
+        {
+          "id": 779,
+          "name": "Five Stars"
+        },
+        {
+          "id": 778,
+          "name": "Four Stars"
+        },
+        {
+          "id": 777,
+          "name": "three Stars"
+        }
+      ]
+    },
+    {
+      "id": 223,
+      "name": "Air Europa (SUMA)",
+      "levels": [
+        {
+          "id": 709,
+          "name": "SUMA Platinum"
+        },
+        {
+          "id": 708,
+          "name": "SUMA Gold"
+        },
+        {
+          "id": 707,
+          "name": "SUMA Silver"
+        },
+        {
+          "id": 706,
+          "name": "SUMA"
+        }
+      ]
+    },
+    {
+      "id": 13,
+      "name": "Air France/KLM Flying Blue",
+      "levels": [
+        {
+          "id": 45,
+          "name": "Platinum"
+        },
+        {
+          "id": 46,
+          "name": "Gold"
+        },
+        {
+          "id": 47,
+          "name": "Silver"
+        },
+        {
+          "id": 48,
+          "name": "Explorer"
+        }
+      ]
+    },
+    {
+      "id": 67,
+      "name": "Air India (Flying Returns)",
+      "levels": [
+        {
+          "id": 248,
+          "name": "The Maharaja Club"
+        },
+        {
+          "id": 249,
+          "name": "Golden Edge Club"
+        },
+        {
+          "id": 250,
+          "name": "Silver Edge Club"
+        },
+        {
+          "id": 251,
+          "name": "Base Tier"
+        }
+      ]
+    },
+    {
+      "id": 255,
+      "name": "Air Macau (Privileges)",
+      "levels": [
+        {
+          "id": 783,
+          "name": "Platinum"
+        },
+        {
+          "id": 782,
+          "name": "Gold"
+        },
+        {
+          "id": 781,
+          "name": "Elite"
+        }
+      ]
+    },
+    {
+      "id": 191,
+      "name": "Air Malta (Flypass)",
+      "levels": [
+        {
+          "id": 624,
+          "name": "Diamond"
+        },
+        {
+          "id": 623,
+          "name": "Permanent"
+        },
+        {
+          "id": 622,
+          "name": "Regular"
+        }
+      ]
+    },
+    {
+      "id": 206,
+      "name": "Air Mauritius (Kestrelflyer)",
+      "levels": [
+        {
+          "id": 662,
+          "name": "Gold"
+        },
+        {
+          "id": 661,
+          "name": "Silver"
+        },
+        {
+          "id": 660,
+          "name": "Red"
+        }
+      ]
+    },
+    {
+      "id": 253,
+      "name": "Air Moldova Club",
+      "levels": [
+        {
+          "id": 776,
+          "name": "Exclusive"
+        },
+        {
+          "id": 775,
+          "name": "Prestige"
+        },
+        {
+          "id": 774,
+          "name": "Member"
+        }
+      ]
+    },
+    {
+      "id": 85,
+      "name": "Air New Zealand (Airpoints)",
+      "levels": [
+        {
+          "id": 318,
+          "name": "Elite"
+        },
+        {
+          "id": 319,
+          "name": "Gold"
+        },
+        {
+          "id": 320,
+          "name": "Silver"
+        }
+      ]
+    },
+    {
+      "id": 214,
+      "name": "Air Niugini (Destinations)",
+      "levels": [
+        {
+          "id": 682,
+          "name": "Gold"
+        },
+        {
+          "id": 681,
+          "name": "Silver"
+        },
+        {
+          "id": 680,
+          "name": "Classic"
+        }
+      ]
+    },
+    {
+      "id": 120,
+      "name": "Air Tahiti Nui (Club Tiare)",
+      "levels": [
+        {
+          "id": 433,
+          "name": "Gold"
+        },
+        {
+          "id": 432,
+          "name": "Silver"
+        },
+        {
+          "id": 431,
+          "name": "Tahia"
+        }
+      ]
+    },
+    {
+      "id": 175,
+      "name": "Air Transat",
+      "levels": [
+        {
+          "id": 588,
+          "name": "-"
+        }
+      ]
+    },
+    {
+      "id": 208,
+      "name": "AirBerlin (business points)",
+      "levels": []
+    },
+    {
+      "id": 59,
+      "name": "AirBerlin (Topbonus)",
+      "levels": [
+        {
+          "id": 219,
+          "name": "Platinum"
+        },
+        {
+          "id": 220,
+          "name": "Gold"
+        },
+        {
+          "id": 221,
+          "name": "Silver"
+        }
+      ]
+    },
+    {
+      "id": 277,
+      "name": "Alamo Insiders",
+      "levels": [
+        {
+          "id": 839,
+          "name": "Member"
+        }
+      ]
+    },
+    {
+      "id": 127,
+      "name": "Alaska Airlines (EasyBiz Corporate)",
+      "levels": []
+    },
+    {
+      "id": 281,
+      "name": "Allways Rewards",
+      "levels": []
+    },
+    {
+      "id": 275,
+      "name": "AmaWaterways",
+      "levels": [
+        {
+          "id": 835,
+          "name": "Blue"
+        },
+        {
+          "id": 836,
+          "name": "Silver"
+        },
+        {
+          "id": 837,
+          "name": "Gold"
+        }
+      ]
+    },
+    {
+      "id": 1,
+      "name": "American Airlines AAdvantage",
+      "levels": [
+        {
+          "id": 1,
+          "name": "AAdvantage Gold"
+        },
+        {
+          "id": 2,
+          "name": "AAdvantage Platinum"
+        },
+        {
+          "id": 3,
+          "name": "AAdvantage Platinum Pro"
+        },
+        {
+          "id": 4,
+          "name": "AAdvantage Executive Platinum"
+        }
+      ]
+    },
+    {
+      "id": 259,
+      "name": "American Automative Association (AAA)",
+      "levels": [
+        {
+          "id": 791,
+          "name": "Premier"
+        },
+        {
+          "id": 790,
+          "name": "Plus"
+        },
+        {
+          "id": 789,
+          "name": "Basic"
+        }
+      ]
+    },
+    {
+      "id": 361,
+      "name": "American Cruise Lines",
+      "levels": []
+    },
+    {
+      "id": 107,
+      "name": "AmericInn (Easy Rewards)",
+      "levels": [
+        {
+          "id": 393,
+          "name": "Diamond"
+        },
+        {
+          "id": 392,
+          "name": "Platinum"
+        },
+        {
+          "id": 391,
+          "name": "Gold"
+        },
+        {
+          "id": 390,
+          "name": "Blue"
+        }
+      ]
+    },
+    {
+      "id": 35,
+      "name": "Amtrak Guest Rewards",
+      "levels": [
+        {
+          "id": 130,
+          "name": "Select Executive"
+        },
+        {
+          "id": 131,
+          "name": "Select Plus"
+        },
+        {
+          "id": 132,
+          "name": "Select"
+        },
+        {
+          "id": 133,
+          "name": "Member"
+        }
+      ]
+    },
+    {
+      "id": 21,
+      "name": "ANA Mileage Club",
+      "levels": [
+        {
+          "id": 73,
+          "name": "Diamond"
+        },
+        {
+          "id": 74,
+          "name": "Platinum"
+        },
+        {
+          "id": 75,
+          "name": "Bronze"
+        }
+      ]
+    },
+    {
+      "id": 20,
+      "name": "Asia Miles",
+      "levels": [
+        {
+          "id": 69,
+          "name": "Diamond"
+        },
+        {
+          "id": 70,
+          "name": "Gold"
+        },
+        {
+          "id": 71,
+          "name": "Silver"
+        },
+        {
+          "id": 72,
+          "name": "Green"
+        }
+      ]
+    },
+    {
+      "id": 42,
+      "name": "Asiana Airlines Asiana Club",
+      "levels": [
+        {
+          "id": 151,
+          "name": "Platinum"
+        },
+        {
+          "id": 152,
+          "name": "Diamond Plus"
+        },
+        {
+          "id": 153,
+          "name": "Diamond"
+        },
+        {
+          "id": 154,
+          "name": "Gold"
+        }
+      ]
+    },
+    {
+      "id": 235,
+      "name": "Asky Airlines (ASKY Club)",
+      "levels": [
+        {
+          "id": 744,
+          "name": "Black"
+        },
+        {
+          "id": 743,
+          "name": "Gold"
+        },
+        {
+          "id": 742,
+          "name": "Silver"
+        },
+        {
+          "id": 741,
+          "name": "Brown"
+        }
+      ]
+    },
+    {
+      "id": 282,
+      "name": "Atlas Yacht Club",
+      "levels": [
+        {
+          "id": 846,
+          "name": "Purple"
+        },
+        {
+          "id": 847,
+          "name": "Bronze"
+        },
+        {
+          "id": 848,
+          "name": "Silver"
+        },
+        {
+          "id": 849,
+          "name": "Gold"
+        },
+        {
+          "id": 850,
+          "name": "Captain's Yacht Club"
+        }
+      ]
+    },
+    {
+      "id": 239,
+      "name": "AtlasGlobal (AtlasMiles)",
+      "levels": []
+    },
+    {
+      "id": 6,
+      "name": "Atmos (Alaska)",
+      "levels": [
+        {
+          "id": 19,
+          "name": "MVP"
+        },
+        {
+          "id": 453,
+          "name": "MVP Gold 100k"
+        },
+        {
+          "id": 452,
+          "name": "MVP Gold 75k"
+        },
+        {
+          "id": 20,
+          "name": "MVP Gold"
+        },
+        {
+          "id": 21,
+          "name": "MVP Gold 75K"
+        },
+        {
+          "id": 22,
+          "name": "MVP Gold 100K"
+        },
+        {
+          "id": 874,
+          "name": "Atmos Silver"
+        },
+        {
+          "id": 875,
+          "name": "Atmos Gold"
+        },
+        {
+          "id": 876,
+          "name": "Atmos Platinum"
+        },
+        {
+          "id": 877,
+          "name": "Atmos Titanium"
+        }
+      ]
+    },
+    {
+      "id": 103,
+      "name": "Avianca (Amigo)",
+      "levels": [
+        {
+          "id": 379,
+          "name": "Diamond"
+        },
+        {
+          "id": 378,
+          "name": "Gold"
+        },
+        {
+          "id": 377,
+          "name": "Silver"
+        },
+        {
+          "id": 376,
+          "name": "Red Plus"
+        }
+      ]
+    },
+    {
+      "id": 19,
+      "name": "Avianca LifeMiles",
+      "levels": [
+        {
+          "id": 65,
+          "name": "Diamond"
+        },
+        {
+          "id": 66,
+          "name": "Gold"
+        },
+        {
+          "id": 67,
+          "name": "Silver"
+        },
+        {
+          "id": 68,
+          "name": "Red Plus"
+        }
+      ]
+    },
+    {
+      "id": 15,
+      "name": "Avios",
+      "levels": [
+        {
+          "id": 52,
+          "name": "Gold"
+        },
+        {
+          "id": 53,
+          "name": "Silver"
+        },
+        {
+          "id": 54,
+          "name": "Bronze"
+        },
+        {
+          "id": 55,
+          "name": "Blue"
+        }
+      ]
+    },
+    {
+      "id": 45,
+      "name": "Avis (Preferred)",
+      "levels": [
+        {
+          "id": 162,
+          "name": "President's Club"
+        },
+        {
+          "id": 163,
+          "name": "Preferred Plus"
+        },
+        {
+          "id": 164,
+          "name": "Preferred"
+        }
+      ]
+    },
+    {
+      "id": 180,
+      "name": "Azamara (Le Club Voyage)",
+      "levels": [
+        {
+          "id": 598,
+          "name": "Discoverer Platinum"
+        },
+        {
+          "id": 597,
+          "name": "Discoverer Plus"
+        },
+        {
+          "id": 596,
+          "name": "Discoverer"
+        },
+        {
+          "id": 595,
+          "name": "Explorer"
+        },
+        {
+          "id": 594,
+          "name": "Adventurer"
+        }
+      ]
+    },
+    {
+      "id": 229,
+      "name": "Azerbaijan Airlines (Azal Miles)",
+      "levels": [
+        {
+          "id": 728,
+          "name": "Platinum"
+        },
+        {
+          "id": 727,
+          "name": "Gold"
+        },
+        {
+          "id": 726,
+          "name": "Classic"
+        }
+      ]
+    },
+    {
+      "id": 110,
+      "name": "Azul (TudoAzul)",
+      "levels": [
+        {
+          "id": 402,
+          "name": "Diamond"
+        },
+        {
+          "id": 401,
+          "name": "Sapphire"
+        },
+        {
+          "id": 400,
+          "name": "Topaz"
+        },
+        {
+          "id": 399,
+          "name": "Blue"
+        }
+      ]
+    },
+    {
+      "id": 96,
+      "name": "Bangkok Airways (FlyerBonus)",
+      "levels": [
+        {
+          "id": 353,
+          "name": "Premier Plus"
+        },
+        {
+          "id": 352,
+          "name": "Premier"
+        },
+        {
+          "id": 351,
+          "name": "Priority"
+        }
+      ]
+    },
+    {
+      "id": 228,
+      "name": "Belavia (Leader)",
+      "levels": [
+        {
+          "id": 725,
+          "name": "Silver"
+        },
+        {
+          "id": 724,
+          "name": "Gold"
+        }
+      ]
+    },
+    {
+      "id": 266,
+      "name": "Belmond Bellini",
+      "levels": [
+        {
+          "id": 804,
+          "name": "Member"
+        }
+      ]
+    },
+    {
+      "id": 23,
+      "name": "Best Western Rewards",
+      "levels": [
+        {
+          "id": 81,
+          "name": "Diamond Select"
+        },
+        {
+          "id": 82,
+          "name": "Diamond"
+        },
+        {
+          "id": 83,
+          "name": "Platinum"
+        },
+        {
+          "id": 84,
+          "name": "Gold"
+        },
+        {
+          "id": 85,
+          "name": "Blue"
+        }
+      ]
+    },
+    {
+      "id": 69,
+      "name": "Booking.com",
+      "levels": [
+        {
+          "id": 255,
+          "name": "Genius Level 3"
+        },
+        {
+          "id": 256,
+          "name": "Genius Level 2"
+        },
+        {
+          "id": 257,
+          "name": "Genisu Level 1"
+        }
+      ]
+    },
+    {
+      "id": 137,
+      "name": "Borgata (Rewards)",
+      "levels": [
+        {
+          "id": 485,
+          "name": "Noir"
+        },
+        {
+          "id": 484,
+          "name": "Platinum"
+        },
+        {
+          "id": 483,
+          "name": "Gold"
+        },
+        {
+          "id": 482,
+          "name": "Pearl"
+        },
+        {
+          "id": 481,
+          "name": "Saphire"
+        }
+      ]
+    },
+    {
+      "id": 241,
+      "name": "Braathens Regional Airlines (BRA Friends )",
+      "levels": [
+        {
+          "id": 755,
+          "name": "Merit"
+        },
+        {
+          "id": 754,
+          "name": "Gold"
+        },
+        {
+          "id": 753,
+          "name": "Silver"
+        }
+      ]
+    },
+    {
+      "id": 323,
+      "name": "Breeze Airways",
+      "levels": []
+    },
+    {
+      "id": 373,
+      "name": "Brendan Tours",
+      "levels": []
+    },
+    {
+      "id": 116,
+      "name": "British Airways (On Business)",
+      "levels": [
+        {
+          "id": 424,
+          "name": "On 3 Elite"
+        },
+        {
+          "id": 423,
+          "name": "On 2 Elite"
+        },
+        {
+          "id": 422,
+          "name": "On 1 Elite"
+        }
+      ]
+    },
+    {
+      "id": 8,
+      "name": "British Airways Executive Club",
+      "levels": [
+        {
+          "id": 26,
+          "name": "Blue"
+        },
+        {
+          "id": 27,
+          "name": "Bronze"
+        },
+        {
+          "id": 28,
+          "name": "Silver"
+        },
+        {
+          "id": 29,
+          "name": "Gold"
+        }
+      ]
+    },
+    {
+      "id": 177,
+      "name": "Brussels Airlines (LOOPs)",
+      "levels": []
+    },
+    {
+      "id": 285,
+      "name": "Budget Fastbreak",
+      "levels": []
+    },
+    {
+      "id": 213,
+      "name": "Bulgaria Air (Fly More)",
+      "levels": [
+        {
+          "id": 679,
+          "name": "Gold"
+        },
+        {
+          "id": 678,
+          "name": "Silver"
+        },
+        {
+          "id": 677,
+          "name": "Basic"
+        }
+      ]
+    },
+    {
+      "id": 283,
+      "name": "Caesar's Rewards",
+      "levels": [
+        {
+          "id": 851,
+          "name": "GOLD"
+        },
+        {
+          "id": 852,
+          "name": "PLATINUM"
+        },
+        {
+          "id": 853,
+          "name": "DIAMOND"
+        },
+        {
+          "id": 854,
+          "name": "DIAMOND PLUS"
+        },
+        {
+          "id": 855,
+          "name": "DIAMOND ELITE"
+        },
+        {
+          "id": 856,
+          "name": "SEVEN STARS®"
+        }
+      ]
+    },
+    {
+      "id": 153,
+      "name": "Caribbean Airlines (Caribbean Miles)",
+      "levels": [
+        {
+          "id": 538,
+          "name": "Executive"
+        },
+        {
+          "id": 537,
+          "name": "Gold"
+        },
+        {
+          "id": 536,
+          "name": "Silver"
+        },
+        {
+          "id": 535,
+          "name": "Bronze"
+        }
+      ]
+    },
+    {
+      "id": 65,
+      "name": "Carnival (VIFP)",
+      "levels": [
+        {
+          "id": 239,
+          "name": "Diamond"
+        },
+        {
+          "id": 240,
+          "name": "Platinum"
+        },
+        {
+          "id": 241,
+          "name": "Gold"
+        },
+        {
+          "id": 242,
+          "name": "Red"
+        },
+        {
+          "id": 243,
+          "name": "Blue"
+        }
+      ]
+    },
+    {
+      "id": 220,
+      "name": "CAT (C-Club)",
+      "levels": [
+        {
+          "id": 697,
+          "name": "Platinum"
+        },
+        {
+          "id": 696,
+          "name": "Gold"
+        },
+        {
+          "id": 695,
+          "name": "Silver"
+        },
+        {
+          "id": 694,
+          "name": "Bronze"
+        },
+        {
+          "id": 693,
+          "name": "Blue"
+        }
+      ]
+    },
+    {
+      "id": 152,
+      "name": "Cayman Airways (Sir Turtle Rewards)",
+      "levels": [
+        {
+          "id": 534,
+          "name": "Platinum"
+        },
+        {
+          "id": 533,
+          "name": "Gold"
+        },
+        {
+          "id": 532,
+          "name": "Silver"
+        }
+      ]
+    },
+    {
+      "id": 216,
+      "name": "Cebu Pacific (Getgo)",
+      "levels": [
+        {
+          "id": 684,
+          "name": "Black"
+        },
+        {
+          "id": 687,
+          "name": "Platinum"
+        },
+        {
+          "id": 683,
+          "name": "Classic"
+        },
+        {
+          "id": 686,
+          "name": "Gold"
+        },
+        {
+          "id": 685,
+          "name": "Silver"
+        }
+      ]
+    },
+    {
+      "id": 74,
+      "name": "Celebrity Cruises (Captain's Club)",
+      "levels": [
+        {
+          "id": 276,
+          "name": "Zenith"
+        },
+        {
+          "id": 277,
+          "name": "Elite Plus"
+        },
+        {
+          "id": 278,
+          "name": "Elite"
+        },
+        {
+          "id": 279,
+          "name": "Select"
+        },
+        {
+          "id": 280,
+          "name": "Classic"
+        },
+        {
+          "id": 281,
+          "name": "Preview"
+        }
+      ]
+    },
+    {
+      "id": 79,
+      "name": "China Airlines (Dynasty Flyer)",
+      "levels": [
+        {
+          "id": 299,
+          "name": "Paragon Membership"
+        },
+        {
+          "id": 300,
+          "name": "Emerald Membership"
+        },
+        {
+          "id": 301,
+          "name": "Gold Membership"
+        },
+        {
+          "id": 302,
+          "name": "Dynasty Membership"
+        }
+      ]
+    },
+    {
+      "id": 93,
+      "name": "China Eastern (Eastern Miles)",
+      "levels": []
+    },
+    {
+      "id": 99,
+      "name": "China Southern (Sky Pearl)",
+      "levels": [
+        {
+          "id": 364,
+          "name": "Platinum"
+        },
+        {
+          "id": 363,
+          "name": "Gold"
+        },
+        {
+          "id": 362,
+          "name": "Silver"
+        }
+      ]
+    },
+    {
+      "id": 162,
+      "name": "Choice Hotels (Nordic Choice Club)",
+      "levels": [
+        {
+          "id": 560,
+          "name": "Platinum"
+        },
+        {
+          "id": 559,
+          "name": "Gold"
+        },
+        {
+          "id": 558,
+          "name": "Silver"
+        },
+        {
+          "id": 557,
+          "name": "Blue"
+        }
+      ]
+    },
+    {
+      "id": 24,
+      "name": "Choice Privileges",
+      "levels": [
+        {
+          "id": 86,
+          "name": "Diamond"
+        },
+        {
+          "id": 87,
+          "name": "Platinum"
+        },
+        {
+          "id": 88,
+          "name": "Gold"
+        },
+        {
+          "id": 89,
+          "name": "Member"
+        }
+      ]
+    },
+    {
+      "id": 44,
+      "name": "Club Carlson Hotels",
+      "levels": [
+        {
+          "id": 158,
+          "name": "Platinum"
+        },
+        {
+          "id": 159,
+          "name": "Gold"
+        },
+        {
+          "id": 160,
+          "name": "Silver"
+        },
+        {
+          "id": 161,
+          "name": "Club"
+        }
+      ]
+    },
+    {
+      "id": 359,
+      "name": "Club Med",
+      "levels": [
+        {
+          "id": 878,
+          "name": "Great Member Number"
+        }
+      ]
+    },
+    {
+      "id": 131,
+      "name": "Coast Hotels (Coast Rewards)",
+      "levels": [
+        {
+          "id": 464,
+          "name": "Platinum"
+        },
+        {
+          "id": 463,
+          "name": "Gold"
+        },
+        {
+          "id": 462,
+          "name": "Silver"
+        },
+        {
+          "id": 461,
+          "name": "Purple"
+        },
+        {
+          "id": 460,
+          "name": "Pink"
+        }
+      ]
+    },
+    {
+      "id": 370,
+      "name": "Collette Passport Club",
+      "levels": []
+    },
+    {
+      "id": 376,
+      "name": "Contiki",
+      "levels": []
+    },
+    {
+      "id": 73,
+      "name": "Copa Airlines ConnectMiles (Prefer)",
+      "levels": [
+        {
+          "id": 272,
+          "name": "Presidential"
+        },
+        {
+          "id": 273,
+          "name": "Platinum"
+        },
+        {
+          "id": 274,
+          "name": "Gold"
+        },
+        {
+          "id": 275,
+          "name": "Silver"
+        }
+      ]
+    },
+    {
+      "id": 150,
+      "name": "Cosmopolitan Hotels (Identity)",
+      "levels": [
+        {
+          "id": 530,
+          "name": "Platinum"
+        },
+        {
+          "id": 529,
+          "name": "Gold"
+        },
+        {
+          "id": 528,
+          "name": "Sterling"
+        },
+        {
+          "id": 527,
+          "name": "Velvet"
+        }
+      ]
+    },
+    {
+      "id": 377,
+      "name": "Cosmos",
+      "levels": []
+    },
+    {
+      "id": 363,
+      "name": "Crystal Society",
+      "levels": [
+        {
+          "id": 885,
+          "name": "Member"
+        }
+      ]
+    },
+    {
+      "id": 273,
+      "name": "Cunard",
+      "levels": [
+        {
+          "id": 830,
+          "name": "Diamond"
+        },
+        {
+          "id": 829,
+          "name": "Platinum"
+        },
+        {
+          "id": 828,
+          "name": "Gold"
+        },
+        {
+          "id": 827,
+          "name": "Silver"
+        }
+      ]
+    },
+    {
+      "id": 244,
+      "name": "Czech Airlines (OK Plus Corporate)",
+      "levels": [
+        {
+          "id": 760,
+          "name": "Platinum"
+        },
+        {
+          "id": 759,
+          "name": "Gold"
+        },
+        {
+          "id": 758,
+          "name": "Silver"
+        }
+      ]
+    },
+    {
+      "id": 134,
+      "name": "Czech Airlines (OK Plus)",
+      "levels": [
+        {
+          "id": 474,
+          "name": "Ok Plus Corporate"
+        },
+        {
+          "id": 473,
+          "name": "Ok Plus"
+        }
+      ]
+    },
+    {
+      "id": 203,
+      "name": "Dan Hotels (e-dan club)",
+      "levels": [
+        {
+          "id": 655,
+          "name": "Member"
+        }
+      ]
+    },
+    {
+      "id": 80,
+      "name": "Delta (SkyBonus Corporate)",
+      "levels": [
+        {
+          "id": 303,
+          "name": "SkyBonus Elite"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "name": "Delta SkyMiles",
+      "levels": [
+        {
+          "id": 5,
+          "name": "Silver Medallion"
+        },
+        {
+          "id": 6,
+          "name": "Gold Medallion"
+        },
+        {
+          "id": 7,
+          "name": "Platinum Medallion"
+        },
+        {
+          "id": 8,
+          "name": "Diamond Medallion"
+        }
+      ]
+    },
+    {
+      "id": 146,
+      "name": "Deutsche Bahn (BahnCard)",
+      "levels": [
+        {
+          "id": 517,
+          "name": "BahnCard 100"
+        },
+        {
+          "id": 516,
+          "name": "BahnCard 50"
+        },
+        {
+          "id": 515,
+          "name": "BahnCard 25"
+        }
+      ]
+    },
+    {
+      "id": 108,
+      "name": "Disney Cruise Line (Castaway Club)",
+      "levels": [
+        {
+          "id": 397,
+          "name": "Pearl"
+        },
+        {
+          "id": 396,
+          "name": "Platinum"
+        },
+        {
+          "id": 395,
+          "name": "Gold"
+        },
+        {
+          "id": 394,
+          "name": "Silver"
+        }
+      ]
+    },
+    {
+      "id": 264,
+      "name": "Dorchester Diamond",
+      "levels": [
+        {
+          "id": 802,
+          "name": "Member"
+        }
+      ]
+    },
+    {
+      "id": 192,
+      "name": "Dorint (Card)",
+      "levels": [
+        {
+          "id": 626,
+          "name": "Card Premium"
+        },
+        {
+          "id": 625,
+          "name": "Card"
+        }
+      ]
+    },
+    {
+      "id": 145,
+      "name": "E-Z Rent-A-Car (E-Z Money)",
+      "levels": [
+        {
+          "id": 514,
+          "name": "-"
+        }
+      ]
+    },
+    {
+      "id": 155,
+      "name": "Easyjet",
+      "levels": [
+        {
+          "id": 542,
+          "name": "Member"
+        }
+      ]
+    },
+    {
+      "id": 140,
+      "name": "Egypt Air PlusFriends)",
+      "levels": [
+        {
+          "id": 498,
+          "name": "PLATINUM"
+        },
+        {
+          "id": 497,
+          "name": "ELITE"
+        },
+        {
+          "id": 496,
+          "name": "GOLD"
+        },
+        {
+          "id": 495,
+          "name": "SILVER"
+        },
+        {
+          "id": 494,
+          "name": "BLUE"
+        }
+      ]
+    },
+    {
+      "id": 77,
+      "name": "EL AL Israel Airlines (Matmid)",
+      "levels": [
+        {
+          "id": 290,
+          "name": "TopPlatinum"
+        },
+        {
+          "id": 291,
+          "name": "Platinum"
+        },
+        {
+          "id": 292,
+          "name": "Gold"
+        },
+        {
+          "id": 293,
+          "name": "Silver"
+        },
+        {
+          "id": 294,
+          "name": "Matmid"
+        }
+      ]
+    },
+    {
+      "id": 198,
+      "name": "Elite Hotels of Sweden",
+      "levels": [
+        {
+          "id": 642,
+          "name": "Platinum"
+        },
+        {
+          "id": 641,
+          "name": "Gold"
+        },
+        {
+          "id": 640,
+          "name": "Silver"
+        },
+        {
+          "id": 639,
+          "name": "Bronze"
+        }
+      ]
+    },
+    {
+      "id": 367,
+      "name": "Emerald",
+      "levels": [
+        {
+          "id": 899,
+          "name": "Gold"
+        },
+        {
+          "id": 900,
+          "name": "Diamond"
+        },
+        {
+          "id": 901,
+          "name": "Emerald"
+        },
+        {
+          "id": 902,
+          "name": "Chairman's Club"
+        }
+      ]
+    },
+    {
+      "id": 165,
+      "name": "Emirates for Kids (Skysurfer)",
+      "levels": [
+        {
+          "id": 570,
+          "name": "Gold"
+        },
+        {
+          "id": 569,
+          "name": "Silver"
+        }
+      ]
+    },
+    {
+      "id": 12,
+      "name": "Emirates Skywards",
+      "levels": [
+        {
+          "id": 41,
+          "name": "Platinum Medallion"
+        },
+        {
+          "id": 42,
+          "name": "Gold"
+        },
+        {
+          "id": 43,
+          "name": "Silver"
+        },
+        {
+          "id": 44,
+          "name": "Blue"
+        }
+      ]
+    },
+    {
+      "id": 47,
+      "name": "Enterprise Rent-A-Car",
+      "levels": [
+        {
+          "id": 168,
+          "name": "Platinum"
+        },
+        {
+          "id": 169,
+          "name": "Gold"
+        },
+        {
+          "id": 170,
+          "name": "Silver"
+        },
+        {
+          "id": 171,
+          "name": "Plus"
+        }
+      ]
+    },
+    {
+      "id": 188,
+      "name": "Era Alaska (FlyAway Rewards)",
+      "levels": [
+        {
+          "id": 617,
+          "name": "MVP Gold 100k"
+        },
+        {
+          "id": 616,
+          "name": "MVP Gold 75k"
+        },
+        {
+          "id": 615,
+          "name": "MVP Gold"
+        },
+        {
+          "id": 614,
+          "name": "MVP"
+        }
+      ]
+    },
+    {
+      "id": 125,
+      "name": "Ethiopian Airlines (ShebaMiles)",
+      "levels": [
+        {
+          "id": 447,
+          "name": "Platinum"
+        },
+        {
+          "id": 446,
+          "name": "Gold"
+        },
+        {
+          "id": 445,
+          "name": "Silver"
+        },
+        {
+          "id": 444,
+          "name": "Blue"
+        }
+      ]
+    },
+    {
+      "id": 256,
+      "name": "Etihad (BusinessConnect)",
+      "levels": [
+        {
+          "id": 784,
+          "name": "Member"
+        }
+      ]
+    },
+    {
+      "id": 55,
+      "name": "Etihad Airways (Etihad Guest)",
+      "levels": [
+        {
+          "id": 203,
+          "name": "Platinum"
+        },
+        {
+          "id": 204,
+          "name": "Gold"
+        },
+        {
+          "id": 205,
+          "name": "Silver"
+        },
+        {
+          "id": 206,
+          "name": "Bronze"
+        }
+      ]
+    },
+    {
+      "id": 118,
+      "name": "Eurostar Frequent Traveler",
+      "levels": [
+        {
+          "id": 429,
+          "name": "Carte Blanche"
+        },
+        {
+          "id": 428,
+          "name": "Avantage"
+        },
+        {
+          "id": 427,
+          "name": "Classique"
+        }
+      ]
+    },
+    {
+      "id": 179,
+      "name": "Eurowings (Boomerang)",
+      "levels": [
+        {
+          "id": 593,
+          "name": "Member"
+        }
+      ]
+    },
+    {
+      "id": 66,
+      "name": "Eva Air (Infinity MileageLands)",
+      "levels": [
+        {
+          "id": 244,
+          "name": "Diamond"
+        },
+        {
+          "id": 245,
+          "name": "Gold"
+        },
+        {
+          "id": 246,
+          "name": "Silver"
+        },
+        {
+          "id": 247,
+          "name": "Green"
+        }
+      ]
+    },
+    {
+      "id": 274,
+      "name": "Expedia One Key",
+      "levels": [
+        {
+          "id": 831,
+          "name": "Blue"
+        },
+        {
+          "id": 832,
+          "name": "Silver"
+        },
+        {
+          "id": 833,
+          "name": "Gold"
+        },
+        {
+          "id": 834,
+          "name": "Platinum"
+        }
+      ]
+    },
+    {
+      "id": 322,
+      "name": "Explora Club",
+      "levels": [
+        {
+          "id": 867,
+          "name": "Classic"
+        },
+        {
+          "id": 868,
+          "name": "Silver"
+        },
+        {
+          "id": 869,
+          "name": "Gold"
+        },
+        {
+          "id": 870,
+          "name": "Platinum"
+        },
+        {
+          "id": 871,
+          "name": "Diamond"
+        }
+      ]
+    },
+    {
+      "id": 50,
+      "name": "Fairmont President's Club",
+      "levels": [
+        {
+          "id": 177,
+          "name": "Diamond"
+        },
+        {
+          "id": 178,
+          "name": "Platinum"
+        },
+        {
+          "id": 179,
+          "name": "Gold"
+        },
+        {
+          "id": 180,
+          "name": "Silver"
+        },
+        {
+          "id": 181,
+          "name": "Classic"
+        }
+      ]
+    },
+    {
+      "id": 100,
+      "name": "Finnair Plus",
+      "levels": [
+        {
+          "id": 370,
+          "name": "Finnair Plus Lifetime"
+        },
+        {
+          "id": 369,
+          "name": "Finnair Plus Platinum Lumo"
+        },
+        {
+          "id": 368,
+          "name": "Finnair Plus Platinum"
+        },
+        {
+          "id": 367,
+          "name": "Finnair Plus Gold"
+        },
+        {
+          "id": 366,
+          "name": "Finnair Plus Silver"
+        },
+        {
+          "id": 365,
+          "name": "Finnair Plus Basic"
+        }
+      ]
+    },
+    {
+      "id": 227,
+      "name": "First Hotels (First Member)",
+      "levels": [
+        {
+          "id": 723,
+          "name": "Black"
+        },
+        {
+          "id": 722,
+          "name": "Platinum"
+        },
+        {
+          "id": 721,
+          "name": "Gold"
+        },
+        {
+          "id": 720,
+          "name": "Silver"
+        }
+      ]
+    },
+    {
+      "id": 170,
+      "name": "Flybe (Rewards4all)",
+      "levels": []
+    },
+    {
+      "id": 243,
+      "name": "Flynas (NaSmiles)",
+      "levels": [
+        {
+          "id": 757,
+          "name": "Prime"
+        },
+        {
+          "id": 756,
+          "name": "Basic"
+        }
+      ]
+    },
+    {
+      "id": 263,
+      "name": "Four Seasons Preferred",
+      "levels": [
+        {
+          "id": 801,
+          "name": "Member"
+        }
+      ]
+    },
+    {
+      "id": 105,
+      "name": "Fox Rent A Car (Rewards)",
+      "levels": [
+        {
+          "id": 384,
+          "name": "Tango Card"
+        }
+      ]
+    },
+    {
+      "id": 207,
+      "name": "Frasers Hospitality (Fraser World)",
+      "levels": [
+        {
+          "id": 665,
+          "name": "Diamond"
+        },
+        {
+          "id": 664,
+          "name": "Sapphire"
+        },
+        {
+          "id": 663,
+          "name": "Crystal"
+        }
+      ]
+    },
+    {
+      "id": 9,
+      "name": "Frontier EarlyReturns",
+      "levels": [
+        {
+          "id": 30,
+          "name": "Elite 100k"
+        },
+        {
+          "id": 31,
+          "name": "Elite 50k"
+        },
+        {
+          "id": 32,
+          "name": "Elite 20k"
+        }
+      ]
+    },
+    {
+      "id": 248,
+      "name": "Future Inns (Rewards Club)",
+      "levels": [
+        {
+          "id": 768,
+          "name": "Member"
+        }
+      ]
+    },
+    {
+      "id": 147,
+      "name": "Garuda (Frequent Flyer)",
+      "levels": [
+        {
+          "id": 521,
+          "name": "Platinum"
+        },
+        {
+          "id": 520,
+          "name": "Gold"
+        },
+        {
+          "id": 519,
+          "name": "Silver"
+        },
+        {
+          "id": 518,
+          "name": "Blue"
+        }
+      ]
+    },
+    {
+      "id": 360,
+      "name": "Gate 1 Travel",
+      "levels": []
+    },
+    {
+      "id": 33,
+      "name": "GHA Discovery",
+      "levels": [
+        {
+          "id": 121,
+          "name": "Titanium"
+        },
+        {
+          "id": 122,
+          "name": "Platinum"
+        },
+        {
+          "id": 123,
+          "name": "Gold"
+        },
+        {
+          "id": 124,
+          "name": "Silver"
+        }
+      ]
+    },
+    {
+      "id": 257,
+      "name": "Gloria Hotels & Resorts (Gloria Partner)",
+      "levels": [
+        {
+          "id": 787,
+          "name": "Glorian Platinum"
+        },
+        {
+          "id": 786,
+          "name": "Glorian Diamond"
+        },
+        {
+          "id": 785,
+          "name": "Glorian Gold"
+        }
+      ]
+    },
+    {
+      "id": 83,
+      "name": "Gol Airlines (Smiles)",
+      "levels": [
+        {
+          "id": 311,
+          "name": "Diamond"
+        },
+        {
+          "id": 312,
+          "name": "Gold"
+        },
+        {
+          "id": 313,
+          "name": "Silver"
+        }
+      ]
+    },
+    {
+      "id": 31,
+      "name": "Golden Circle",
+      "levels": [
+        {
+          "id": 114,
+          "name": "Polaris"
+        },
+        {
+          "id": 115,
+          "name": "Diamond"
+        },
+        {
+          "id": 116,
+          "name": "Jade"
+        },
+        {
+          "id": 117,
+          "name": "Gold"
+        }
+      ]
+    },
+    {
+      "id": 371,
+      "name": "GTR Trafalgar",
+      "levels": []
+    },
+    {
+      "id": 129,
+      "name": "Gulf Air (Falconflyer)",
+      "levels": [
+        {
+          "id": 457,
+          "name": "Black"
+        },
+        {
+          "id": 456,
+          "name": "Gold"
+        },
+        {
+          "id": 455,
+          "name": "Silver"
+        },
+        {
+          "id": 454,
+          "name": "Blue"
+        }
+      ]
+    },
+    {
+      "id": 106,
+      "name": "Hainan Airlines (Fortune Wings)",
+      "levels": [
+        {
+          "id": 389,
+          "name": "Platinum"
+        },
+        {
+          "id": 388,
+          "name": "Gold"
+        },
+        {
+          "id": 387,
+          "name": "Silver"
+        },
+        {
+          "id": 386,
+          "name": "Select"
+        },
+        {
+          "id": 385,
+          "name": "Fortune Wings"
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "name": "Hawaiian Airlines HawaiianMiles",
+      "levels": [
+        {
+          "id": 23,
+          "name": "Member"
+        },
+        {
+          "id": 24,
+          "name": "Pualani Gold"
+        },
+        {
+          "id": 25,
+          "name": "Pualani Platinum"
+        }
+      ]
+    },
+    {
+      "id": 43,
+      "name": "Hertz Gold Plus Rewards",
+      "levels": [
+        {
+          "id": 155,
+          "name": "President's Circle"
+        },
+        {
+          "id": 156,
+          "name": "Hertz Five Star"
+        },
+        {
+          "id": 157,
+          "name": "Gold"
+        }
+      ]
+    },
+    {
+      "id": 97,
+      "name": "Hilton Grand Vacations (Club)",
+      "levels": [
+        {
+          "id": 356,
+          "name": "Hilton Honors Points"
+        },
+        {
+          "id": 355,
+          "name": "Bonus Points"
+        },
+        {
+          "id": 354,
+          "name": "ClubPoints"
+        }
+      ]
+    },
+    {
+      "id": 28,
+      "name": "Hilton Honors",
+      "levels": [
+        {
+          "id": 104,
+          "name": "Diamond"
+        },
+        {
+          "id": 105,
+          "name": "Gold"
+        },
+        {
+          "id": 106,
+          "name": "Silver"
+        },
+        {
+          "id": 107,
+          "name": "Member"
+        },
+        {
+          "id": 879,
+          "name": "Diamond Reserve"
+        }
+      ]
+    },
+    {
+      "id": 94,
+      "name": "Holland America Line (Mariner Society)",
+      "levels": [
+        {
+          "id": 347,
+          "name": "5 Star Mariner"
+        },
+        {
+          "id": 346,
+          "name": "4 Star Mariner"
+        },
+        {
+          "id": 345,
+          "name": "3 Star Mariner"
+        },
+        {
+          "id": 344,
+          "name": "2 Star Mariner"
+        },
+        {
+          "id": 343,
+          "name": "Star Mariner"
+        }
+      ]
+    },
+    {
+      "id": 143,
+      "name": "Hostelworld (My World)",
+      "levels": [
+        {
+          "id": 509,
+          "name": "Member"
+        }
+      ]
+    },
+    {
+      "id": 242,
+      "name": "Hotelbooker.org",
+      "levels": []
+    },
+    {
+      "id": 133,
+      "name": "HotelClub (Member Rewards)",
+      "levels": [
+        {
+          "id": 472,
+          "name": "Diamond"
+        },
+        {
+          "id": 471,
+          "name": "Platinum"
+        },
+        {
+          "id": 470,
+          "name": "Gold"
+        },
+        {
+          "id": 469,
+          "name": "Silver"
+        }
+      ]
+    },
+    {
+      "id": 49,
+      "name": "Hotels.com RewardsMileage Club)",
+      "levels": [
+        {
+          "id": 175,
+          "name": "Gold"
+        },
+        {
+          "id": 176,
+          "name": "Silver"
+        }
+      ]
+    },
+    {
+      "id": 324,
+      "name": "Hurtigruten - 1893 Ambassador Program",
+      "levels": []
+    },
+    {
+      "id": 364,
+      "name": "HX Expeditions",
+      "levels": [
+        {
+          "id": 891,
+          "name": "Bronze"
+        },
+        {
+          "id": 892,
+          "name": "Silver"
+        },
+        {
+          "id": 893,
+          "name": "Gold"
+        },
+        {
+          "id": 894,
+          "name": "Platinum"
+        }
+      ]
+    },
+    {
+      "id": 325,
+      "name": "HX Explorer",
+      "levels": []
+    },
+    {
+      "id": 113,
+      "name": "Hyatt (Vacation Club)",
+      "levels": [
+        {
+          "id": 414,
+          "name": "Diamond"
+        },
+        {
+          "id": 413,
+          "name": "Platinum"
+        },
+        {
+          "id": 412,
+          "name": "Gold"
+        },
+        {
+          "id": 411,
+          "name": "Silver"
+        },
+        {
+          "id": 410,
+          "name": "Bronze"
+        },
+        {
+          "id": 409,
+          "name": "Copper"
+        },
+        {
+          "id": 408,
+          "name": "Mountain"
+        }
+      ]
+    },
+    {
+      "id": 41,
+      "name": "I Prefer Hotel Rewards",
+      "levels": [
+        {
+          "id": 148,
+          "name": "Elite"
+        },
+        {
+          "id": 149,
+          "name": "Explorer"
+        },
+        {
+          "id": 150,
+          "name": "Insider"
+        }
+      ]
+    },
+    {
+      "id": 53,
+      "name": "Iberia Plus",
+      "levels": [
+        {
+          "id": 191,
+          "name": "Infinite Prime"
+        },
+        {
+          "id": 192,
+          "name": "Infinite"
+        },
+        {
+          "id": 193,
+          "name": "Platinum"
+        },
+        {
+          "id": 194,
+          "name": "Gold"
+        },
+        {
+          "id": 195,
+          "name": "Silver"
+        },
+        {
+          "id": 196,
+          "name": "Classic"
+        }
+      ]
+    },
+    {
+      "id": 64,
+      "name": "Icelandair (Saga Club)",
+      "levels": [
+        {
+          "id": 237,
+          "name": "Gold"
+        },
+        {
+          "id": 238,
+          "name": "Silver"
+        }
+      ]
+    },
+    {
+      "id": 26,
+      "name": "IHG Rewards Club",
+      "levels": [
+        {
+          "id": 95,
+          "name": "Diamon Elite"
+        },
+        {
+          "id": 96,
+          "name": "Platinum Elite"
+        },
+        {
+          "id": 97,
+          "name": "Gold Elite"
+        },
+        {
+          "id": 98,
+          "name": "Silver Elite"
+        },
+        {
+          "id": 99,
+          "name": "Club"
+        }
+      ]
+    },
+    {
+      "id": 187,
+      "name": "IndiGo",
+      "levels": [
+        {
+          "id": 613,
+          "name": "Member"
+        }
+      ]
+    },
+    {
+      "id": 372,
+      "name": "Insight Vacations",
+      "levels": []
+    },
+    {
+      "id": 38,
+      "name": "Invited",
+      "levels": [
+        {
+          "id": 140,
+          "name": "Indulged"
+        },
+        {
+          "id": 141,
+          "name": "Inspired"
+        },
+        {
+          "id": 142,
+          "name": "Intrigued"
+        }
+      ]
+    },
+    {
+      "id": 168,
+      "name": "Island Air (Cloud 9)",
+      "levels": []
+    },
+    {
+      "id": 178,
+      "name": "JAL Hotels (One Harmony)",
+      "levels": [
+        {
+          "id": 592,
+          "name": "Exclusive"
+        },
+        {
+          "id": 591,
+          "name": "Loyal"
+        },
+        {
+          "id": 590,
+          "name": "Member"
+        }
+      ]
+    },
+    {
+      "id": 58,
+      "name": "Japan Airlines (JMB)",
+      "levels": [
+        {
+          "id": 215,
+          "name": "Diamond"
+        },
+        {
+          "id": 216,
+          "name": "Premier"
+        },
+        {
+          "id": 217,
+          "name": "Sapphire"
+        },
+        {
+          "id": 218,
+          "name": "Crystal"
+        }
+      ]
+    },
+    {
+      "id": 218,
+      "name": "Jet2.com (My Jet2)",
+      "levels": [
+        {
+          "id": 688,
+          "name": "Member"
+        }
+      ]
+    },
+    {
+      "id": 142,
+      "name": "JetBlue Airways (CompanyBlue)",
+      "levels": [
+        {
+          "id": 508,
+          "name": "Mint"
+        },
+        {
+          "id": 507,
+          "name": "Blue Extra"
+        },
+        {
+          "id": 506,
+          "name": "Blue Plus"
+        },
+        {
+          "id": 505,
+          "name": "Blue"
+        },
+        {
+          "id": 504,
+          "name": "Blue Basic"
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "name": "JetBlue TrueBlue",
+      "levels": [
+        {
+          "id": 17,
+          "name": "Member"
+        },
+        {
+          "id": 18,
+          "name": "Mosaic"
+        }
+      ]
+    },
+    {
+      "id": 238,
+      "name": "Jin Jiang Group (J-Club)",
+      "levels": [
+        {
+          "id": 751,
+          "name": "V3 Gold"
+        },
+        {
+          "id": 750,
+          "name": "V2 Silver"
+        },
+        {
+          "id": 749,
+          "name": "V1 Classic"
+        },
+        {
+          "id": 752,
+          "name": "V4 Platinum"
+        }
+      ]
+    },
+    {
+      "id": 236,
+      "name": "Jinling Hotels (Elite)",
+      "levels": [
+        {
+          "id": 747,
+          "name": "Platinum"
+        },
+        {
+          "id": 746,
+          "name": "Gold"
+        },
+        {
+          "id": 745,
+          "name": "Elite"
+        }
+      ]
+    },
+    {
+      "id": 144,
+      "name": "Jumeirah (Sirius)",
+      "levels": [
+        {
+          "id": 513,
+          "name": "Platinum"
+        },
+        {
+          "id": 512,
+          "name": "Gold"
+        },
+        {
+          "id": 511,
+          "name": "Silver"
+        },
+        {
+          "id": 510,
+          "name": "Member"
+        }
+      ]
+    },
+    {
+      "id": 211,
+      "name": "Jurys Inn (Jurys Rewards)",
+      "levels": [
+        {
+          "id": 672,
+          "name": "Floor 3"
+        },
+        {
+          "id": 671,
+          "name": "Floor 2"
+        },
+        {
+          "id": 670,
+          "name": "Floor 1"
+        }
+      ]
+    },
+    {
+      "id": 378,
+      "name": "Keystone Tours",
+      "levels": []
+    },
+    {
+      "id": 54,
+      "name": "Kimpton (Karma Rewards)",
+      "levels": [
+        {
+          "id": 197,
+          "name": "Inner Circle"
+        },
+        {
+          "id": 198,
+          "name": "Diamond Elite"
+        },
+        {
+          "id": 199,
+          "name": "Platinum Elite"
+        },
+        {
+          "id": 200,
+          "name": "Gold Elite"
+        },
+        {
+          "id": 201,
+          "name": "Silver Elite"
+        },
+        {
+          "id": 202,
+          "name": "Club"
+        }
+      ]
+    },
+    {
+      "id": 196,
+      "name": "KLM BlueBiz (Corporate)",
+      "levels": [
+        {
+          "id": 637,
+          "name": "Member"
+        }
+      ]
+    },
+    {
+      "id": 48,
+      "name": "Korean Air (SkyPass)",
+      "levels": [
+        {
+          "id": 172,
+          "name": "Million Miler Club"
+        },
+        {
+          "id": 173,
+          "name": "Morning Calm Premium Club"
+        },
+        {
+          "id": 174,
+          "name": "Morning Calm Club"
+        }
+      ]
+    },
+    {
+      "id": 149,
+      "name": "Kuwait Airways (Oasis Club)",
+      "levels": [
+        {
+          "id": 526,
+          "name": "Platinum"
+        },
+        {
+          "id": 525,
+          "name": "Gold"
+        },
+        {
+          "id": 524,
+          "name": "Silver"
+        },
+        {
+          "id": 523,
+          "name": "Blue"
+        }
+      ]
+    },
+    {
+      "id": 226,
+      "name": "La Compagnie (My Compagnie)",
+      "levels": [
+        {
+          "id": 719,
+          "name": "FLEX"
+        },
+        {
+          "id": 718,
+          "name": "SMART"
+        },
+        {
+          "id": 717,
+          "name": "PROMO"
+        }
+      ]
+    },
+    {
+      "id": 52,
+      "name": "La Quinta",
+      "levels": [
+        {
+          "id": 187,
+          "name": "Diamond"
+        },
+        {
+          "id": 188,
+          "name": "Platinum"
+        },
+        {
+          "id": 189,
+          "name": "Gold"
+        },
+        {
+          "id": 190,
+          "name": "Blue"
+        }
+      ]
+    },
+    {
+      "id": 104,
+      "name": "Langham Hotels (1865 Club)",
+      "levels": [
+        {
+          "id": 383,
+          "name": "Destiny"
+        },
+        {
+          "id": 382,
+          "name": "Voyager"
+        },
+        {
+          "id": 381,
+          "name": "Gateway"
+        },
+        {
+          "id": 380,
+          "name": "Explorer"
+        }
+      ]
+    },
+    {
+      "id": 60,
+      "name": "LATAM (LATAM Pass)",
+      "levels": [
+        {
+          "id": 222,
+          "name": "Black Signature"
+        },
+        {
+          "id": 223,
+          "name": "Black"
+        },
+        {
+          "id": 224,
+          "name": "Platinum"
+        },
+        {
+          "id": 225,
+          "name": "Gold Plus"
+        },
+        {
+          "id": 226,
+          "name": "Gold"
+        }
+      ]
+    },
+    {
+      "id": 30,
+      "name": "Leaders Club",
+      "levels": [
+        {
+          "id": 112,
+          "name": "Sterling"
+        },
+        {
+          "id": 113,
+          "name": "Clud"
+        }
+      ]
+    },
+    {
+      "id": 117,
+      "name": "Leading Hotels of the World (Leaders Club)",
+      "levels": [
+        {
+          "id": 426,
+          "name": "Sterling"
+        },
+        {
+          "id": 425,
+          "name": "Club"
+        }
+      ]
+    },
+    {
+      "id": 252,
+      "name": "Leonardo Hotels (AdvantageCLUB)",
+      "levels": [
+        {
+          "id": 773,
+          "name": "Member"
+        }
+      ]
+    },
+    {
+      "id": 271,
+      "name": "Lindblad Expeditions",
+      "levels": []
+    },
+    {
+      "id": 210,
+      "name": "Localiza Rent a Car",
+      "levels": [
+        {
+          "id": 669,
+          "name": "Platinum Card"
+        },
+        {
+          "id": 668,
+          "name": "Gold Card"
+        },
+        {
+          "id": 667,
+          "name": "Green Card"
+        }
+      ]
+    },
+    {
+      "id": 11,
+      "name": "Lufthansa Miles & More",
+      "levels": [
+        {
+          "id": 38,
+          "name": "Hon Circle Members"
+        },
+        {
+          "id": 39,
+          "name": "Senator"
+        },
+        {
+          "id": 40,
+          "name": "Frequent Traveller"
+        }
+      ]
+    },
+    {
+      "id": 375,
+      "name": "Luxury Gold",
+      "levels": []
+    },
+    {
+      "id": 205,
+      "name": "Macdonald Hotels (The Club)",
+      "levels": []
+    },
+    {
+      "id": 84,
+      "name": "Malaysia Airlines (Enrich)",
+      "levels": [
+        {
+          "id": 314,
+          "name": "Platinum"
+        },
+        {
+          "id": 315,
+          "name": "Gold"
+        },
+        {
+          "id": 316,
+          "name": "Silver"
+        },
+        {
+          "id": 317,
+          "name": "Blue"
+        }
+      ]
+    },
+    {
+      "id": 261,
+      "name": "Mandarin Oriental Fan",
+      "levels": [
+        {
+          "id": 800,
+          "name": "Member"
+        }
+      ]
+    },
+    {
+      "id": 25,
+      "name": "Marriott Bonvoy Rewards",
+      "levels": [
+        {
+          "id": 90,
+          "name": "Ambassador Elite"
+        },
+        {
+          "id": 91,
+          "name": "Titanium Elite"
+        },
+        {
+          "id": 92,
+          "name": "Platinum Elite"
+        },
+        {
+          "id": 93,
+          "name": "Gold Elite"
+        },
+        {
+          "id": 94,
+          "name": "Silver Elite"
+        }
+      ]
+    },
+    {
+      "id": 172,
+      "name": "Marriott Gift Cards",
+      "levels": [
+        {
+          "id": 582,
+          "name": "Gift Card"
+        }
+      ]
+    },
+    {
+      "id": 81,
+      "name": "Melia (Melia Rewards)",
+      "levels": [
+        {
+          "id": 304,
+          "name": "Platinum"
+        },
+        {
+          "id": 305,
+          "name": "Gold"
+        },
+        {
+          "id": 306,
+          "name": "Silver"
+        },
+        {
+          "id": 307,
+          "name": "White"
+        }
+      ]
+    },
+    {
+      "id": 182,
+      "name": "Meridiana Fly (Hi-Fly)",
+      "levels": []
+    },
+    {
+      "id": 57,
+      "name": "MGM Resorts (M life Players Club)",
+      "levels": [
+        {
+          "id": 210,
+          "name": "NOIR"
+        },
+        {
+          "id": 211,
+          "name": "Platinum"
+        },
+        {
+          "id": 212,
+          "name": "Gold"
+        },
+        {
+          "id": 213,
+          "name": "Pearl"
+        },
+        {
+          "id": 214,
+          "name": "Sapphire"
+        }
+      ]
+    },
+    {
+      "id": 164,
+      "name": "Middle East Airlines (Cedar Miles)",
+      "levels": [
+        {
+          "id": 568,
+          "name": "Platinum"
+        },
+        {
+          "id": 567,
+          "name": "Gold"
+        },
+        {
+          "id": 566,
+          "name": "Silver"
+        },
+        {
+          "id": 565,
+          "name": "Blue"
+        }
+      ]
+    },
+    {
+      "id": 124,
+      "name": "Millennium & Copthorne (My Millennium)",
+      "levels": [
+        {
+          "id": 443,
+          "name": "Prestige"
+        },
+        {
+          "id": 442,
+          "name": "member"
+        }
+      ]
+    },
+    {
+      "id": 237,
+      "name": "Moby Lines (Moby Club)",
+      "levels": [
+        {
+          "id": 748,
+          "name": "Member"
+        }
+      ]
+    },
+    {
+      "id": 224,
+      "name": "Monarch (Vantage Club)",
+      "levels": [
+        {
+          "id": 714,
+          "name": "ROYAL DIAMOND"
+        },
+        {
+          "id": 713,
+          "name": "SAPPHIRE"
+        },
+        {
+          "id": 712,
+          "name": "EMERALD"
+        },
+        {
+          "id": 711,
+          "name": "RUBY"
+        },
+        {
+          "id": 710,
+          "name": "MONARCH"
+        }
+      ]
+    },
+    {
+      "id": 234,
+      "name": "Montenegro Airlines (Vision Team)",
+      "levels": []
+    },
+    {
+      "id": 279,
+      "name": "MSC Voyagers Club",
+      "levels": [
+        {
+          "id": 842,
+          "name": "Classic"
+        },
+        {
+          "id": 843,
+          "name": "Silver"
+        },
+        {
+          "id": 844,
+          "name": "Gold"
+        },
+        {
+          "id": 845,
+          "name": "Diamond"
+        }
+      ]
+    },
+    {
+      "id": 112,
+      "name": "My Europcar (Privilege)",
+      "levels": [
+        {
+          "id": 407,
+          "name": "Elite VIP"
+        },
+        {
+          "id": 406,
+          "name": "Elite"
+        },
+        {
+          "id": 405,
+          "name": "Executive"
+        },
+        {
+          "id": 404,
+          "name": "Club"
+        }
+      ]
+    },
+    {
+      "id": 46,
+      "name": "National (Emerald Club)",
+      "levels": [
+        {
+          "id": 165,
+          "name": "Executive Elite"
+        },
+        {
+          "id": 166,
+          "name": "Executive"
+        },
+        {
+          "id": 167,
+          "name": "Emerald Club"
+        }
+      ]
+    },
+    {
+      "id": 368,
+      "name": "National Geographic",
+      "levels": []
+    },
+    {
+      "id": 199,
+      "name": "New Otani (Club International)",
+      "levels": [
+        {
+          "id": 643,
+          "name": "Member"
+        }
+      ]
+    },
+    {
+      "id": 122,
+      "name": "NH Hotels (NH World)",
+      "levels": [
+        {
+          "id": 439,
+          "name": "Titanium"
+        },
+        {
+          "id": 438,
+          "name": "Platinum"
+        },
+        {
+          "id": 437,
+          "name": "Gold"
+        },
+        {
+          "id": 436,
+          "name": "Silver"
+        }
+      ]
+    },
+    {
+      "id": 249,
+      "name": "Nordavia (Golden Mile)",
+      "levels": []
+    },
+    {
+      "id": 71,
+      "name": "Norwegian Cruise Line (Latitudes)",
+      "levels": [
+        {
+          "id": 262,
+          "name": "Ambassador"
+        },
+        {
+          "id": 263,
+          "name": "Diamond"
+        },
+        {
+          "id": 264,
+          "name": "Sapphire"
+        },
+        {
+          "id": 265,
+          "name": "Platinum"
+        },
+        {
+          "id": 266,
+          "name": "Gold"
+        },
+        {
+          "id": 267,
+          "name": "Silver"
+        },
+        {
+          "id": 268,
+          "name": "Bronze"
+        }
+      ]
+    },
+    {
+      "id": 320,
+      "name": "Oberoi One",
+      "levels": [
+        {
+          "id": 858,
+          "name": "Oberoi One"
+        }
+      ]
+    },
+    {
+      "id": 268,
+      "name": "Oceania Cruise Lines",
+      "levels": [
+        {
+          "id": 812,
+          "name": "President"
+        },
+        {
+          "id": 811,
+          "name": "Diamond"
+        },
+        {
+          "id": 810,
+          "name": "Platinum"
+        },
+        {
+          "id": 809,
+          "name": "Gold"
+        },
+        {
+          "id": 808,
+          "name": "silver"
+        },
+        {
+          "id": 807,
+          "name": "Bronze"
+        },
+        {
+          "id": 806,
+          "name": "Blue"
+        }
+      ]
+    },
+    {
+      "id": 167,
+      "name": "Oman Air (Sindbad)",
+      "levels": [
+        {
+          "id": 576,
+          "name": "Gold"
+        },
+        {
+          "id": 575,
+          "name": "Silver"
+        },
+        {
+          "id": 574,
+          "name": "Blue"
+        }
+      ]
+    },
+    {
+      "id": 40,
+      "name": "Omni Select Guest",
+      "levels": [
+        {
+          "id": 147,
+          "name": "Black"
+        },
+        {
+          "id": 146,
+          "name": "Platinum"
+        },
+        {
+          "id": 145,
+          "name": "Gold"
+        }
+      ]
+    },
+    {
+      "id": 221,
+      "name": "Opinion Miles Club",
+      "levels": [
+        {
+          "id": 702,
+          "name": "Diamond"
+        },
+        {
+          "id": 701,
+          "name": "Platinum"
+        },
+        {
+          "id": 700,
+          "name": "Gold"
+        },
+        {
+          "id": 699,
+          "name": "Silver"
+        },
+        {
+          "id": 698,
+          "name": "Bronze"
+        }
+      ]
+    },
+    {
+      "id": 181,
+      "name": "Otel.com (FivePlus)",
+      "levels": [
+        {
+          "id": 599,
+          "name": "-"
+        }
+      ]
+    },
+    {
+      "id": 321,
+      "name": "P&O UK Peninsular Club",
+      "levels": [
+        {
+          "id": 860,
+          "name": "Pacific Tier"
+        },
+        {
+          "id": 861,
+          "name": "Atlantic Tier"
+        },
+        {
+          "id": 862,
+          "name": "Mediterranean Tier"
+        },
+        {
+          "id": 863,
+          "name": "Caribbean Tier"
+        },
+        {
+          "id": 864,
+          "name": "Baltic Tier"
+        },
+        {
+          "id": 865,
+          "name": "Ligurian Tier"
+        }
+      ]
+    },
+    {
+      "id": 232,
+      "name": "Paradores (Amigos de Paradores)",
+      "levels": [
+        {
+          "id": 736,
+          "name": "Circle"
+        },
+        {
+          "id": 735,
+          "name": "Gold Card"
+        },
+        {
+          "id": 734,
+          "name": "Friend"
+        }
+      ]
+    },
+    {
+      "id": 209,
+      "name": "Park-N-Go (Frequent Parker Rewards)",
+      "levels": [
+        {
+          "id": 666,
+          "name": "Member"
+        }
+      ]
+    },
+    {
+      "id": 109,
+      "name": "Payless Car Rental (Perks Club)",
+      "levels": [
+        {
+          "id": 398,
+          "name": "member"
+        }
+      ]
+    },
+    {
+      "id": 174,
+      "name": "Pegasus Airlines (Pegasus Plus)",
+      "levels": [
+        {
+          "id": 587,
+          "name": "-"
+        }
+      ]
+    },
+    {
+      "id": 265,
+      "name": "Peninsula PenBellini",
+      "levels": [
+        {
+          "id": 803,
+          "name": "Member"
+        }
+      ]
+    },
+    {
+      "id": 204,
+      "name": "Pestana Priority Guest",
+      "levels": [
+        {
+          "id": 659,
+          "name": "Honor"
+        },
+        {
+          "id": 658,
+          "name": "Elite Plus"
+        },
+        {
+          "id": 657,
+          "name": "Elite"
+        },
+        {
+          "id": 656,
+          "name": "Guest"
+        }
+      ]
+    },
+    {
+      "id": 95,
+      "name": "Philippine Airlines (Mabuhay Miles)",
+      "levels": [
+        {
+          "id": 350,
+          "name": "Million Miler"
+        },
+        {
+          "id": 349,
+          "name": "Premier Elite"
+        },
+        {
+          "id": 348,
+          "name": "Elite"
+        }
+      ]
+    },
+    {
+      "id": 184,
+      "name": "PIA (Awards Plus)",
+      "levels": [
+        {
+          "id": 605,
+          "name": "Diamond"
+        },
+        {
+          "id": 604,
+          "name": "Sapphire"
+        },
+        {
+          "id": 603,
+          "name": "Emerald"
+        }
+      ]
+    },
+    {
+      "id": 365,
+      "name": "Ponant",
+      "levels": [
+        {
+          "id": 886,
+          "name": "Major"
+        },
+        {
+          "id": 887,
+          "name": "Admiral"
+        },
+        {
+          "id": 888,
+          "name": "Grand Admiral"
+        },
+        {
+          "id": 889,
+          "name": "Level #4"
+        },
+        {
+          "id": 890,
+          "name": "Commodore"
+        }
+      ]
+    },
+    {
+      "id": 87,
+      "name": "Porter (VIPorter)",
+      "levels": [
+        {
+          "id": 325,
+          "name": "First"
+        },
+        {
+          "id": 326,
+          "name": "Ascent"
+        },
+        {
+          "id": 327,
+          "name": "Venture"
+        },
+        {
+          "id": 328,
+          "name": "Passport"
+        },
+        {
+          "id": 329,
+          "name": "Member"
+        }
+      ]
+    },
+    {
+      "id": 90,
+      "name": "Preferred Hotels",
+      "levels": [
+        {
+          "id": 337,
+          "name": "Elite"
+        },
+        {
+          "id": 338,
+          "name": "Explorer"
+        },
+        {
+          "id": 339,
+          "name": "Insider"
+        }
+      ]
+    },
+    {
+      "id": 217,
+      "name": "Premier Hotels (Premier Club)",
+      "levels": []
+    },
+    {
+      "id": 183,
+      "name": "Prince Resorts Hawaii (Prince Preferred)",
+      "levels": [
+        {
+          "id": 602,
+          "name": "Ilima"
+        },
+        {
+          "id": 601,
+          "name": "Pikake"
+        },
+        {
+          "id": 600,
+          "name": "Prince Preferred"
+        }
+      ]
+    },
+    {
+      "id": 78,
+      "name": "Princess Cruise Lines (Captain Circle)",
+      "levels": [
+        {
+          "id": 295,
+          "name": "Elite"
+        },
+        {
+          "id": 296,
+          "name": "Platinum"
+        },
+        {
+          "id": 297,
+          "name": "Ruby"
+        },
+        {
+          "id": 298,
+          "name": "Gold"
+        }
+      ]
+    },
+    {
+      "id": 173,
+      "name": "Qantas (Aquire)",
+      "levels": [
+        {
+          "id": 586,
+          "name": "Lifetime"
+        },
+        {
+          "id": 585,
+          "name": "Platinum"
+        },
+        {
+          "id": 584,
+          "name": "Gold"
+        },
+        {
+          "id": 583,
+          "name": "Silver"
+        }
+      ]
+    },
+    {
+      "id": 51,
+      "name": "Qantas (Frequent Flyer)",
+      "levels": [
+        {
+          "id": 182,
+          "name": "Platinum One"
+        },
+        {
+          "id": 183,
+          "name": "Platinum"
+        },
+        {
+          "id": 184,
+          "name": "Gold"
+        },
+        {
+          "id": 185,
+          "name": "Silver"
+        },
+        {
+          "id": 186,
+          "name": "Bronze"
+        }
+      ]
+    },
+    {
+      "id": 16,
+      "name": "Qatar Airways Qmiles",
+      "levels": [
+        {
+          "id": 56,
+          "name": "Platinum"
+        },
+        {
+          "id": 57,
+          "name": "Gold"
+        },
+        {
+          "id": 58,
+          "name": "Silver"
+        },
+        {
+          "id": 59,
+          "name": "Burgundy"
+        }
+      ]
+    },
+    {
+      "id": 240,
+      "name": "Qubus Hotel (Q-Club)",
+      "levels": []
+    },
+    {
+      "id": 36,
+      "name": "Radisson Rewards",
+      "levels": [
+        {
+          "id": 134,
+          "name": "VIP"
+        },
+        {
+          "id": 135,
+          "name": "Premium"
+        },
+        {
+          "id": 136,
+          "name": "Club"
+        }
+      ]
+    },
+    {
+      "id": 119,
+      "name": "Red Lion (Hello Rewards)",
+      "levels": [
+        {
+          "id": 430,
+          "name": "Basic"
+        }
+      ]
+    },
+    {
+      "id": 91,
+      "name": "Red Roof Inn (RediCard)",
+      "levels": [
+        {
+          "id": 340,
+          "name": "Member"
+        }
+      ]
+    },
+    {
+      "id": 186,
+      "name": "Regal Hotels (Regal Rewards)",
+      "levels": [
+        {
+          "id": 612,
+          "name": "Platinum"
+        },
+        {
+          "id": 611,
+          "name": "Gold"
+        },
+        {
+          "id": 610,
+          "name": "Classic"
+        }
+      ]
+    },
+    {
+      "id": 269,
+      "name": "Regent Cruise Line",
+      "levels": [
+        {
+          "id": 819,
+          "name": "Commodore"
+        },
+        {
+          "id": 818,
+          "name": "Diamond"
+        },
+        {
+          "id": 817,
+          "name": "Titanium"
+        },
+        {
+          "id": 816,
+          "name": "Platinum"
+        },
+        {
+          "id": 815,
+          "name": "Gold"
+        },
+        {
+          "id": 814,
+          "name": "silver"
+        },
+        {
+          "id": 813,
+          "name": "Bronze"
+        }
+      ]
+    },
+    {
+      "id": 262,
+      "name": "Relais and Chateaux 5C",
+      "levels": []
+    },
+    {
+      "id": 374,
+      "name": "Repeat Guest",
+      "levels": []
+    },
+    {
+      "id": 154,
+      "name": "RIU Hotels & Resorts (RIU Class)",
+      "levels": [
+        {
+          "id": 541,
+          "name": "Diamond"
+        },
+        {
+          "id": 540,
+          "name": "Gold"
+        },
+        {
+          "id": 539,
+          "name": "Classic"
+        }
+      ]
+    },
+    {
+      "id": 369,
+      "name": "Riverside",
+      "levels": []
+    },
+    {
+      "id": 126,
+      "name": "Royal Air Maroc (Safar Flyer)",
+      "levels": [
+        {
+          "id": 451,
+          "name": "Platinum"
+        },
+        {
+          "id": 450,
+          "name": "Gold"
+        },
+        {
+          "id": 449,
+          "name": "Silver"
+        },
+        {
+          "id": 448,
+          "name": "Blue"
+        }
+      ]
+    },
+    {
+      "id": 251,
+      "name": "Royal Brunei Airlines (Royal Skies)",
+      "levels": [
+        {
+          "id": 772,
+          "name": "Gold"
+        },
+        {
+          "id": 771,
+          "name": "Silver"
+        },
+        {
+          "id": 770,
+          "name": "Blue"
+        }
+      ]
+    },
+    {
+      "id": 62,
+      "name": "Royal Caribbean (Crown & Anchor Society)",
+      "levels": [
+        {
+          "id": 227,
+          "name": "Pinnacle Club"
+        },
+        {
+          "id": 228,
+          "name": "Diamond Plus"
+        },
+        {
+          "id": 229,
+          "name": "Diamond"
+        },
+        {
+          "id": 230,
+          "name": "Emerald Club"
+        },
+        {
+          "id": 231,
+          "name": "Platinum"
+        },
+        {
+          "id": 232,
+          "name": "Gold"
+        }
+      ]
+    },
+    {
+      "id": 132,
+      "name": "Royal Jordanian Airlines (Royal Plus)",
+      "levels": [
+        {
+          "id": 468,
+          "name": "Platinum HAWK"
+        },
+        {
+          "id": 467,
+          "name": "Gold SPARROW"
+        },
+        {
+          "id": 466,
+          "name": "Silver JAY"
+        },
+        {
+          "id": 465,
+          "name": "Bronze SUNBIRD"
+        }
+      ]
+    },
+    {
+      "id": 201,
+      "name": "RyanairShaftsbury (Premier Club)",
+      "levels": [
+        {
+          "id": 650,
+          "name": "Platinum"
+        },
+        {
+          "id": 649,
+          "name": "Gold"
+        },
+        {
+          "id": 648,
+          "name": "Silver"
+        }
+      ]
+    },
+    {
+      "id": 166,
+      "name": "Rydges (PriorityGUEST)",
+      "levels": [
+        {
+          "id": 573,
+          "name": "Black"
+        },
+        {
+          "id": 572,
+          "name": "Platinum"
+        },
+        {
+          "id": 571,
+          "name": "Gold"
+        }
+      ]
+    },
+    {
+      "id": 197,
+      "name": "RZD (Bonus)",
+      "levels": [
+        {
+          "id": 638,
+          "name": "Member"
+        }
+      ]
+    },
+    {
+      "id": 160,
+      "name": "S7 Priority",
+      "levels": [
+        {
+          "id": 553,
+          "name": "Tinkoff Premium"
+        },
+        {
+          "id": 552,
+          "name": "Tinkoff Card"
+        }
+      ]
+    },
+    {
+      "id": 260,
+      "name": "Sandals Select Guest (SSG)",
+      "levels": [
+        {
+          "id": 799,
+          "name": "Ambassador"
+        },
+        {
+          "id": 798,
+          "name": "Pearl"
+        },
+        {
+          "id": 797,
+          "name": "Diamond"
+        },
+        {
+          "id": 796,
+          "name": "EMERALD"
+        },
+        {
+          "id": 795,
+          "name": "SAPPHIRE"
+        },
+        {
+          "id": 794,
+          "name": "Coral"
+        },
+        {
+          "id": 793,
+          "name": "Select"
+        },
+        {
+          "id": 792,
+          "name": "Member"
+        }
+      ]
+    },
+    {
+      "id": 258,
+      "name": "Santos Hotels (Club Santos)",
+      "levels": [
+        {
+          "id": 788,
+          "name": "Member"
+        }
+      ]
+    },
+    {
+      "id": 138,
+      "name": "Saudi Arabian Airlines (Alfursan)",
+      "levels": [
+        {
+          "id": 488,
+          "name": "Gold “Elite Plus”"
+        },
+        {
+          "id": 487,
+          "name": "Silver “Elite”"
+        },
+        {
+          "id": 486,
+          "name": "Blue"
+        }
+      ]
+    },
+    {
+      "id": 141,
+      "name": "Scandic Hotels (Scandic Friends)",
+      "levels": [
+        {
+          "id": 503,
+          "name": "RED LEVEL"
+        },
+        {
+          "id": 502,
+          "name": "TOP LEVEL"
+        },
+        {
+          "id": 501,
+          "name": "LEVEL 3"
+        },
+        {
+          "id": 500,
+          "name": "LEVEL 2"
+        },
+        {
+          "id": 499,
+          "name": "LEVEL 1"
+        }
+      ]
+    },
+    {
+      "id": 70,
+      "name": "Scandinavian Airlines System (EuroBonus)",
+      "levels": [
+        {
+          "id": 258,
+          "name": "Diamond"
+        },
+        {
+          "id": 259,
+          "name": "Gold"
+        },
+        {
+          "id": 260,
+          "name": "Silver"
+        },
+        {
+          "id": 261,
+          "name": "Member"
+        }
+      ]
+    },
+    {
+      "id": 366,
+      "name": "Scenic",
+      "levels": [
+        {
+          "id": 895,
+          "name": "Gold"
+        },
+        {
+          "id": 896,
+          "name": "Diamond"
+        },
+        {
+          "id": 897,
+          "name": "Emerald"
+        },
+        {
+          "id": 898,
+          "name": "Chairman's Club"
+        }
+      ]
+    },
+    {
+      "id": 270,
+      "name": "Seabourn Cruise Line",
+      "levels": [
+        {
+          "id": 825,
+          "name": "Diamond Elite"
+        },
+        {
+          "id": 824,
+          "name": "Diamond"
+        },
+        {
+          "id": 823,
+          "name": "Platinum"
+        },
+        {
+          "id": 822,
+          "name": "Gold"
+        },
+        {
+          "id": 821,
+          "name": "Silver"
+        },
+        {
+          "id": 820,
+          "name": "Member"
+        }
+      ]
+    },
+    {
+      "id": 272,
+      "name": "SeaDream Yacht Club",
+      "levels": [
+        {
+          "id": 826,
+          "name": "Member"
+        }
+      ]
+    },
+    {
+      "id": 176,
+      "name": "Silver Cloud (Rewards)",
+      "levels": [
+        {
+          "id": 589,
+          "name": "Member"
+        }
+      ]
+    },
+    {
+      "id": 267,
+      "name": "Silversea Venetian",
+      "levels": [
+        {
+          "id": 805,
+          "name": "Member"
+        }
+      ]
+    },
+    {
+      "id": 14,
+      "name": "Singapore Airlines KrisFlyer",
+      "levels": [
+        {
+          "id": 49,
+          "name": "KrisFlyer Elite Gold"
+        },
+        {
+          "id": 50,
+          "name": "KrisFlyer Elite Silver"
+        },
+        {
+          "id": 51,
+          "name": "KrisFlyer"
+        }
+      ]
+    },
+    {
+      "id": 195,
+      "name": "Sino Hotel Group (IPrestige)",
+      "levels": [
+        {
+          "id": 636,
+          "name": "Emerald"
+        },
+        {
+          "id": 635,
+          "name": "Amber"
+        },
+        {
+          "id": 634,
+          "name": "Crystal"
+        }
+      ]
+    },
+    {
+      "id": 32,
+      "name": "Sirius",
+      "levels": [
+        {
+          "id": 118,
+          "name": "Gold"
+        },
+        {
+          "id": 119,
+          "name": "Silver"
+        },
+        {
+          "id": 120,
+          "name": "Blue"
+        }
+      ]
+    },
+    {
+      "id": 68,
+      "name": "Sixt Rent-a-Car",
+      "levels": [
+        {
+          "id": 252,
+          "name": "Diamond"
+        },
+        {
+          "id": 253,
+          "name": "Platinum"
+        },
+        {
+          "id": 254,
+          "name": "Gold"
+        }
+      ]
+    },
+    {
+      "id": 101,
+      "name": "Small Luxury Hotels (The Club)",
+      "levels": [
+        {
+          "id": 373,
+          "name": "Indulged status"
+        },
+        {
+          "id": 372,
+          "name": "Inspired status"
+        },
+        {
+          "id": 371,
+          "name": "Intrigued status"
+        }
+      ]
+    },
+    {
+      "id": 171,
+      "name": "SNCF (Voyageur)",
+      "levels": [
+        {
+          "id": 581,
+          "name": "Premium Grand Voyageur"
+        },
+        {
+          "id": 580,
+          "name": "Grand Voyageur"
+        }
+      ]
+    },
+    {
+      "id": 37,
+      "name": "Sonesta Travel Pass",
+      "levels": [
+        {
+          "id": 137,
+          "name": "Elite"
+        },
+        {
+          "id": 138,
+          "name": "Preferred"
+        },
+        {
+          "id": 139,
+          "name": "Member"
+        }
+      ]
+    },
+    {
+      "id": 98,
+      "name": "South African Airways (Voyager)",
+      "levels": [
+        {
+          "id": 361,
+          "name": "Lifetime Platinum"
+        },
+        {
+          "id": 360,
+          "name": "Platinum"
+        },
+        {
+          "id": 359,
+          "name": "Gold"
+        },
+        {
+          "id": 358,
+          "name": "Silver"
+        },
+        {
+          "id": 357,
+          "name": "Blue"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "name": "Southwest Rapid Rewards",
+      "levels": [
+        {
+          "id": 14,
+          "name": "A-List"
+        },
+        {
+          "id": 15,
+          "name": "A-List Preferred"
+        },
+        {
+          "id": 16,
+          "name": "Companion Pass"
+        }
+      ]
+    },
+    {
+      "id": 17,
+      "name": "Spirit Airlines Free Spirit",
+      "levels": [
+        {
+          "id": 60,
+          "name": "Gold"
+        },
+        {
+          "id": 61,
+          "name": "Silver"
+        }
+      ]
+    },
+    {
+      "id": 156,
+      "name": "SriLankan (FlySmiLes)",
+      "levels": [
+        {
+          "id": 546,
+          "name": "Platinum"
+        },
+        {
+          "id": 545,
+          "name": "Gold"
+        },
+        {
+          "id": 544,
+          "name": "Classic"
+        },
+        {
+          "id": 543,
+          "name": "Silver"
+        }
+      ]
+    },
+    {
+      "id": 130,
+      "name": "Star Alliance Company (PlusAwards)",
+      "levels": [
+        {
+          "id": 459,
+          "name": "Silver"
+        },
+        {
+          "id": 458,
+          "name": "Gold"
+        }
+      ]
+    },
+    {
+      "id": 111,
+      "name": "Starwood Hotels (Preferred Business)",
+      "levels": [
+        {
+          "id": 403,
+          "name": "member"
+        }
+      ]
+    },
+    {
+      "id": 39,
+      "name": "Stash Hotel Rewards",
+      "levels": [
+        {
+          "id": 144,
+          "name": "Stash Plus"
+        },
+        {
+          "id": 143,
+          "name": "Member"
+        }
+      ]
+    },
+    {
+      "id": 225,
+      "name": "Stena Line (Extra)",
+      "levels": [
+        {
+          "id": 716,
+          "name": "Gold"
+        },
+        {
+          "id": 715,
+          "name": "Blue"
+        }
+      ]
+    },
+    {
+      "id": 276,
+      "name": "Sun Country Rewards",
+      "levels": [
+        {
+          "id": 838,
+          "name": "Member"
+        }
+      ]
+    },
+    {
+      "id": 123,
+      "name": "Swissotel CircleCopthorne (My Millennium)",
+      "levels": [
+        {
+          "id": 441,
+          "name": "Prestige"
+        },
+        {
+          "id": 440,
+          "name": "member"
+        }
+      ]
+    },
+    {
+      "id": 246,
+      "name": "TAAG Angola Airlines (Umbi Umbi Club)",
+      "levels": [
+        {
+          "id": 766,
+          "name": "Gold"
+        },
+        {
+          "id": 765,
+          "name": "Silver"
+        },
+        {
+          "id": 764,
+          "name": "Classic"
+        }
+      ]
+    },
+    {
+      "id": 157,
+      "name": "TabletHotels (Reward Dollars)",
+      "levels": [
+        {
+          "id": 547,
+          "name": "Member"
+        }
+      ]
+    },
+    {
+      "id": 115,
+      "name": "Taj (InnerCircle)",
+      "levels": [
+        {
+          "id": 421,
+          "name": "Platinum"
+        },
+        {
+          "id": 420,
+          "name": "Gold"
+        },
+        {
+          "id": 419,
+          "name": "Silver"
+        },
+        {
+          "id": 418,
+          "name": "Copper"
+        }
+      ]
+    },
+    {
+      "id": 102,
+      "name": "TAP Portugal (Victoria Miles)",
+      "levels": [
+        {
+          "id": 375,
+          "name": "Gold"
+        },
+        {
+          "id": 374,
+          "name": "Silver"
+        }
+      ]
+    },
+    {
+      "id": 88,
+      "name": "Thai Airways (Royal Orchid Plus)",
+      "levels": [
+        {
+          "id": 330,
+          "name": "Platinum"
+        },
+        {
+          "id": 331,
+          "name": "Gold"
+        },
+        {
+          "id": 332,
+          "name": "Silver"
+        },
+        {
+          "id": 333,
+          "name": "Basic"
+        }
+      ]
+    },
+    {
+      "id": 159,
+      "name": "Thalys (The Card)",
+      "levels": [
+        {
+          "id": 551,
+          "name": "Club Plus"
+        },
+        {
+          "id": 550,
+          "name": "Club"
+        },
+        {
+          "id": 549,
+          "name": "Explorer"
+        }
+      ]
+    },
+    {
+      "id": 202,
+      "name": "The Montcalm & Shaftsbury (Premier Club)",
+      "levels": [
+        {
+          "id": 654,
+          "name": "Platinum"
+        },
+        {
+          "id": 653,
+          "name": "Gold"
+        },
+        {
+          "id": 652,
+          "name": "Silver"
+        },
+        {
+          "id": 651,
+          "name": "Classic"
+        }
+      ]
+    },
+    {
+      "id": 189,
+      "name": "Thon Hotels (Thon Member)",
+      "levels": [
+        {
+          "id": 620,
+          "name": "Black"
+        },
+        {
+          "id": 619,
+          "name": "Platinum"
+        },
+        {
+          "id": 618,
+          "name": "Gold"
+        }
+      ]
+    },
+    {
+      "id": 61,
+      "name": "Thrifty (Blue Chip Rewards)",
+      "levels": []
+    },
+    {
+      "id": 190,
+      "name": "Trenitalia (FrecciaClub)",
+      "levels": [
+        {
+          "id": 621,
+          "name": "Member"
+        }
+      ]
+    },
+    {
+      "id": 163,
+      "name": "Trident Hotels (Trident Privilege)",
+      "levels": [
+        {
+          "id": 564,
+          "name": "Platinum"
+        },
+        {
+          "id": 563,
+          "name": "Gold"
+        },
+        {
+          "id": 562,
+          "name": "Silver"
+        },
+        {
+          "id": 561,
+          "name": "RED LEVEL"
+        }
+      ]
+    },
+    {
+      "id": 148,
+      "name": "TripAdvisor",
+      "levels": [
+        {
+          "id": 522,
+          "name": "Member"
+        }
+      ]
+    },
+    {
+      "id": 136,
+      "name": "Trump Card (Privileges Program)",
+      "levels": [
+        {
+          "id": 480,
+          "name": "Platinum"
+        },
+        {
+          "id": 479,
+          "name": "Gold"
+        },
+        {
+          "id": 478,
+          "name": "Privilege"
+        }
+      ]
+    },
+    {
+      "id": 194,
+      "name": "Tsogo Sun (Frequent Guest)",
+      "levels": [
+        {
+          "id": 633,
+          "name": "Black"
+        },
+        {
+          "id": 632,
+          "name": "Platinum"
+        },
+        {
+          "id": 631,
+          "name": "Gold"
+        }
+      ]
+    },
+    {
+      "id": 215,
+      "name": "TUIfly.com",
+      "levels": []
+    },
+    {
+      "id": 231,
+      "name": "Tunisair (Fidelys)",
+      "levels": [
+        {
+          "id": 733,
+          "name": "Gold"
+        },
+        {
+          "id": 732,
+          "name": "Silver"
+        },
+        {
+          "id": 731,
+          "name": "Classic"
+        }
+      ]
+    },
+    {
+      "id": 63,
+      "name": "Turkish Airlines (Miles&Smiles)",
+      "levels": [
+        {
+          "id": 233,
+          "name": "Elite Plus"
+        },
+        {
+          "id": 234,
+          "name": "Elite"
+        },
+        {
+          "id": 235,
+          "name": "Classic Plus"
+        },
+        {
+          "id": 236,
+          "name": "Classic"
+        }
+      ]
+    },
+    {
+      "id": 169,
+      "name": "Ukraine International Airlines (Panorama Club)",
+      "levels": [
+        {
+          "id": 579,
+          "name": "Elite"
+        },
+        {
+          "id": 578,
+          "name": "Premier"
+        },
+        {
+          "id": 577,
+          "name": "Classic"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "name": "United MileagePlus",
+      "levels": [
+        {
+          "id": 9,
+          "name": "Premier Silver"
+        },
+        {
+          "id": 10,
+          "name": "Premier Gold"
+        },
+        {
+          "id": 11,
+          "name": "Premier Platinum"
+        },
+        {
+          "id": 12,
+          "name": "Premier 1K"
+        },
+        {
+          "id": 13,
+          "name": "Global Services"
+        }
+      ]
+    },
+    {
+      "id": 121,
+      "name": "United PerksPlus (Corporate Program)",
+      "levels": [
+        {
+          "id": 435,
+          "name": "Gold"
+        },
+        {
+          "id": 434,
+          "name": "Silver"
+        }
+      ]
+    },
+    {
+      "id": 222,
+      "name": "Ural Airlines (Wings)",
+      "levels": [
+        {
+          "id": 705,
+          "name": "Gold"
+        },
+        {
+          "id": 704,
+          "name": "Silver"
+        },
+        {
+          "id": 703,
+          "name": "Blue"
+        }
+      ]
+    },
+    {
+      "id": 193,
+      "name": "UTair (Status)",
+      "levels": [
+        {
+          "id": 630,
+          "name": "Gold"
+        },
+        {
+          "id": 629,
+          "name": "Silver"
+        },
+        {
+          "id": 628,
+          "name": "Bronze"
+        },
+        {
+          "id": 627,
+          "name": "Basic"
+        }
+      ]
+    },
+    {
+      "id": 245,
+      "name": "Uzbekistan Airways (UzAirPlus)",
+      "levels": [
+        {
+          "id": 763,
+          "name": "Gold"
+        },
+        {
+          "id": 762,
+          "name": "Silver"
+        },
+        {
+          "id": 761,
+          "name": "Premium"
+        }
+      ]
+    },
+    {
+      "id": 135,
+      "name": "VIA Rail Canada (VIA Preference)",
+      "levels": [
+        {
+          "id": 477,
+          "name": "Premier"
+        },
+        {
+          "id": 476,
+          "name": "Privilege"
+        },
+        {
+          "id": 475,
+          "name": "Preference"
+        }
+      ]
+    },
+    {
+      "id": 139,
+      "name": "Vietnam Airlines (Golden Lotus Plus)",
+      "levels": [
+        {
+          "id": 493,
+          "name": "SILVER"
+        },
+        {
+          "id": 492,
+          "name": "TITANIUM"
+        },
+        {
+          "id": 491,
+          "name": "GOLD"
+        },
+        {
+          "id": 490,
+          "name": "PLATINUM"
+        },
+        {
+          "id": 489,
+          "name": "MILLION MILER"
+        }
+      ]
+    },
+    {
+      "id": 318,
+      "name": "Viking Cruises",
+      "levels": []
+    },
+    {
+      "id": 18,
+      "name": "Virgin Atlantic Flying Club",
+      "levels": [
+        {
+          "id": 62,
+          "name": "Gold"
+        },
+        {
+          "id": 63,
+          "name": "Silver"
+        },
+        {
+          "id": 64,
+          "name": "Red"
+        }
+      ]
+    },
+    {
+      "id": 76,
+      "name": "Virgin Australia (Velocity Frequent Flyer)",
+      "levels": [
+        {
+          "id": 286,
+          "name": "Platinum"
+        },
+        {
+          "id": 287,
+          "name": "Gold"
+        },
+        {
+          "id": 288,
+          "name": "Silver"
+        },
+        {
+          "id": 289,
+          "name": "Member"
+        }
+      ]
+    },
+    {
+      "id": 278,
+      "name": "Virgin Voyages Sailing Club",
+      "levels": [
+        {
+          "id": 840,
+          "name": "Sea-Blazers"
+        },
+        {
+          "id": 841,
+          "name": "Sea-Rovers"
+        }
+      ]
+    },
+    {
+      "id": 233,
+      "name": "Vistara (Vistara Club)",
+      "levels": [
+        {
+          "id": 740,
+          "name": "Platinum"
+        },
+        {
+          "id": 739,
+          "name": "Gold"
+        },
+        {
+          "id": 738,
+          "name": "Silver"
+        },
+        {
+          "id": 737,
+          "name": "Base"
+        }
+      ]
+    },
+    {
+      "id": 89,
+      "name": "VOILÀ Hotel RewardsiPrefer)",
+      "levels": [
+        {
+          "id": 334,
+          "name": "Platinum"
+        },
+        {
+          "id": 335,
+          "name": "Gold"
+        },
+        {
+          "id": 336,
+          "name": "Silver"
+        }
+      ]
+    },
+    {
+      "id": 128,
+      "name": "Vueling Airlines (Punto Punto)",
+      "levels": []
+    },
+    {
+      "id": 86,
+      "name": "WestJet (Frequent Guest)",
+      "levels": [
+        {
+          "id": 321,
+          "name": "Platinum"
+        },
+        {
+          "id": 322,
+          "name": "Gold"
+        },
+        {
+          "id": 323,
+          "name": "Silver"
+        },
+        {
+          "id": 324,
+          "name": "Teal"
+        }
+      ]
+    },
+    {
+      "id": 362,
+      "name": "Windstar Cruises Yacht Club",
+      "levels": [
+        {
+          "id": 881,
+          "name": "One Star"
+        },
+        {
+          "id": 882,
+          "name": "Two Star"
+        },
+        {
+          "id": 883,
+          "name": "Three Star"
+        },
+        {
+          "id": 884,
+          "name": "Four Star"
+        }
+      ]
+    },
+    {
+      "id": 230,
+      "name": "Wizz Air (Discount Club)",
+      "levels": [
+        {
+          "id": 730,
+          "name": "Group membership"
+        },
+        {
+          "id": 729,
+          "name": "Standard"
+        }
+      ]
+    },
+    {
+      "id": 27,
+      "name": "World of Hyatt",
+      "levels": [
+        {
+          "id": 100,
+          "name": "Globalist"
+        },
+        {
+          "id": 101,
+          "name": "Explorist"
+        },
+        {
+          "id": 102,
+          "name": "Discoverist"
+        },
+        {
+          "id": 103,
+          "name": "Member"
+        }
+      ]
+    },
+    {
+      "id": 29,
+      "name": "Wyndham Rewards",
+      "levels": [
+        {
+          "id": 108,
+          "name": "Diamond"
+        },
+        {
+          "id": 109,
+          "name": "Platinum"
+        },
+        {
+          "id": 110,
+          "name": "Gold"
+        },
+        {
+          "id": 111,
+          "name": "Blue"
+        }
+      ]
+    },
+    {
+      "id": 247,
+      "name": "Yelloh! Village (Yelloh! Plus)",
+      "levels": [
+        {
+          "id": 767,
+          "name": "Member"
+        }
+      ]
+    },
+    {
+      "id": 284,
+      "name": "Z Air Z Rewards",
+      "levels": []
+    }
+  ]
+}

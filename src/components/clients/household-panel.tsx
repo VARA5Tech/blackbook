@@ -1,6 +1,7 @@
 import { ArrowUpRight, Home } from "lucide-react";
 import Link from "next/link";
 import { Section } from "@/components/page-header";
+import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import type { Household } from "@/db/schema";
 import { HOUSEHOLD_ROLE_LABELS, displayName, initials,
@@ -87,7 +88,18 @@ export function HouseholdPanel({
         </p>
       </div>
 
-      <ul className="divide-y divide-border">
+      {/*
+        A large family scrolls rather than pushing everything under it down the
+        page. Three fit; past that the list keeps its height and the rest is a
+        flick away, which is the right trade in a panel that sits beside the
+        record rather than being the record.
+      */}
+      <ul
+        className={cn(
+          "divide-y divide-border",
+          !expanded && members.length > 3 ? "max-h-52 overflow-y-auto" : null,
+        )}
+      >
         {members.map((member) => {
           const years = age(member.dateOfBirth);
           const isCurrent = member.id === currentCustomerId;

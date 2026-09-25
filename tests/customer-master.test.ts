@@ -999,18 +999,26 @@ describe("handing several clients to a colleague", () => {
   /** Nothing about a client's own details is touched by moving their manager. */
   it("leaves every phone number exactly as it was", async () => {
     const clients = await three();
-    const before = await db
-      .select({ id: customers.id, mobile: customers.mobile, whatsapp: customers.whatsapp })
-      .from(customers);
+    /*
+     * Ordered, or this passes and fails at random. Postgres promises no order
+     * without one, and an update moves the row it rewrites, so the second read
+     * can come back shuffled while every number is untouched — which is what
+     * this is checking.
+     */
+    const numbers = () =>
+      db
+        .select({ id: customers.id, mobile: customers.mobile, whatsapp: customers.whatsapp })
+        .from(customers)
+        .orderBy(customers.id);
+
+    const before = await numbers();
 
     await reassignClients({
       customerIds: clients.map((client) => client.id),
       primaryRmId: staff.rm.id,
     });
 
-    const after = await db
-      .select({ id: customers.id, mobile: customers.mobile, whatsapp: customers.whatsapp })
-      .from(customers);
+    const after = await numbers();
 
     expect(after).toEqual(before);
   });
@@ -1067,9 +1075,13 @@ describe("exporting the client list", () => {
     expect(cell(everyone, 0, "WhatsApp")).toBe("+91 98100 11224");
     expect(cell(everyone, 0, "City")).toBe("Delhi");
 
-    // Asked for by name, a staff record still comes back.
+    /*
+     * Asked for by name, a staff record still does not come back. The list
+     * shows them when somebody asks; the spreadsheet never does, because it
+     * leaves the building and every figure read off it is taken as the book.
+     */
     const testers = await exportClients({ status: "staff" });
-    expect(column(testers, "First name")).toEqual(["Desk"]);
+    expect(testers.rows).toHaveLength(0);
 
     const searched = await exportClients({ q: "Priya" });
     expect(searched.rows).toHaveLength(1);

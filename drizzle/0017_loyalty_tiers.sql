@@ -1,0 +1,1 @@
+ALTER TABLE "preference_option" ADD COLUMN "tiers" text[] DEFAULT '{}' NOT NULL;

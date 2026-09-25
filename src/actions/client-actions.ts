@@ -18,6 +18,30 @@ import {
   updateCustomer,
   type ReassignInput,
 } from "@/services/client-service";
+import type {
+  AcknowledgeLeadInput,
+  AdvanceLeadInput,
+  AssignLeadInput,
+  CreateLeadInput,
+  RemarkLeadInput,
+} from "@/domain/leads";
+import {
+  applyTernImport,
+  populateTripFromTern,
+  previewTernAgainst,
+  previewTernClient,
+  previewTernTrip,
+  revealTravelDocument,
+  searchTern,
+  ternStatus,
+  type TernImportInput,
+} from "@/services/tern-service";
+import {
+  confirmDocumentUpload,
+  deleteDocument,
+  getDocumentDownloadUrl,
+  requestDocumentUpload,
+} from "@/services/document-service";
 import { run } from "./action-result";
 
 export async function createClientAction(input: CreateCustomerInput) {
@@ -102,5 +126,153 @@ export async function reassignClientsAction(input: ReassignInput) {
     for (const id of input.customerIds) revalidatePath(`/clients/${id}`);
   }
 
+  return result;
+}
+
+/* ------------------------------------------------------------------ */
+/* Leads                                                               */
+/* ------------------------------------------------------------------ */
+
+export async function acknowledgeLeadAction(input: AcknowledgeLeadInput) {
+  const result = await run(async () => {
+    const { acknowledgeLead } = await import("@/services/lead-service");
+    return acknowledgeLead(input);
+  });
+  if (result.ok) revalidateLead();
+  return result;
+}
+
+export async function advanceLeadAction(input: AdvanceLeadInput) {
+  const result = await run(async () => {
+    const { advanceLead } = await import("@/services/lead-service");
+    return advanceLead(input);
+  });
+  if (result.ok) revalidateLead();
+  return result;
+}
+
+export async function assignLeadAction(input: AssignLeadInput) {
+  const result = await run(async () => {
+    const { assignLead } = await import("@/services/lead-service");
+    return assignLead(input);
+  });
+  if (result.ok) revalidateLead();
+  return result;
+}
+
+export async function createLeadAction(input: CreateLeadInput) {
+  const result = await run(async () => {
+    const { createLead } = await import("@/services/lead-service");
+    return createLead(input);
+  });
+  if (result.ok) revalidateLead();
+  return result;
+}
+
+export async function remarkLeadAction(input: RemarkLeadInput) {
+  const result = await run(async () => {
+    const { remarkOnLead } = await import("@/services/lead-service");
+    return remarkOnLead(input);
+  });
+  if (result.ok) revalidateLead();
+  return result;
+}
+
+/**
+ * A lead shows on the client, in the queue on the dashboard and in the task
+ * list, so any change to one has to clear all three.
+ */
+function revalidateLead() {
+  revalidatePath("/");
+  revalidatePath("/clients", "layout");
+  revalidatePath("/tasks");
+}
+
+/* ------------------------------------------------------------------ */
+/* Tern                                                                */
+/* ------------------------------------------------------------------ */
+
+/**
+ * Tern import runs from a page, a step at a time — search, preview, import,
+ * then each trip in turn — so a client with twenty trips is never one request
+ * that times out halfway, and the screen shows how far it has got.
+ */
+export async function ternStatusAction() {
+  return run(() => ternStatus());
+}
+
+export async function searchTernAction(query: string) {
+  return run(() => searchTern(query));
+}
+
+/** What an import would do, before anything is written. */
+export async function previewTernClientAction(input: { ternId: string; customerId?: string }) {
+  return run(() => previewTernClient(input));
+}
+
+/** The same preview, against a client the desk has just said is this person. */
+export async function previewTernAgainstAction(input: { ternId: string; customerId: string }) {
+  return run(() => previewTernAgainst(input));
+}
+
+/** One trip from Tern, shown and not stored: opening a trip in the preview. */
+export async function previewTernTripAction(input: { ternId: string }) {
+  return run(() => previewTernTrip(input));
+}
+
+/** Writes exactly what was ticked in the preview. Trips follow, a few at a time. */
+export async function applyTernImportAction(input: TernImportInput) {
+  const result = await run(() => applyTernImport(input));
+  if (result.ok) revalidatePath("/clients");
+  return result;
+}
+
+export async function populateTripFromTernAction(input: { ternId: string; customerId: string }) {
+  return run(() => populateTripFromTern(input));
+}
+
+/** Called once after the last trip, so the page redraws once rather than per trip. */
+export async function finishTernPopulateAction(customerId: string) {
+  revalidatePath(`/clients/${customerId}`);
+  return { ok: true as const, data: undefined };
+}
+
+export async function revealTravelDocumentAction(input: { customerId: string; index: number }) {
+  return run(() => revealTravelDocument(input));
+}
+
+/* ------------------------------------------------------------------ */
+/* Documents                                                          */
+/* ------------------------------------------------------------------ */
+
+/**
+ * Upload is two steps: ask for a signed URL and a pending record, then confirm
+ * once the browser has put the file to storage. The bytes never pass through
+ * the server — only the key and the metadata do.
+ */
+export async function requestDocumentUploadAction(input: {
+  customerId: string;
+  filename: string;
+  contentType: string;
+  sizeBytes: number;
+  kind?: string;
+  tripId?: string;
+}) {
+  return run(() => requestDocumentUpload(input));
+}
+
+export async function confirmDocumentUploadAction(input: { documentId: string; customerId: string }) {
+  const result = await run(() => confirmDocumentUpload({ documentId: input.documentId }));
+  if (result.ok) revalidatePath(`/clients/${input.customerId}`);
+  return result;
+}
+
+export async function documentDownloadUrlAction(input: { documentId: string }) {
+  return run(() => getDocumentDownloadUrl(input));
+}
+
+export async function deleteDocumentAction(input: { documentId: string; customerId: string }) {
+  const result = await run(() => deleteDocument({ documentId: input.documentId }));
+  if (result.ok) revalidatePath(`/clients/${input.customerId}`);
   return result;
 }

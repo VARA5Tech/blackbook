@@ -5,6 +5,7 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
 import type { CatalogueOption } from "@/domain/preferences";
 import {
+  CLIENT_STATUSES,
   CLIENT_STATUS_LABELS,
   type ClientStatus,
 } from "@/domain/customers";
@@ -51,6 +52,17 @@ const SAVED_VIEWS = [
     name: "Inactive",
     query: "status=inactive",
     matches: (params: URLSearchParams) => params.get("status") === "inactive",
+  },
+  /*
+   * The staff records, which are deliberately kept out of every other view.
+   * They exist so somebody at the desk can get through the members' gate, and
+   * counting them as clients makes every figure on the screen wrong — but the
+   * desk still has to be able to find one, which until now it could not.
+   */
+  {
+    name: "Staff",
+    query: "status=staff",
+    matches: (params: URLSearchParams) => params.get("status") === "staff",
   },
 ] as const;
 
@@ -209,12 +221,20 @@ export function ClientFilters({
           }
         >
           <SelectTrigger className="w-36" aria-label="Status">
-            <SelectValue placeholder="Any status" />
+            <SelectValue placeholder="Clients" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value={ANY}>Any status</SelectItem>
-            <SelectItem value="active">Active</SelectItem>
-            <SelectItem value="inactive">Inactive</SelectItem>
+            {/*
+              "Any status" is not quite any: it is the book, which is every
+              client and no staff record. Staff are reachable by asking for
+              them by name, which is the only way the list ever shows one.
+            */}
+            <SelectItem value={ANY}>Clients</SelectItem>
+            {CLIENT_STATUSES.map((value) => (
+              <SelectItem key={value} value={value}>
+                {CLIENT_STATUS_LABELS[value]}
+              </SelectItem>
+            ))}
           </SelectContent>
         </Select>
 

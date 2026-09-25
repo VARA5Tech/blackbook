@@ -13,6 +13,7 @@ import {
 import {
   ASSIGNABLE_ROLES,
   ROLE_LABELS,
+  roleCan,
   type AssignableRole,
 } from "@/auth/permissions";
 import { Badge } from "@/components/ui/badge";
@@ -199,9 +200,13 @@ export function UserTable({
                           <SelectItem
                             key={role}
                             value={role}
-                            // An administrator demoting themselves would lock
-                            // the last one out; the service refuses it too.
-                            disabled={isSelf && role !== "admin"}
+                            /*
+                              Dropping your own user management would lock the
+                              last administrator out; the service refuses it
+                              too. Asked as a capability, so a founder can move
+                              to Admin and back without being stopped.
+                            */
+                            disabled={isSelf && !roleCan(role, "user.manage")}
                           >
                             {ROLE_LABELS[role]}
                           </SelectItem>

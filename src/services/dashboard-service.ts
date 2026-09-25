@@ -37,6 +37,7 @@ export async function getOpsDashboard() {
     recentClients,
     activity,
     wanted,
+    waiting,
   ] = await Promise.all([
     getUpcomingMilestones(45, 12),
     countUpcoming(7, "birthday"),
@@ -50,6 +51,7 @@ export async function getOpsDashboard() {
       new Date(Date.now() - INTEREST_DAYS * 24 * 60 * 60 * 1000),
       5,
     ),
+    (await import("./lead-service")).openLeads(8),
   ]);
 
   return {
@@ -67,6 +69,8 @@ export async function getOpsDashboard() {
     /** What the client list has been reading on vara5.com lately. */
     wanted,
     wantedDays: INTEREST_DAYS,
+    /** Clients who asked and have had no logged reply since. */
+    waiting,
   };
 }
 

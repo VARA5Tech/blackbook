@@ -1,0 +1,2 @@
+CREATE TYPE "public"."lead_source" AS ENUM('website', 'phone', 'email', 'whatsapp', 'referral', 'in_person', 'other');--> statement-breakpoint
+ALTER TABLE "lead" ADD COLUMN "source" "lead_source" DEFAULT 'website' NOT NULL;

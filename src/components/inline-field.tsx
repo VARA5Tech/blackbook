@@ -130,8 +130,13 @@ export function InlineField({
   return (
     <div
       className={cn(
-        "grid gap-x-4 px-4 py-2.5",
+        // Its own bottom rule rather than a divider on the list: the list is a
+        // two-column grid on a wide screen, and `divide-y` draws between
+        // siblings in document order, which is not where the rows are.
+        "grid gap-x-4 border-b border-border px-4 py-2.5",
         multiline ? "grid-cols-1 gap-y-1 sm:grid-cols-[10rem_minmax(0,1fr)]" : "grid-cols-[10rem_minmax(0,1fr)]",
+        // A paragraph needs the full width; a telephone number does not.
+        multiline ? "xl:col-span-2" : null,
       )}
     >
       <dt className="flex items-center gap-2 pt-1 text-sm text-muted-foreground">

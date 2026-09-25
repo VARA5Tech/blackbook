@@ -45,6 +45,7 @@ export function PreferenceSection({
   customerId,
   title,
   kinds,
+  groupings,
   catalogue,
   preferences,
   canEdit,
@@ -53,6 +54,12 @@ export function PreferenceSection({
   customerId: string;
   title: string;
   kinds: string[];
+  /**
+   * Narrows a kind to part of itself. `loyalty_programme` is one facet holding
+   * airline, hotel, cruise and car hire schemes, and a Marriott membership has
+   * no business appearing under Flights.
+   */
+  groupings?: string[];
   catalogue: Record<string, CatalogueOption[]>;
   preferences: PreferenceRow[];
   canEdit: boolean;
@@ -60,7 +67,22 @@ export function PreferenceSection({
 }) {
   const [editing, setEditing] = useState(false);
 
-  const relevant = preferences.filter((row) => kinds.includes(row.kind));
+  const inScope = (row: { kind: string; grouping: string | null }) =>
+    kinds.includes(row.kind) &&
+    (!groupings || !row.grouping || groupings.includes(row.grouping));
+
+  const relevant = preferences.filter(inScope);
+
+  // The editor offers the same slice it displays, or a membership filed under
+  // Hotels could be added from the Flights section and vanish from view.
+  const scoped = groupings
+    ? Object.fromEntries(
+        Object.entries(catalogue).map(([kind, options]) => [
+          kind,
+          options.filter((option) => inScope({ kind, grouping: option.grouping })),
+        ]),
+      )
+    : catalogue;
 
   if (editing) {
     return (
@@ -68,7 +90,7 @@ export function PreferenceSection({
         customerId={customerId}
         title={title}
         kinds={kinds}
-        catalogue={catalogue}
+        catalogue={scoped}
         preferences={relevant}
         onDone={() => setEditing(false)}
       />

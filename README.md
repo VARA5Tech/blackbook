@@ -335,6 +335,87 @@ The key is a personal API key. It can read the whole project, so it is an
 operator credential: it lives in Dokploy, never in the website's bundle, and
 never in a `NEXT_PUBLIC_` variable. Only `src/lib/posthog.ts` reads it.
 
+## Tern
+
+Most of the firm's history lives in Tern, the itinerary platform the desk used
+before Blackbook: trips, day-by-day itineraries, travellers, passports,
+loyalty numbers, preferences. Blackbook brings it over **one client at a time,
+when somebody asks**, never in bulk.
+
+Tern has no API. What it has is a signed-in browser, so `tern-bridge/` in this
+repository drives one: it runs on the office machine beside a Chrome that
+somebody signed in to by hand, and reads Tern through that tab. Blackbook asks
+the bridge; the bridge asks Tern. Blackbook never talks to Tern and never holds
+a Tern password or cookie, only the secret it signs its requests with. Setup
+for the office machine is in `tern-bridge/README.md`.
+
+```
+Blackbook ── signed HTTPS ──▶ tunnel ──▶ bridge ──▶ signed-in Chrome ──▶ Tern
+```
+
+**Import.** *Import from Tern* on the clients list, or *Populate from Tern* on a
+client's Trips tab, searches Tern and opens a review page
+(`/clients/import/tern/[ternId]`): every field Tern holds beside the client's
+own, marked new, the same or different; every preference, date, masked travel
+document and trip, each with a tick; any trip opens beside the page with its
+whole itinerary. Nothing is written until *Import*, and the bar at the foot
+says exactly what it will do. Trips then come across three at a time. Three
+rules hold:
+
+- **Blackbook's entries win unless somebody chooses otherwise.** A field the
+  desk filled in is kept unless a person picks Tern's value for it, one field
+  at a time, and the client's trail records what was replaced.
+- **Nothing is merged on a guess.** If an existing client looks like the same
+  person — same email, number or name — the desk is asked.
+- **Nothing is guessed into a field.** Tern stores many numbers as
+  `91 9910086263`, the country code without its plus. Blackbook never supplies
+  a country, so those are listed after Populate for somebody to add by hand.
+  Trips that look like tests — no dates, "test" in the name, only
+  placeholder travellers — arrive marked, for somebody to keep or delete.
+
+**Speed.** One client with ten trips comes across in about seven seconds.
+The bridge reads Tern's pages several at a time rather than one by one, keeps
+the last five minutes of reads in memory (never on disk) so the import after a
+review reads nothing twice, and starts reading a client's trips while the
+review page is still being looked at.
+
+**Where it lands.** One new table, `trip`, because a trip has its own status,
+dates, party and curator and is asked about across clients. Its itinerary and
+travellers are `jsonb` on the row. On the client: identity (prefix, middle
+name, suffix), six small travel preferences (seat, bulkhead, room floor, lift,
+cruise deck and cabin), `travel_documents`, `tern_id`, and `tern_raw`, which is
+Tern's whole dossier minus the secrets, so a field nobody maps yet is still
+kept. Birthdays and anniversaries become milestones; interests, food and drink
+and loyalty memberships become catalogue preferences.
+
+**Passports.** Numbers are sealed with AES-256-GCM using `PII_ENCRYPTION_KEY`
+before they reach the database (`src/lib/sealed.ts`); only the last four are
+kept in the clear. Revealing a number needs `travel_document.reveal`
+(administrators and founders), and every reveal is written to the client's
+trail. They never leave in the Excel export. Without the key, passport details
+are not stored at all. **Lose the key and the numbers are gone**: keep a copy
+somewhere that is not the server.
+
+**Not built yet**, in rough order of worth:
+
+- **Documents.** Tern's documents are listed in `tern_raw`, not stored. Files
+  need private object storage: a Cloudflare R2 bucket with its own key, not
+  Supabase Storage, which would need the service role key the app must never
+  hold.
+- **Email history.** Tern's emails come across raw in `tern_raw`; they are not
+  yet a readable thread on the client.
+- **Booking detail.** Confirmation numbers and supplier notes sit behind a
+  click on each Tern activity and are not read yet.
+- **Suppliers.** Tern holds about 145 supplier and DMC contacts, typed as such.
+  A supplier directory is its own piece of work; they are left in Tern.
+- **One-press phone confirmation**, instead of listing numbers to add by hand.
+- **Tern's interest and food lists are not imported, on purpose.** They are
+  free text typed by advisors across every agency on Tern — dinner times,
+  stray numbers, whole sentences — about 3,000 entries each. Populate brings
+  over only the ones that sit on the client being read. The clean lists
+  (contact types, prefixes, countries, currencies, trip statuses, seat, room
+  and cruise preferences, loyalty programmes) are the useful vocabulary.
+
 ## Sharing a database with Supabase
 
 Blackbook talks to Postgres directly and authorizes in the service layer. It
@@ -413,13 +494,11 @@ There are two separate records, and they answer different questions.
 `activity_log` is the audit trail: who edited which client, which fields moved,
 from what to what. It is shown to staff on the Client 360 timeline.
 
-It is append-only for the application: a database trigger refuses updates and
-deletes from the app's own connection, which names itself `blackbook`, so no
-service or bug can quietly rewrite history. Developers are deliberately not
-held to it. Studio, psql and `pnpm db:query:prod --write` connect under other
-names and can correct or clear the trail, which is how production is cleaned
-before handover. Renaming the app's connection would lift the lock from the app
-itself, so don't.
+The application only ever appends to it: every service writes a row and no
+code updates or deletes one. It is a plain table, not enforced by the database
+(migration 0026 removed the old append-only trigger), so a developer can
+correct or clear entries from Studio, psql or `pnpm db:query:prod --write`.
+Erasing a client clears its reference on the entries and keeps the entries.
 
 `src/lib/logger.ts` is operational telemetry: a request failed, the database was
 unreachable, a model call timed out. One JSON object per line to stdout in
@@ -500,8 +579,8 @@ They run against real Postgres in a throwaway `vara5_crm_test` database that is
 dropped, recreated and migrated on every run. That is deliberate: a large part
 of the behaviour lives in the database rather than in TypeScript, including the
 generated phone column, the partial unique index behind duplicate detection,
-the append-only trigger, the check constraints and the milestone date
-functions. None of that would be exercised against a mock.
+the one-number-one-client trigger, the check constraints and the milestone
+date functions. None of that would be exercised against a mock.
 
 The only thing stubbed is reading the signed-in user out of an HTTP request.
 Every authorization check runs for real, so the permission tests attempt each
@@ -616,8 +695,8 @@ Deliberately not built yet, per the handover's "do not overbuild" list:
   scheduler can consume it unchanged.
 - Tasks are minimal: title, details, assignee, due date, priority, status. The
   operations document does not specify them, so they wait for ops input.
-- No import path. The ops team almost certainly has this data in a spreadsheet
-  today; that should be settled before the schema is frozen.
+- No spreadsheet import. Tern clients come across one at a time through
+  Populate (see Tern above); anything held only in spreadsheets has no path in.
 - No consent or retention policy recorded against a client, which the DPDP Act
   will eventually require.
 - No end-to-end browser tests. The service layer is covered; the screens have

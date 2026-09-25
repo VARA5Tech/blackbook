@@ -16,6 +16,8 @@ export async function resetData(): Promise<void> {
   await sql.unsafe(`
     truncate table
       activity_log,
+      lead,
+      trip,
       customer_preference,
       interaction,
       milestone,
@@ -52,7 +54,7 @@ export type StaffFixtures = Record<UserRole, TestActor>;
 
 /** One account per role, so the permission matrix can be driven off them. */
 export async function seedStaff(): Promise<StaffFixtures> {
-  const roles: UserRole[] = ["admin", "manager", "rm", "viewer"];
+  const roles: UserRole[] = ["admin", "manager", "rm", "viewer", "founder"];
   const fixtures = {} as StaffFixtures;
 
   for (const role of roles) {

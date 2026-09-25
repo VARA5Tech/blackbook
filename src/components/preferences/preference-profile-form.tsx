@@ -18,6 +18,14 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import type { CustomerPreferenceProfile } from "@/db/schema";
 import { scalarLabel } from "@/domain/preferences";
+import { TRAVEL_PREFERENCE_FIELDS, type TravelPreferenceField } from "@/domain/trips";
+
+/** One of the six small preferences, as a select, answers from the domain. */
+const small = (key: TravelPreferenceField): SelectField => ({
+  key,
+  label: TRAVEL_PREFERENCE_FIELDS[key].label,
+  options: Object.keys(TRAVEL_PREFERENCE_FIELDS[key].values),
+});
 
 const NONE = "__none__";
 
@@ -79,8 +87,10 @@ const SELECTS: Record<Group, SelectField[]> = {
         "six_months_plus",
       ],
     },
+    small("cruiseDeck"),
+    small("cruiseCabinPosition"),
   ],
-  hotel: [],
+  hotel: [small("hotelRoomFloor"), small("hotelRoomElevator")],
   flight: [
     {
       key: "flightCabin",
@@ -92,6 +102,8 @@ const SELECTS: Record<Group, SelectField[]> = {
       label: "Direct flights",
       options: ["always_direct", "prefer_direct", "no_preference"],
     },
+    small("flightSeat"),
+    small("flightBulkhead"),
   ],
   dining: [
     {

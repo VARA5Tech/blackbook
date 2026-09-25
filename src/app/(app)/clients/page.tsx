@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import Link from "next/link";
 import { Download, Plus } from "lucide-react";
 import { getActor } from "@/auth/session";
@@ -11,6 +12,9 @@ import { Button } from "@/components/ui/button";
 import { searchClientGroups } from "@/services/client-service";
 import { getCatalogue } from "@/services/preference-service";
 import { listStaff } from "@/services/user-service";
+import { TernSearchDialog } from "@/components/clients/tern-import";
+import { TernStatusBanner } from "@/components/clients/tern-status-banner";
+import { ternConfigured } from "@/lib/tern";
 
 export const metadata: Metadata = { title: "Clients" };
 
@@ -22,8 +26,11 @@ function first(params: SearchParams, key: string): string | undefined {
 }
 
 /** "10 clients · 1 household", counting every client the filters matched. */
-function listSummary(clients: number, households: number): string {
-  const people = clients === 1 ? "1 client" : `${clients} clients`;
+function listSummary(clients: number, households: number, staff = false): string {
+  // A staff record is not a client, and saying "1 client" over Rishabh's own
+  // row is how the count gets quoted back wrong in a meeting.
+  const noun = staff ? "staff record" : "client";
+  const people = clients === 1 ? `1 ${noun}` : `${clients} ${noun}s`;
   if (households === 0) return people;
   return `${people} · ${households === 1 ? "1 household" : `${households} households`}`;
 }
@@ -80,6 +87,7 @@ export default async function ClientsPage({
     listStaff(),
   ]);
 
+  const viewingStaff = first(params, "status") === "staff";
   const canCreate = actor ? can(actor, "client.create") : false;
   const canReassign = actor ? can(actor, "client.reassign_rm") : false;
 
@@ -87,23 +95,38 @@ export default async function ClientsPage({
     <>
       <PageHeader
         title="Clients"
-        description={listSummary(results.totalClients, results.totalHouseholds)}
+        description={listSummary(
+          results.totalClients,
+          results.totalHouseholds,
+          viewingStaff,
+        )}
         actions={
           <>
             {/*
               Carries the filters that are on screen, so the spreadsheet is the
               list somebody is looking at. A plain link, not an action: the file
               is produced by the server and the browser saves it.
+
+              Except on the staff view. The export refuses to write a staff
+              record under any filter, so the button there would hand back an
+              empty file and leave somebody wondering which part broke.
             */}
-            <Button asChild variant="outline">
-              <a
-                href={`/api/clients/export${baseQuery.toString() ? `?${baseQuery}` : ""}`}
-                download
-              >
-                <Download />
-                Export
-              </a>
-            </Button>
+            {viewingStaff ? null : (
+              <Button asChild variant="outline">
+                <a
+                  href={`/api/clients/export${baseQuery.toString() ? `?${baseQuery}` : ""}`}
+                  download
+                >
+                  <Download />
+                  Export
+                </a>
+              </Button>
+            )}
+
+            {/* Brings one client over from Tern with every trip, on demand. */}
+            {canCreate && ternConfigured() ? (
+              <TernSearchDialog label="Import from Tern" />
+            ) : null}
 
             {canCreate ? (
               <Button asChild>
@@ -116,6 +139,12 @@ export default async function ClientsPage({
           </>
         }
       />
+
+      {ternConfigured() ? (
+        <Suspense fallback={null}>
+          <TernStatusBanner />
+        </Suspense>
+      ) : null}
 
       <ClientFilters
         catalogue={Object.fromEntries(catalogue)}

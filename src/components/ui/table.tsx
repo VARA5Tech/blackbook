@@ -3,11 +3,25 @@
 import * as React from "react"
 import { cn } from "cn"
 
-function Table({ className, ...props }: React.ComponentProps<"table">) {
+/**
+ * `containerClassName` is where a height bound belongs, not on a wrapper
+ * outside this component.
+ *
+ * The table makes its own scrolling element, so a second one around it left
+ * two of them: the outer one scrolled and the inner one did not, which is
+ * where a sticky header sticks — to a box that never moves. The header then
+ * scrolled away with the rows on every table in the application. One scroller,
+ * and it is this one.
+ */
+function Table({
+  className,
+  containerClassName,
+  ...props
+}: React.ComponentProps<"table"> & { containerClassName?: string }) {
   return (
     <div
       data-slot="table-container"
-      className="relative w-full overflow-x-auto"
+      className={cn("relative w-full overflow-auto", containerClassName)}
     >
       <table
         data-slot="table"
@@ -22,9 +36,18 @@ function TableHeader({ className, ...props }: React.ComponentProps<"thead">) {
   return (
     <thead
       data-slot="table-header"
-      // A filled band, not a hairline: the header must read as a header at a
-      // glance, and stay distinct when it sticks over scrolled rows.
-      className={cn("bg-muted [&_tr]:border-b [&_tr]:border-border", className)}
+      /*
+        Sticky by default, because a column heading is only useful while the
+        column is on screen. It pins to the table's own scrolling container,
+        so it holds whether the list is bounded or the whole page scrolls.
+
+        A filled band, not a hairline: it has to read as a header at a glance
+        and stay opaque over the rows passing underneath it.
+      */
+      className={cn(
+        "sticky top-0 z-20 bg-muted [&_tr]:border-b [&_tr]:border-border",
+        className,
+      )}
       {...props}
     />
   )

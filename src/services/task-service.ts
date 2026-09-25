@@ -2,7 +2,7 @@ import "server-only";
 import { and, asc, eq, or, sql } from "drizzle-orm";
 import { requireCapability } from "@/auth/session";
 import { db } from "@/db";
-import { customers, tasks, users } from "@/db/schema";
+import { customers, leads, tasks, users } from "@/db/schema";
 import {
   TASK_PRIORITIES,
   TASK_STATUSES,
@@ -51,8 +51,17 @@ export async function listTasks(options?: {
         trim(${customers.firstName} || ' ' || coalesce(${customers.lastName}, ''))
       )`,
       assigneeName: users.name,
+      customerRef: customers.ref,
+      // The lead this follows up on, so the row can say why it exists and
+      // link back to it rather than standing on its own.
+      leadId: tasks.leadId,
+      leadTitle: leads.title,
+      leadStatus: leads.status,
+      createdAt: tasks.createdAt,
+      completedAt: tasks.completedAt,
     })
     .from(tasks)
+    .leftJoin(leads, eq(tasks.leadId, leads.id))
     .leftJoin(customers, eq(tasks.customerId, customers.id))
     .leftJoin(users, eq(tasks.assigneeId, users.id))
     .where(conditions.length > 0 ? and(...conditions) : undefined)

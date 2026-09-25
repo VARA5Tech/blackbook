@@ -14,6 +14,12 @@ export const EMAIL_SENDER = "Blackbook <blackbook@vara5.travel>";
 
 export type OutboundEmail = {
   to: string;
+  /**
+   * Copied in, for mail that is somebody's to act on and somebody else's to
+   * know about. A lead is chased by its curator and watched by the managers,
+   * and sending two separate emails would lose that it is one thread.
+   */
+  cc?: string[];
   subject: string;
   html: string;
   /** Plain-text version, for clients that do not render HTML and for spam scoring. */
@@ -30,6 +36,38 @@ export class EmailNotConfiguredError extends Error {
 }
 
 let client: Resend | undefined;
+
+/**
+ * Nothing outside production reaches the person it names.
+ *
+ * Blackbook runs locally against a copy of the real database, so the curator
+ * on a lead, the managers copied on it and the administrators it escalates to
+ * are all real colleagues with real mailboxes. The lead sweep does not wait to
+ * be asked: it fires on a timer, so a developer with the server running sends
+ * live mail about fabricated clients to people who have no idea what it is.
+ * That happened, and an apology is not a control.
+ *
+ * So outside production every message is re-addressed to one mailbox, named by
+ * `DEV_EMAIL_TO`, and the copies are dropped rather than redirected — one
+ * message, not four. Where it was bound for goes in the subject, so a test
+ * still shows whether the routing is right.
+ *
+ * With no `DEV_EMAIL_TO` it sends nothing at all. Failing closed is the whole
+ * point: the cost of a message not arriving on a laptop is a developer looking
+ * at the terminal, and the cost of one arriving is this.
+ */
+export function forDevelopment(email: OutboundEmail): OutboundEmail | null {
+  const mailbox = process.env.DEV_EMAIL_TO?.trim();
+  if (!mailbox) return null;
+
+  const copies = email.cc?.length ? `, cc ${email.cc.length}` : "";
+  return {
+    ...email,
+    to: mailbox,
+    cc: undefined,
+    subject: `[dev → ${email.to}${copies}] ${email.subject}`,
+  };
+}
 
 /**
  * Sends one email, or says exactly why it did not.
@@ -54,15 +92,37 @@ export async function sendEmail(email: OutboundEmail): Promise<{ sent: boolean }
     return { sent: false };
   }
 
+  /*
+   * Before the client is touched, so there is no path from a laptop to a
+   * colleague's mailbox at all — not a flag to remember, not a list to keep.
+   */
+  let outbound = email;
+  if (process.env.NODE_ENV !== "production") {
+    const redirected = forDevelopment(email);
+    if (!redirected) {
+      logger.warn("email.withheld_outside_production", { category: email.category });
+      console.info(
+        `\n[email withheld: set DEV_EMAIL_TO to receive it]\n${email.subject}\n\n${email.text}\n`,
+      );
+      return { sent: false };
+    }
+    outbound = redirected;
+  }
+
   client ??= new Resend(key);
 
   const { data, error } = await client.emails.send({
     from: EMAIL_SENDER,
-    to: [email.to],
-    subject: email.subject,
-    html: email.html,
-    text: email.text,
-    tags: [{ name: "category", value: email.category }],
+    to: [outbound.to],
+    // Duplicates and the recipient's own address are dropped: a curator who is
+    // also a manager should not be copied on their own mail.
+    ...(outbound.cc?.length
+      ? { cc: [...new Set(outbound.cc)].filter((address) => address !== outbound.to) }
+      : {}),
+    subject: outbound.subject,
+    html: outbound.html,
+    text: outbound.text,
+    tags: [{ name: "category", value: outbound.category }],
   });
 
   if (error) {
@@ -304,6 +364,148 @@ export function staffInvitationEmail({
     html: renderEmail({
       title: subject,
       preheader: "Your Blackbook account is ready. Sign in with an emailed code.",
+      body,
+    }),
+  };
+}
+
+/* ------------------------------------------------------------------ leads */
+
+type LeadMail = {
+  clientName: string;
+  clientRef: string;
+  title: string;
+  leadUrl: string;
+  /** Formatted for reading, already in Indian Standard Time. */
+  dueAt: string;
+  curatorName?: string | null;
+};
+
+const leadButton = (url: string, label: string) => `
+            <table role="presentation" cellpadding="0" cellspacing="0" border="0">
+              <tr>
+                <td bgcolor="${C.ink}" style="background-color:${C.ink};">
+                  <a href="${escapeHtml(url)}" style="display:inline-block;padding:14px 30px;font-family:${SANS};font-size:15px;line-height:20px;font-weight:600;color:${C.white};text-decoration:none;">${escapeHtml(label)}</a>
+                </td>
+              </tr>
+            </table>`;
+
+/**
+ * A client has asked for something and somebody owes them an answer.
+ *
+ * Sent to the curator with the managers copied, because the reply is one
+ * person's job and the promise is the firm's. It says what was asked and by
+ * when, and nothing about the client beyond their name and reference: this
+ * leaves the building, and the record stays in Blackbook.
+ */
+export function leadRaisedEmail(lead: LeadMail) {
+  const subject = `${lead.clientName} asked about ${lead.title}`;
+
+  const body = `
+            ${heading("A client is waiting")}
+            ${paragraph(`${lead.clientName} (${lead.clientRef}) texted the Curator about ${lead.title}.`)}
+            ${paragraph(`Reply and log it in Blackbook by ${lead.dueAt}.`, "0 0 30px")}
+            ${leadButton(lead.leadUrl, "Open the client")}
+            ${note("Logging a call, a message or a meeting against this client marks the lead as answered. If nothing is logged by then, the managers and administrators are told.", "30px 0 0")}`;
+
+  const text = [
+    "A client is waiting",
+    "",
+    `${lead.clientName} (${lead.clientRef}) texted the Curator about ${lead.title}.`,
+    `Reply and log it in Blackbook by ${lead.dueAt}.`,
+    "",
+    lead.leadUrl,
+    "",
+    "Logging a call, a message or a meeting against this client marks the lead as answered.",
+    "",
+    "Blackbook, Vara5",
+  ].join("\n");
+
+  return {
+    subject,
+    text,
+    html: renderEmail({
+      title: subject,
+      preheader: `Answer by ${lead.dueAt}.`,
+      body,
+    }),
+  };
+}
+
+/**
+ * Nobody answered inside the window.
+ *
+ * The curator is on it rather than copied, because it is still theirs to
+ * answer; the managers and administrators are copied because at this point it
+ * is the firm that is late, not a person.
+ */
+export function leadOverdueEmail(lead: LeadMail & { hoursLate: number }) {
+  const subject = `Still unanswered: ${lead.clientName} on ${lead.title}`;
+  const who = lead.curatorName ? `${lead.curatorName} is` : "Nobody is";
+
+  const body = `
+            ${heading("A client is still waiting")}
+            ${paragraph(`${lead.clientName} (${lead.clientRef}) asked about ${lead.title}, and nothing has been logged against them since.`)}
+            ${paragraph(`The answer was due ${lead.dueAt}. ${who} down as the curator.`, "0 0 30px")}
+            ${leadButton(lead.leadUrl, "Open the client")}
+            ${note("This stops as soon as somebody logs a call, a message or a meeting against the client.", "30px 0 0")}`;
+
+  const text = [
+    "A client is still waiting",
+    "",
+    `${lead.clientName} (${lead.clientRef}) asked about ${lead.title}, and nothing has been logged against them since.`,
+    `The answer was due ${lead.dueAt}. ${who} down as the curator.`,
+    "",
+    lead.leadUrl,
+    "",
+    "Blackbook, Vara5",
+  ].join("\n");
+
+  return {
+    subject,
+    text,
+    html: renderEmail({
+      title: subject,
+      preheader: `Due ${lead.dueAt}, still nothing logged.`,
+      body,
+    }),
+  };
+}
+
+/**
+ * A lead arrived for a client nobody is the curator of.
+ *
+ * Goes to the managers and administrators at once rather than waiting out the
+ * window: a clock nobody owns runs out with nothing happening. It asks for an
+ * assignment, because a curator does not pick their own work here.
+ */
+export function leadUnassignedEmail(lead: Omit<LeadMail, "curatorName">) {
+  const subject = `Unassigned: ${lead.clientName} asked about ${lead.title}`;
+
+  const body = `
+            ${heading("A lead has no curator")}
+            ${paragraph(`${lead.clientName} (${lead.clientRef}) texted the Curator about ${lead.title}, and the client has no relationship manager.`)}
+            ${paragraph(`Give it to somebody. The two days start when you do, so the client is owed an answer by ${lead.dueAt} at the latest.`, "0 0 30px")}
+            ${leadButton(lead.leadUrl, "Assign a curator")}
+            ${note("Whoever you choose is emailed straight away.", "30px 0 0")}`;
+
+  const text = [
+    "A lead has no curator",
+    "",
+    `${lead.clientName} (${lead.clientRef}) texted the Curator about ${lead.title}, and the client has no relationship manager.`,
+    `Give it to somebody. The client is owed an answer by ${lead.dueAt} at the latest.`,
+    "",
+    lead.leadUrl,
+    "",
+    "Blackbook, Vara5",
+  ].join("\n");
+
+  return {
+    subject,
+    text,
+    html: renderEmail({
+      title: subject,
+      preheader: "Nobody is the curator for this client.",
       body,
     }),
   };

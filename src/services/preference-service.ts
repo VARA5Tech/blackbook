@@ -17,6 +17,7 @@ import {
   type CatalogueOption,
   type PreferenceKind,
 } from "@/domain/preferences";
+import { TRAVEL_PREFERENCE_FIELDS, type TravelPreferenceField } from "@/domain/trips";
 import { onlyProvided, optionalText, uuidSchema } from "@/domain/shared";
 import { logActivity } from "./activity-service";
 import { DomainError } from "./client-service";
@@ -41,6 +42,7 @@ export async function getCatalogue() {
       kind: preferenceOptions.kind,
       label: preferenceOptions.label,
       grouping: preferenceOptions.grouping,
+      tiers: preferenceOptions.tiers,
     })
     .from(preferenceOptions)
     .orderBy(asc(preferenceOptions.sortOrder), asc(preferenceOptions.label));
@@ -207,6 +209,16 @@ export async function setPreferences(input: SetPreferencesInput) {
 /* Scalar preference profile                                           */
 /* ------------------------------------------------------------------ */
 
+/**
+ * One of the six small travel preferences: its own few answers, or empty to
+ * clear it. Held to the answers Tern offers, from `src/domain/trips.ts`, so a
+ * value typed here and a value brought from Tern are the same words.
+ */
+function travelPreference(field: TravelPreferenceField) {
+  const answers = Object.keys(TRAVEL_PREFERENCE_FIELDS[field].values) as [string, ...string[]];
+  return z.union([z.enum(answers), z.literal("")]).nullable().optional();
+}
+
 export const preferenceProfileSchema = z.object({
   customerId: uuidSchema,
   travelTypicalTripNights: z.coerce.number().int().min(0).max(365).nullable().optional(),
@@ -219,6 +231,12 @@ export const preferenceProfileSchema = z.object({
   flightCabin: z.string().nullable().optional(),
   flightDirectPreference: z.string().nullable().optional(),
   flightNotes: optionalText,
+  flightSeat: travelPreference("flightSeat"),
+  flightBulkhead: travelPreference("flightBulkhead"),
+  hotelRoomFloor: travelPreference("hotelRoomFloor"),
+  hotelRoomElevator: travelPreference("hotelRoomElevator"),
+  cruiseDeck: travelPreference("cruiseDeck"),
+  cruiseCabinPosition: travelPreference("cruiseCabinPosition"),
   diningDietary: z.string().nullable().optional(),
   diningFineDining: z.string().nullable().optional(),
   diningNotes: optionalText,

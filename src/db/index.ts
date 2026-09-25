@@ -29,12 +29,8 @@ function createClient(): Client {
      */
     prepare: !isTransactionPooler(url),
     /**
-     * Names this pool to Postgres as 'blackbook'.
-     *
-     * The audit trail's append-only trigger binds only connections with this
-     * name, so the running application can never rewrite history while a
-     * developer in Studio or psql can still correct or clear it. Renaming this
-     * silently lifts the lock from the application. See migration 0004.
+     * Names this pool to Postgres as 'blackbook', so the app's connections are
+     * recognisable in pg_stat_activity next to Studio, psql and the migrator.
      */
     connection: { application_name: "blackbook" },
   });

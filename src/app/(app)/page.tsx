@@ -13,6 +13,7 @@ import { RecentVisits } from "@/components/clients/recent-visits";
 import { can } from "@/auth/session";
 import { displayName } from "@/domain/customers";
 import { formatDateTime } from "@/lib/format";
+import { NeedsYou, Pipeline, Pulse } from "@/components/dashboard/desk";
 
 /** The dashboard reflects today's data and the signed-in user; never cache it. */
 export const dynamic = "force-dynamic";
@@ -79,6 +80,13 @@ export default async function HomePage() {
         </p>
       </header>
 
+      {/*
+        Work before numbers. The counters below say how the book is doing; this
+        says what to do about it, which is what somebody opening the screen at
+        nine in the morning actually wants.
+      */}
+      <NeedsYou waiting={dashboard.waiting} />
+
       <section className="grid gap-px overflow-hidden rounded-lg border border-border bg-border sm:grid-cols-2 lg:grid-cols-4">
         {stats.map((stat) => (
           <Link
@@ -96,37 +104,26 @@ export default async function HomePage() {
       </section>
 
       {members?.configured && members.analytics.funnel.visits > 0 ? (
-        <Section
-          title="On vara5.com · last 30 days"
-          flush
-          action={
-            <Link
-              href="/analytics"
-              className="flex items-center gap-1 text-xs text-muted-foreground hover:underline"
-            >
-              All members&rsquo; activity
-              <ArrowRight className="size-3" />
-            </Link>
-          }
-        >
-          {/* Runs to the card's own edges: a second border inside the card
-              read as a box within a box. */}
-          <div className="grid gap-px bg-border sm:grid-cols-4">
-            {[
-              { value: members.analytics.funnel.clients, label: "clients browsing" },
-              { value: members.analytics.funnel.opened, label: "journeys opened" },
-              { value: members.analytics.funnel.read, label: "read through" },
-              { value: members.analytics.funnel.asked, label: "asked the Curator" },
-            ].map((stat) => (
-              <div key={stat.label} className="bg-card p-4">
-                <p className="tabular font-display text-2xl leading-none tracking-tight">
-                  {stat.value}
-                </p>
-                <p className="mt-1.5 text-xs text-muted-foreground">{stat.label}</p>
-              </div>
-            ))}
-          </div>
-        </Section>
+        <div className="grid gap-6 lg:grid-cols-2">
+          <Section
+            title="From browsing to asking · last 30 days"
+            action={
+              <Link
+                href="/analytics"
+                className="flex items-center gap-1 text-xs text-muted-foreground hover:underline"
+              >
+                All members&rsquo; activity
+                <ArrowRight className="size-3" />
+              </Link>
+            }
+          >
+            <Pipeline funnel={members.analytics.funnel} />
+          </Section>
+
+          <Section title="Visits · last 30 days">
+            <Pulse daily={members.analytics.daily} />
+          </Section>
+        </div>
       ) : null}
 
       <div className="grid gap-6 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">

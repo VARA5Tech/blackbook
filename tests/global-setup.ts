@@ -8,7 +8,7 @@ import { TEST_DB_NAME, adminDatabaseUrl, testDatabaseUrl } from "./test-env";
  *
  * Tests run against real Postgres rather than a mock, because a large part of
  * what is being verified lives in the database itself: generated columns, the
- * partial unique index on phone numbers, the append-only trigger, the check
+ * partial unique index on phone numbers, the one-number trigger, the check
  * constraints and the milestone date functions.
  */
 export async function setup() {

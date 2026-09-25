@@ -53,7 +53,7 @@ import {
  * Every operation is attempted as every role, so the matrix is verified by
  * exhaustion rather than by reading the capability table.
  */
-const ROLES: UserRole[] = ["viewer", "rm", "manager", "admin"];
+const ROLES: UserRole[] = ["viewer", "rm", "manager", "admin", "founder"];
 
 describe("role-based access", () => {
   let staff: StaffFixtures;
@@ -101,15 +101,17 @@ describe("role-based access", () => {
       }
     });
 
-    it("reserves user management for the administrator alone", () => {
+    it("reserves user management for the administrator and the founder", () => {
       expect(roleCan("admin", "user.manage")).toBe(true);
+      expect(roleCan("founder", "user.manage")).toBe(true);
       for (const role of ["viewer", "rm", "manager"] as const) {
         expect(roleCan(role, "user.manage")).toBe(false);
       }
     });
 
-    it("reserves erasure for the administrator alone", () => {
+    it("reserves erasure for the administrator and the founder", () => {
       expect(roleCan("admin", "client.destroy")).toBe(true);
+      expect(roleCan("founder", "client.destroy")).toBe(true);
       for (const role of ["viewer", "rm", "manager"] as const) {
         expect(roleCan(role, "client.destroy")).toBe(false);
       }
@@ -459,11 +461,17 @@ describe("role-based access", () => {
       }
     }
 
+    /*
+     * A founder sits level with an administrator: they hold every capability
+     * one does. What separates them is not reach but standing — no client,
+     * lead or task is ever theirs — and that is not an authorization question.
+     */
     const rank: Record<UserRole, number> = {
       viewer: 0,
       rm: 1,
       manager: 2,
       admin: 3,
+      founder: 3,
     };
 
     for (const operation of operations) {
@@ -641,6 +649,31 @@ describe("shut out of the Supabase API", () => {
       order by 1
     `;
     expect(unprotected.map((row) => row.name)).toEqual([]);
+  });
+
+  /**
+   * The second lock, and the one a new table forgets.
+   *
+   * Supabase's default privileges hand anon and authenticated full rights on
+   * anything created in public, so a table arrives reachable over /rest/v1
+   * unless its migration takes them away. Row security refuses the rows today,
+   * which is exactly why the missing REVOKE is invisible until somebody adds
+   * a policy and the waiting grant comes into effect. `lead` shipped without
+   * one; this is what would have said so.
+   */
+  it("grants no table in public or identity to anon or authenticated", async () => {
+    const leaked = await sql<{ name: string; grantee: string }[]>`
+      select n.nspname || '.' || c.relname as name, g.grantee
+      from pg_class c
+      join pg_namespace n on n.oid = c.relnamespace
+      cross join (values ('anon'), ('authenticated')) as g(grantee)
+      where n.nspname in ('public', 'identity')
+        and c.relkind = 'r'
+        and exists (select 1 from pg_roles where rolname = g.grantee)
+        and has_table_privilege(g.grantee, c.oid, 'select, insert, update, delete')
+      order by 1, 2
+    `;
+    expect(leaked).toEqual([]);
   });
 
   /**

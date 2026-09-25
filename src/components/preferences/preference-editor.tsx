@@ -25,6 +25,13 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   KIND_LABELS,
   isMembershipKind,
   polarityLabel,
@@ -259,19 +266,17 @@ export function PreferenceEditor({
                             aria-label={`Membership number for ${selection.label}`}
                             className="tabular h-8 w-44"
                           />
-                          <Input
+                          <TierField
                             value={selection.membershipTier}
-                            onChange={(event) =>
-                              setField(
-                                kind,
-                                selection.optionId,
-                                "membershipTier",
-                                event.target.value,
-                              )
+                            label={selection.label}
+                            tiers={
+                              (catalogue[kind] ?? []).find(
+                                (option) => option.id === selection.optionId,
+                              )?.tiers ?? []
                             }
-                            placeholder="Tier"
-                            aria-label={`Tier for ${selection.label}`}
-                            className="h-8 w-28"
+                            onChange={(value) =>
+                              setField(kind, selection.optionId, "membershipTier", value)
+                            }
                           />
                         </>
                       ) : null}
@@ -347,6 +352,8 @@ function OptionPicker({
           kind: kind as CatalogueOption["kind"],
           label: result.data.label,
           grouping: null,
+          // A programme somebody typed in has no published tier list.
+          tiers: [],
         });
         setTerm("");
         toast.success(`Added ${result.data.label}`);
@@ -435,3 +442,58 @@ function OptionPicker({
     </Popover>
   );
 }
+
+/**
+ * The tier a client holds, chosen from the ones the programme actually has.
+ *
+ * Typed in free text, the same tier arrived as "gold", "Gold" and "Gold
+ * Medallion" and nothing could be counted. A programme the catalogue has no
+ * tier list for — one somebody added themselves — still takes free text, so
+ * the desk is never blocked from recording what it knows.
+ */
+function TierField({
+  value,
+  label,
+  tiers,
+  onChange,
+}: {
+  value: string;
+  label: string;
+  tiers: string[];
+  onChange: (value: string) => void;
+}) {
+  if (tiers.length === 0) {
+    return (
+      <Input
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        placeholder="Tier"
+        aria-label={`Tier for ${label}`}
+        className="h-8 w-28"
+      />
+    );
+  }
+
+  return (
+    <Select value={value || NO_TIER} onValueChange={(next) => onChange(next === NO_TIER ? "" : next)}>
+      <SelectTrigger size="sm" className="h-8 w-40" aria-label={`Tier for ${label}`}>
+        <SelectValue placeholder="Tier" />
+      </SelectTrigger>
+      <SelectContent>
+        <SelectItem value={NO_TIER}>No tier</SelectItem>
+        {tiers.map((tier) => (
+          <SelectItem key={tier} value={tier}>
+            {tier}
+          </SelectItem>
+        ))}
+        {/* A tier the client holds that the catalogue has not heard of. */}
+        {value && !tiers.includes(value) ? (
+          <SelectItem value={value}>{value}</SelectItem>
+        ) : null}
+      </SelectContent>
+    </Select>
+  );
+}
+
+/** An empty string closes the menu, so "no tier" needs a value of its own. */
+const NO_TIER = "__none__";

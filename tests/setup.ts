@@ -17,6 +17,8 @@ const testUrl = testDatabaseUrl();
 process.env.DATABASE_URL = testUrl;
 process.env.DEV_DATABASE_URL = testUrl;
 process.env.BETTER_AUTH_SECRET ??= "test-secret-not-used-for-signing-anything";
+// A fixed key for sealing travel documents in tests. Never a real one.
+process.env.PII_ENCRYPTION_KEY ??= "0".repeat(64);
 
 /**
  * Never email anyone from a test run. The config loads `.env.local`, which holds
@@ -66,7 +68,13 @@ export type TestActor = {
   id: string;
   name: string;
   email: string;
-  role: "admin" | "manager" | "rm" | "viewer";
+  /*
+   * Spelled out rather than imported, because importing the schema here would
+   * pull the database client into the file that sets the database up. It has
+   * to list every role the column holds, or a role added to the enum is a role
+   * the suite cannot act as.
+   */
+  role: "admin" | "manager" | "rm" | "viewer" | "founder";
 };
 
 let currentActor: TestActor | null = null;

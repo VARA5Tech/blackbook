@@ -31,6 +31,7 @@ export async function bootstrap(): Promise<void> {
     await purgeExpiredInvitations();
 
     scheduleShareSweep();
+    scheduleLeadSweep();
   } catch (error) {
     // Never take the server down for this. A failed bootstrap leaves the app
     // running and the reason in the log; a crash loop would hide it.
@@ -98,6 +99,9 @@ const SWEEP_EVERY_MS = 10 * 60 * 1000;
  * Every failure is swallowed. This is housekeeping; it must never be the reason
  * the server stops serving.
  */
+/** Often enough that a two-day promise is never missed by more than this. */
+const LEAD_SWEEP_EVERY_MS = 15 * 60 * 1000;
+
 function scheduleShareSweep(): void {
   const sweep = async () => {
     try {
@@ -111,6 +115,32 @@ function scheduleShareSweep(): void {
   void sweep();
 
   const timer = setInterval(sweep, SWEEP_EVERY_MS);
+  // Never hold the process open on account of housekeeping.
+  timer.unref?.();
+}
+
+/**
+ * Chases leads nobody has answered.
+ *
+ * A timer rather than a cron, because the deployment has no host shell, and
+ * the same shape as the share sweep above. Safe to run as often as it likes:
+ * the sweep raises a lead's escalation level in the statement that selects it,
+ * so a lead already chased at a level is never chased again at that level and
+ * two instances cannot both send the same mail.
+ */
+function scheduleLeadSweep(): void {
+  const sweep = async () => {
+    try {
+      const { sweepOverdueLeads } = await import("@/services/lead-service");
+      await sweepOverdueLeads();
+    } catch {
+      // Logged inside the sweep; nothing here can usefully react.
+    }
+  };
+
+  void sweep();
+
+  const timer = setInterval(sweep, LEAD_SWEEP_EVERY_MS);
   // Never hold the process open on account of housekeeping.
   timer.unref?.();
 }

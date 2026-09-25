@@ -16,6 +16,7 @@ import {
   RotateCcw,
   Search,
   SlidersHorizontal,
+  Sparkles,
   Unlink,
   UserRound,
   X,
@@ -88,6 +89,14 @@ type Row = {
 
 const ANY = "__any__";
 
+/**
+ * What the members' site reports is a lead: the client put their hand up,
+ * unprompted, and nobody on the desk has done anything about it yet. Showing it
+ * as "Interaction" put it beside a call somebody logged, which is the opposite
+ * of what it is — one is work done, the other is work waiting.
+ */
+const LEAD_LOOK = { icon: Sparkles, tone: "var(--chart-1)" };
+
 const ACTION_LOOK: Record<ActivityAction, { icon: LucideIcon; tone: string }> = {
   created: { icon: Plus, tone: "var(--chart-2)" },
   updated: { icon: Pencil, tone: "var(--chart-4)" },
@@ -142,9 +151,8 @@ export function ActivityTable({
       <ActivityFilters authors={authors} />
 
       <div className="overflow-hidden rounded-lg border border-border bg-card">
-        <div className="max-h-[70vh] overflow-auto">
-          <Table>
-            <TableHeader className="sticky top-0 z-10">
+        <Table containerClassName="max-h-[70vh]">
+            <TableHeader>
               <TableRow className="hover:bg-transparent">
                 <TableHead className="w-36">When</TableHead>
                 <TableHead className="w-44">By</TableHead>
@@ -165,7 +173,6 @@ export function ActivityTable({
               )}
             </TableBody>
           </Table>
-        </div>
 
         <div className="flex items-center justify-between gap-4 border-t border-border bg-muted/40 px-4 py-2 text-xs text-muted-foreground">
           <span className="tabular">
@@ -217,7 +224,14 @@ function ActivityRowView({ row, lookups }: { row: Row; lookups: ChangeLookups })
     : row.customerId && customerName ? `/clients/${row.customerId}` : null;
 
   // Nobody signed in wrote it: the members' site reporting a client's ask.
-  const fromWebsite = !row.actorId && /vara5\.(com|travel)/i.test(row.summary);
+  /*
+   * Nobody signed in wrote it. A logged interaction always carries the member
+   * of staff who logged it, so one with no actor can only be the members' site
+   * reporting. Reading the summary for "vara5" instead tied this to wording
+   * that has already changed once.
+   */
+  const fromWebsite = !row.actorId && row.action === "interaction_logged";
+  const chip = fromWebsite ? LEAD_LOOK : look;
 
   return (
     <TableRow className="align-top">
@@ -254,8 +268,8 @@ function ActivityRowView({ row, lookups }: { row: Row; lookups: ChangeLookups })
 
       <TableCell>
         <span className="inline-flex items-center gap-1.5 rounded-md border border-border bg-background px-2 py-0.5 text-xs font-medium">
-          <look.icon className="size-3.5" style={{ color: look.tone } as CSSProperties} />
-          {ACTIVITY_ACTION_LABELS[row.action]}
+          <chip.icon className="size-3.5" style={{ color: chip.tone } as CSSProperties} />
+          {fromWebsite ? "Lead" : ACTIVITY_ACTION_LABELS[row.action]}
         </span>
       </TableCell>
 
@@ -317,6 +331,27 @@ function Details({ row, lookups }: { row: Row; lookups: ChangeLookups }) {
           </li>
         ) : null}
       </ul>
+    );
+  }
+
+  /*
+   * A lead from the members' site, said the way somebody would say it.
+   *
+   * The sentence is read off the stored summary rather than rewritten in the
+   * database: the app only appends to the trail and those rows are history, including
+   * the ones written before the site moved off vara5.travel. The Who column
+   * already says it came from the site and the Record column already names the
+   * client, so all this line owes the reader is what the client wanted.
+   */
+  const lead =
+    /^(?:Asked|Texted) the Curator about (.+?)(?: on vara5\.(?:com|travel))?$/i.exec(
+      row.summary,
+    );
+  if (lead) {
+    return (
+      <span className="text-sm">
+        Texted the Curator about <span className="font-medium">{lead[1]}</span>
+      </span>
     );
   }
 

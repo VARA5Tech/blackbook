@@ -199,11 +199,12 @@ export function ClientTable({
         />
       ) : null}
 
-      <div className="max-h-[70vh] overflow-auto rounded-lg border border-border">
-        <Table>
-          {/* Sticks while the list scrolls: at forty rows the header is off
-              screen exactly when somebody needs to know what a column is. */}
-          <TableHeader className="sticky top-0 z-10">
+      <div className="overflow-hidden rounded-lg border border-border">
+        {/* The bound goes on the table's own scroller. A second one around it
+            is what stopped the header sticking: it pinned to a box that never
+            moved while the box around that one did the scrolling. */}
+        <Table containerClassName="max-h-[70vh]">
+          <TableHeader>
             <TableRow className="hover:bg-transparent">
               <TableHead className="w-10">
                 <Checkbox
@@ -266,7 +267,7 @@ export function ClientTable({
                       onToggle={toggleRow}
                     />
 
-                    <TableCell>
+                    <TableCell className={dense ? "py-1.5" : undefined}>
                       <div className="flex items-center gap-2">
                         {count > 0 ? (
                           <Button
@@ -287,6 +288,7 @@ export function ClientTable({
 
                         <ClientLink
                           client={group.lead}
+                          compact={dense}
                           badge={
                             group.leadIsPrimary ? (
                               <Badge variant="secondary" className="gap-1">
@@ -321,7 +323,7 @@ export function ClientTable({
                             onToggle={toggleRow}
                           />
 
-                          <TableCell>
+                          <TableCell className={dense ? "py-1.5" : undefined}>
                             {/* Indented past the toggle, with a rail joining
                                 the family to the primary above it. */}
                             <div className="ml-[18px] flex items-center border-l border-border py-0.5 pl-[25px]">

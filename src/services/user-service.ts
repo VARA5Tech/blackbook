@@ -1,7 +1,7 @@
 import "server-only";
-import { and, asc, eq, isNotNull, like, or, sql } from "drizzle-orm";
+import { and, asc, eq, inArray, isNotNull, like, or, sql } from "drizzle-orm";
 import { z } from "zod";
-import { ASSIGNABLE_ROLES, ROLE_LABELS } from "@/auth/permissions";
+import { ASSIGNABLE_ROLES, DESK_ROLES, ROLE_LABELS, roleCan } from "@/auth/permissions";
 import { requireCapability } from "@/auth/session";
 import { db } from "@/db";
 import { accounts, users, verifications } from "@/db/schema";
@@ -32,7 +32,7 @@ import { DomainError } from "./client-service";
  * narrower: the schemas below validate against `ASSIGNABLE_ROLES`, so the
  * retired value drains as people are moved off it rather than spreading.
  */
-export const ROLES = ["admin", "manager", "rm", "viewer"] as const;
+export const ROLES = ["admin", "manager", "rm", "viewer", "founder"] as const;
 type Role = (typeof ROLES)[number];
 
 const INVITATION_MS = INVITATION_DAYS * 24 * 60 * 60 * 1000;
@@ -57,9 +57,18 @@ export async function listStaff() {
     .from(users)
     .leftJoin(accounts, credential)
     // Someone invited but not set up yet is not staff yet.
+    /*
+     * Who work can be given to.
+     *
+     * Every picker on the screens is built from this: the relationship manager
+     * on a client, the curator on a lead, the owner of a task. Founders are
+     * left out on purpose — they hold every capability an administrator does,
+     * and nothing is ever theirs to answer.
+     */
     .where(
       and(
         eq(users.banned, false),
+        inArray(users.role, [...DESK_ROLES]),
         or(eq(users.emailVerified, true), isNotNull(accounts.id)),
       ),
     )
@@ -155,7 +164,12 @@ export async function createStaffUser(input: CreateStaffInput) {
 export async function setUserRole(userId: string, role: Role) {
   const actor = await requireCapability("user.manage");
 
-  if (userId === actor.id && role !== "admin") {
+  /*
+   * Asked as a capability, not as a role. A founder manages users too, so
+   * checking for the word "admin" would have stopped a founder moving
+   * themselves between two roles that both hold `user.manage`.
+   */
+  if (userId === actor.id && !roleCan(role, "user.manage")) {
     throw new DomainError(
       "You cannot remove your own administrator access. Ask another administrator.",
     );

@@ -710,8 +710,9 @@ describe("interest reported by the website", () => {
     const record = await getClient360(client.id);
     const summaries = record?.timeline.map((entry) => entry.summary) ?? [];
 
-    expect(summaries).toContain("Asked the Curator about Antarctica — White Silence on vara5.com");
-    expect(summaries.filter((line) => line.includes("vara5.com"))).toHaveLength(1);
+    expect(summaries).toContain("Texted the Curator about Antarctica — White Silence");
+    // Three things were reported; only the ask belongs on the timeline.
+    expect(summaries.filter((line) => line.includes("Curator"))).toHaveLength(1);
   });
 
   it("records nothing for a client who is archived, inactive or unknown", async () => {

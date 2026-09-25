@@ -16,16 +16,26 @@ import {
   UtensilsCrossed,
 } from "lucide-react";
 import Link from "next/link";
-import { useSyncExternalStore } from "react";
+import { useState, useSyncExternalStore, type ReactNode } from "react";
 import { ActivityTimeline } from "@/components/clients/activity-timeline";
 import { BriefMeDialog } from "@/components/clients/brief-me-dialog";
 import { ClientDetails } from "@/components/clients/client-details";
-import { ClientDnaPanel } from "@/components/clients/client-dna-panel";
+import { ClientDnaStrip } from "@/components/clients/client-dna-panel";
 import { HouseholdPanel } from "@/components/clients/household-panel";
 import { InteractionPanel } from "@/components/clients/interaction-panel";
 import { InterestStrip } from "@/components/clients/interest-panel";
 import { MilestonePanel } from "@/components/clients/milestone-panel";
 import { PreferenceSection } from "@/components/preferences/preference-section";
+import { LeadPanel, type ClientLead } from "@/components/leads/lead-panel";
+import { AtAGlance, type JumpTarget } from "@/components/clients/at-a-glance";
+import {
+  TravelDocumentsCard,
+  TripsPanel,
+  type TravelDocumentView,
+  type TripView,
+} from "@/components/clients/trips-panel";
+import { TernSearchDialog } from "@/components/clients/tern-import";
+import { DocumentsCard, type DocumentView } from "@/components/clients/documents-card";
 import { PreferenceProfileForm } from "@/components/preferences/preference-profile-form";
 import { Field, Section } from "@/components/page-header";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -43,6 +53,7 @@ import {
   CLIENT_STATUS_LABELS,
 } from "@/domain/customers";
 import { countdown, formatDate, humanise, timeAgo } from "@/lib/format";
+import { cn } from "@/lib/utils";
 
 export type Client360Permissions = {
   canEdit: boolean;
@@ -51,6 +62,10 @@ export type Client360Permissions = {
   canManageMilestones: boolean;
   canUpdatePreferences: boolean;
   canUseAi: boolean;
+  canWorkLeads: boolean;
+  canAssignLeads: boolean;
+  canRevealDocuments: boolean;
+  canManageDocuments: boolean;
 };
 
 /** Tabs, or one long page. Remembered per browser, never per client. */
@@ -106,6 +121,36 @@ function chooseLayout(next: Layout): void {
   for (const listener of listeners) listener();
 }
 
+/**
+ * A card something can be sent to.
+ *
+ * The ring is not decoration: a jump can land three cards down a long tab, and
+ * without it somebody arrives looking at whatever happens to be under their
+ * eyes. It fades on its own, because a permanent highlight is noise.
+ */
+function Anchor({
+  id,
+  landed,
+  children,
+}: {
+  id: string;
+  landed: string | null;
+  children: ReactNode;
+}) {
+  return (
+    <div
+      id={id}
+      className={cn(
+        // Clears the desk bar and a little air above the card.
+        "scroll-mt-24 rounded-lg transition-shadow duration-300",
+        landed === id && "ring-2 ring-primary/60 ring-offset-2 ring-offset-background",
+      )}
+    >
+      {children}
+    </div>
+  );
+}
+
 function LayoutToggle({
   value,
   onChange,
@@ -147,6 +192,13 @@ export function Client360View({
   interest,
   replays,
   signals,
+  leads,
+  staff,
+  trips,
+  travelDocuments,
+  ternEnabled,
+  documents,
+  documentsEnabled,
 }: {
   record: Client360;
   catalogue: Record<string, CatalogueOption[]>;
@@ -154,6 +206,15 @@ export function Client360View({
   interest: InterestSummaryRow[];
   replays: SessionReplay[];
   signals: ClientSignals | null;
+  leads: ClientLead[];
+  staff: { id: string; name: string }[];
+  trips: TripView[];
+  travelDocuments: TravelDocumentView[];
+  /** The Tern bridge is configured, so Populate can be offered. */
+  ternEnabled: boolean;
+  documents: DocumentView[];
+  /** Object storage is configured, so the documents card can appear. */
+  documentsEnabled: boolean;
 }) {
   const { customer, household, rm } = record;
 
@@ -171,21 +232,53 @@ export function Client360View({
    * habit rather than a property of the client, so it is remembered on the
    * device and never written to the record.
    */
+  /** Which tab is showing, so a gap can take somebody straight to it. */
+  const [view, setView] = useState("overview");
+  const [dnaOpen, setDnaOpen] = useState(false);
+  /** The card a jump just landed on, ringed for a moment so the eye finds it. */
+  const [landed, setLanded] = useState<string | null>(null);
+
+  /**
+   * Takes somebody from a chip in At a glance to the card that records it.
+   *
+   * Two frames before scrolling: naming the tab mounts its panel, and asking
+   * for an element the same tick asks for one that is not in the document yet.
+   * In one-page layout the tab name changes nothing and every card is already
+   * there, so the same call works for both.
+   */
+  function jumpTo(target: JumpTarget) {
+    setView(target.tab);
+    setLanded(target.id);
+
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        document
+          .getElementById(target.id)
+          ?.scrollIntoView({ behavior: "smooth", block: "start" });
+      });
+    });
+
+    window.setTimeout(() => setLanded(null), 1800);
+  }
+
   const views = [
     {
       value: "overview",
       label: <>Overview</>,
       content: (
-          <div className="grid gap-8 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
-            <div className="space-y-6">
-              <ClientDnaPanel
+          <div className="space-y-5">
+              <LeadPanel
                 customerId={customer.id}
-                clientDna={customer.clientDna}
-                dos={record.customer.dos}
-                donts={record.customer.donts}
-                canEdit={permissions.canEdit}
+                leads={leads}
+                staff={staff}
+                canWork={permissions.canWorkLeads}
+                canAssign={permissions.canAssignLeads}
               />
 
+              {/*
+                Client DNA is not here any more: it is the strip above the
+                leads, where it is read, and the whole of it opens from there.
+              */}
               <ClientDetails
                 customer={customer}
                 household={household}
@@ -193,21 +286,39 @@ export function Client360View({
               />
             </div>
 
-            <div className="space-y-8">
-              <HouseholdPanel
-                household={household}
-                members={record.householdMembers}
-                currentCustomerId={customer.id}
-              />
-
-              <MilestonePanel
-                milestones={record.milestones}
-                customerId={customer.id}
-                canManage={permissions.canManageMilestones}
-              />
-            </div>
-          </div>
         
+      ),
+    },
+    {
+      value: "trips",
+      label: <>Trips{trips.length ? ` (${trips.length})` : ""}</>,
+      content: (
+        <div className="space-y-5">
+          <TripsPanel
+            customerId={customer.id}
+            trips={trips}
+            populate={
+              ternEnabled && permissions.canEdit ? (
+                <TernSearchDialog
+                  customerId={customer.id}
+                  label={customer.ternId ? "Refresh from Tern" : "Populate from Tern"}
+                />
+              ) : null
+            }
+          />
+          <TravelDocumentsCard
+            customerId={customer.id}
+            documents={travelDocuments}
+            canReveal={permissions.canRevealDocuments}
+          />
+          {documentsEnabled ? (
+            <DocumentsCard
+              customerId={customer.id}
+              documents={documents}
+              canManage={permissions.canManageDocuments}
+            />
+          ) : null}
+        </div>
       ),
     },
     {
@@ -215,6 +326,7 @@ export function Client360View({
       label: <>Travel</>,
       content: (
         <div className="space-y-8">
+          <Anchor id="sec-destinations" landed={landed}>
             <PreferenceSection
               customerId={customer.id}
               title="Destinations"
@@ -223,6 +335,8 @@ export function Client360View({
               preferences={record.preferences}
               canEdit={permissions.canUpdatePreferences}
             />
+          </Anchor>
+          <Anchor id="sec-travel-style" landed={landed}>
             <PreferenceSection
               customerId={customer.id}
               title="Travel style"
@@ -231,21 +345,49 @@ export function Client360View({
               preferences={record.preferences}
               canEdit={permissions.canUpdatePreferences}
             />
+          </Anchor>
+          <Anchor id="sec-travel-profile" landed={landed}>
             <PreferenceProfileForm
               customerId={customer.id}
               profile={record.profile}
               group="travel"
               canEdit={permissions.canUpdatePreferences}
             />
-        
+          </Anchor>
+        </div>
+      ),
+    },
+    {
+      value: "memberships",
+      label: <>Loyalty &amp; memberships</>,
+      content: (
+        <div className="space-y-8">
+          {/*
+            Every programme in one place, airline and hotel alike. They were
+            split across Hotels and Flights, which meant checking two screens
+            to answer "what does this client hold", and a cruise or a car hire
+            scheme belonged to neither.
+          */}
+          <Anchor id="sec-loyalty" landed={landed}>
+            <PreferenceSection
+              customerId={customer.id}
+              title="Loyalty and memberships"
+              icon={<Sparkles className="size-4" />}
+              kinds={["loyalty_programme"]}
+              catalogue={catalogue}
+              preferences={record.preferences}
+              canEdit={permissions.canUpdatePreferences}
+            />
+          </Anchor>
         </div>
       ),
     },
     {
       value: "hotels-air",
-      label: <>Hotels &amp; air</>,
+      label: <>Hotels &amp; flights</>,
       content: (
         <div className="space-y-8">
+          <Anchor id="sec-hotels" landed={landed}>
             <PreferenceSection
               customerId={customer.id}
               title="Hotels"
@@ -260,20 +402,23 @@ export function Client360View({
               preferences={record.preferences}
               canEdit={permissions.canUpdatePreferences}
             />
+          </Anchor>
+          <Anchor id="sec-hotel-profile" landed={landed}>
             <PreferenceProfileForm
               customerId={customer.id}
               profile={record.profile}
               group="hotel"
               canEdit={permissions.canUpdatePreferences}
             />
+          </Anchor>
 
+          <Anchor id="sec-flights" landed={landed}>
             <PreferenceSection
               customerId={customer.id}
               title="Flights"
               icon={<Plane className="size-4" />}
               kinds={[
                 "airline",
-                "loyalty_programme",
                 "seat_preference",
                 "flight_timing",
               ]}
@@ -281,21 +426,24 @@ export function Client360View({
               preferences={record.preferences}
               canEdit={permissions.canUpdatePreferences}
             />
+          </Anchor>
+          <Anchor id="sec-flight-profile" landed={landed}>
             <PreferenceProfileForm
               customerId={customer.id}
               profile={record.profile}
               group="flight"
               canEdit={permissions.canUpdatePreferences}
             />
-        
+          </Anchor>
         </div>
       ),
     },
     {
       value: "dining",
-      label: <>Dining &amp; lifestyle</>,
+      label: <>Lifestyle</>,
       content: (
         <div className="space-y-8">
+          <Anchor id="sec-dining" landed={landed}>
             <PreferenceSection
               customerId={customer.id}
               title="Dining"
@@ -305,13 +453,17 @@ export function Client360View({
               preferences={record.preferences}
               canEdit={permissions.canUpdatePreferences}
             />
+          </Anchor>
+          <Anchor id="sec-dining-profile" landed={landed}>
             <PreferenceProfileForm
               customerId={customer.id}
               profile={record.profile}
               group="dining"
               canEdit={permissions.canUpdatePreferences}
             />
+          </Anchor>
 
+          <Anchor id="sec-lifestyle" landed={landed}>
             <PreferenceSection
               customerId={customer.id}
               title="Lifestyle and experiences"
@@ -320,13 +472,15 @@ export function Client360View({
               preferences={record.preferences}
               canEdit={permissions.canUpdatePreferences}
             />
+          </Anchor>
+          <Anchor id="sec-lifestyle-profile" landed={landed}>
             <PreferenceProfileForm
               customerId={customer.id}
               profile={record.profile}
               group="lifestyle"
               canEdit={permissions.canUpdatePreferences}
             />
-        
+          </Anchor>
         </div>
       ),
     },
@@ -406,87 +560,69 @@ export function Client360View({
     customer.mobile?.replace(/\D/g, "") === customer.whatsapp?.replace(/\D/g, "");
 
   return (
-    <div className="space-y-8">
-      <header className="space-y-5">
-        <Link
-          href="/clients"
-          className="text-sm text-muted-foreground hover:underline"
-        >
-          ← Clients
-        </Link>
+    <div className="space-y-5">
+      <Link
+        href="/clients"
+        className="text-sm text-muted-foreground hover:underline"
+      >
+        ← Clients
+      </Link>
 
-        <div className="flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
-          <div className="flex min-w-0 gap-4">
-            <Avatar className="size-14 shrink-0">
-              <AvatarFallback className="font-display text-lg">
-                {initials(customer)}
-              </AvatarFallback>
-            </Avatar>
+      {/*
+        One rail down the side of the whole page, not one per section.
+        Giving the header its own right column and the body another left a
+        band of dead space between them, and put what a curator reads before
+        a call below the fold. The rail starts at the top and stays put.
+      */}
+      <div className="flex flex-col gap-6 lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(20rem,25rem)] lg:items-start">
+        <div className="min-w-0 space-y-5">
+          <header className="space-y-5">
+            <div className="flex min-w-0 gap-4">
+              <Avatar className="size-14 shrink-0">
+                <AvatarFallback className="font-display text-lg">
+                  {initials(customer)}
+                </AvatarFallback>
+              </Avatar>
 
-            <div className="min-w-0 space-y-1.5">
-              <div className="flex flex-wrap items-center gap-2.5">
-                <h1 className="font-display text-3xl leading-none tracking-tight">
-                  {displayName(customer)}
-                </h1>
-                {customer.archivedAt ? (
-                  <Badge variant="outline">Archived</Badge>
-                ) : (
-                  <Badge
-                    variant={customer.status === "active" ? "secondary" : "outline"}
-                  >
-                    {CLIENT_STATUS_LABELS[customer.status]}
-                  </Badge>
-                )}
-              </div>
+              <div className="min-w-0 space-y-1.5">
+                <div className="flex flex-wrap items-center gap-2.5">
+                  <h1 className="font-display text-3xl leading-none tracking-tight">
+                    {displayName(customer)}
+                  </h1>
+                  {customer.archivedAt ? (
+                    <Badge variant="outline">Archived</Badge>
+                  ) : (
+                    <Badge
+                      variant={customer.status === "active" ? "secondary" : "outline"}
+                    >
+                      {CLIENT_STATUS_LABELS[customer.status]}
+                    </Badge>
+                  )}
+                </div>
 
-              {customer.preferredName &&
-              customer.preferredName !== fullName(customer) ? (
-                <p className="text-sm text-muted-foreground">
-                  {fullName(customer)}
+                {customer.preferredName &&
+                customer.preferredName !== fullName(customer) ? (
+                  <p className="text-sm text-muted-foreground">
+                    {fullName(customer)}
+                  </p>
+                ) : null}
+
+                <p className="tabular text-sm text-muted-foreground">
+                  {customer.ref}
+                  {customer.city ? ` · ${customer.city}` : ""}
+                  {` · Client since ${formatDate(customer.customerSince)}`}
                 </p>
-              ) : null}
 
-              <p className="tabular text-sm text-muted-foreground">
-                {customer.ref}
-                {customer.city ? ` · ${customer.city}` : ""}
-                {` · Client since ${formatDate(customer.customerSince)}`}
-              </p>
-
-              <p className="text-sm text-muted-foreground">
-                Relationship manager:{" "}
-                <span className="text-foreground">
-                  {rm?.name ?? "Unassigned"}
-                </span>
-              </p>
+                <p className="text-sm text-muted-foreground">
+                  Relationship manager:{" "}
+                  <span className="text-foreground">
+                    {rm?.name ?? "Unassigned"}
+                  </span>
+                </p>
+              </div>
             </div>
-          </div>
 
-          <div className="flex shrink-0 flex-wrap gap-2">
-            {permissions.canUseAi ? (
-              <BriefMeDialog
-                customerId={customer.id}
-                customerName={displayName(customer)}
-              />
-            ) : null}
-            {permissions.canEdit ? (
-              <Button asChild>
-                <Link href={`/clients/${customer.id}/edit`}>
-                  <Pencil />
-                  Edit
-                </Link>
-              </Button>
-            ) : null}
-          </div>
-        </div>
-
-        {/*
-          The facts on the left, what they have been doing on the members' site
-          on the right, where the recording is a screen to press rather than a
-          line of text.
-        */}
-        <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
-          <div className="min-w-0 flex-1 space-y-5">
-        <div className="flex flex-wrap items-center gap-x-5 gap-y-2 text-sm">
+            <div className="flex flex-wrap items-center gap-x-5 gap-y-2 text-sm">
           {customer.mobile ? (
             <a
               href={`tel:${customer.mobile}`}
@@ -602,30 +738,31 @@ export function Client360View({
           <div className="flex items-center gap-2 rounded-md border border-accent bg-accent/40 px-3 py-2 text-sm text-accent-foreground">
             <Sparkles className="size-4 shrink-0" />
             <span>
-              Asked the Curator about {asked.title}, {timeAgo(asked.askedAt)}
+              Texted the Curator about {asked.title}, {timeAgo(asked.askedAt)}
             </span>
           </div>
         ) : null}
-          </div>
 
-          <div className="shrink-0 lg:w-80">
-        <InterestStrip
-          customerId={customer.id}
-          interest={interest}
-          replays={replays}
-          signals={signals}
-        />
-          </div>
-        </div>
+            {/*
+              Above the leads, because it is read before them. Two lines of it
+              here and the whole record a click away, so the three things worth
+              a glance — who they are, what they have asked for, what they hold
+              — fit on one screen and scrolling means detail or editing.
+            */}
+            <ClientDnaStrip
+              open={dnaOpen}
+              onOpenChange={setDnaOpen}
+              customerId={customer.id}
+              clientDna={customer.clientDna}
+              dos={record.customer.dos}
+              donts={record.customer.donts}
+              canEdit={permissions.canEdit}
+            />
 
-      </header>
-
-      <div className="flex justify-end">
-        <LayoutToggle value={layout} onChange={chooseLayout} />
-      </div>
+          </header>
 
       {layout === "tabs" ? (
-        <Tabs defaultValue="overview">
+        <Tabs value={view} onValueChange={setView}>
           {/*
             * Horizontal scrolling is wanted on a narrow window; the vertical
             * scrollbar that came with it was not. Leaving overflow-y to compute
@@ -646,21 +783,70 @@ export function Client360View({
           ))}
         </Tabs>
       ) : (
-        <div className="space-y-12">
+        <div className="space-y-8">
           {views.map((view) => (
-            <section key={view.value} className="space-y-6">
-              <div className="flex items-center gap-3">
-                <h2 className="font-display text-xl tracking-tight">
-                  {view.label}
-                </h2>
-                <div className="h-px flex-1 bg-border" />
-              </div>
-              {view.content}
-            </section>
+            <section key={view.value}>{view.content}</section>
           ))}
         </div>
       )}
+        </div>
 
+        {/*
+          What the desk reads before it rings: the one look first, then what
+          they have been doing, who they belong to and what is coming.
+        */}
+        <div className="min-w-0 space-y-5">
+          <div className="flex flex-wrap items-center gap-2 lg:justify-end">
+            {/*
+              A display preference, so it sits with the other page controls
+              rather than taking a whole row out of the first screen.
+            */}
+            <LayoutToggle value={layout} onChange={chooseLayout} />
+            {permissions.canUseAi ? (
+              <BriefMeDialog
+                customerId={customer.id}
+                customerName={displayName(customer)}
+              />
+            ) : null}
+            {permissions.canEdit ? (
+              <Button asChild>
+                <Link href={`/clients/${customer.id}/edit`}>
+                  <Pencil />
+                  Edit
+                </Link>
+              </Button>
+            ) : null}
+          </div>
+
+          <AtAGlance
+            preferences={record.preferences}
+            profile={record.profile}
+            dos={record.customer.dos}
+            donts={record.customer.donts}
+            onJump={jumpTo}
+            onDna={() => setDnaOpen(true)}
+          />
+
+          <InterestStrip
+            customerId={customer.id}
+            interest={interest}
+            replays={replays}
+            signals={signals}
+          />
+
+          <HouseholdPanel
+            household={household}
+            members={record.householdMembers}
+            currentCustomerId={customer.id}
+          />
+
+          <MilestonePanel
+            milestones={record.milestones}
+            customerId={customer.id}
+            canManage={permissions.canManageMilestones}
+          />
+        </div>
+      </div>
     </div>
   );
 }

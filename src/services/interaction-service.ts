@@ -67,6 +67,16 @@ export async function recordInteraction(input: RecordInteractionInput) {
       })
       .where(eq(customers.id, data.customerId));
 
+    /*
+     * Contact logged against a client answers whatever they were waiting on.
+     *
+     * This is the honest signal: the desk writes a call down after it happens,
+     * and asking somebody to press a second button to say what they have just
+     * recorded is how a queue stops matching reality.
+     */
+    const { acknowledgeLeadsFor } = await import("./lead-service");
+    await acknowledgeLeadsFor(tx, data.customerId, actor.id);
+
     await logActivity(
       {
         actor,
